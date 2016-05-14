@@ -74,8 +74,9 @@ output:
   all: ">> /var/log/cloud-init.log"
 
 # configure interaction with ssh server
-#ssh_deletekeys: True
-#ssh_genkeytypes: ['rsa', 'ecdsa']
+ssh_svcname: ssh
+ssh_deletekeys: True
+ssh_genkeytypes: ['rsa', 'ecdsa']
 
 # Install my public ssh key to the first user-defined user configured 
 # in cloud.cfg in the template (which is centos for CentOS cloud images)
