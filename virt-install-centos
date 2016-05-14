@@ -74,7 +74,6 @@ output:
   all: ">> /var/log/cloud-init.log"
 
 # configure interaction with ssh server
-#ssh_svcname: sshd
 #ssh_deletekeys: True
 #ssh_genkeytypes: ['rsa', 'ecdsa']
 
@@ -98,8 +97,6 @@ _EOF_
     echo "virt-install --import --name $1 --ram $MEM --vcpus $CPUS --disk
     $DISK,format=qcow2,bus=virtio --disk $CI_ISO,device=cdrom --network
     bridge=virbr0,model=virtio --os-type=linux --os-variant=rhel6 --noautoconsole"
-
-    exit
 
     virt-install --import --name $1 --ram $MEM --vcpus $CPUS --disk \
     $DISK,format=qcow2,bus=virtio --disk $CI_ISO,device=cdrom --network \
