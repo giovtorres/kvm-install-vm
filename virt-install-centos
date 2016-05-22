@@ -10,9 +10,11 @@ fi
 virsh dominfo $1 > /dev/null 2>&1
 if [ "$?" -eq 0 ]; then
     echo -n "[WARNING] $1 already exists.  "
-    read -p "Do you want to overwrite $1 [y/N]? " -r
+    read -p "Do you want to overwrite $1 (y/[N])? " -r
     if [[ $REPLY =~ ^[Yy]$ ]]; then
         echo ""
+        virsh destroy $1 > /dev/null
+        virsh undefine $1 > /dev/null
     else
         echo -e "\nNot overwriting $1. Exiting..."
         exit 1
@@ -97,11 +99,11 @@ _EOF_
     echo "[INFO] Installing with the following parameters:"
     echo "virt-install --import --name $1 --ram $MEM --vcpus $CPUS --disk
     $DISK,format=qcow2,bus=virtio --disk $CI_ISO,device=cdrom --network
-    bridge=virbr0,model=virtio --os-type=linux --os-variant=rhel6 --noautoconsole"
+    bridge=virbr0,model=virtio --os-type=linux --os-variant=rhel7 --noautoconsole"
 
     virt-install --import --name $1 --ram $MEM --vcpus $CPUS --disk \
     $DISK,format=qcow2,bus=virtio --disk $CI_ISO,device=cdrom --network \
-    bridge=virbr0,model=virtio --os-type=linux --os-variant=rhel6 --noautoconsole
+    bridge=virbr0,model=virtio --os-type=linux --os-variant=rhel7 --noautoconsole
 
     MAC=$(virsh dumpxml $1 | awk -F\' '/mac address/ {print $2}')
     while true
