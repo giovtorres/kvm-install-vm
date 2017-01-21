@@ -125,6 +125,6 @@ _EOF_
     # Remove the unnecessary cloud init files
     rm $USER_DATA $CI_ISO
 
-    echo "$(date -R) DONE. SSH to $1 using $IP, with  username 'centos'."
+    echo "$(date -R) DONE. SSH to $1 using $IP with  username 'centos'."
 
 popd > /dev/null
