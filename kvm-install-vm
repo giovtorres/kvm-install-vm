@@ -164,7 +164,7 @@ function fetch_images {
 function check_ssh_key {
     if [ ! -f "${PUBKEY}" ]
     then
-        echo "$(date -R) [ERROR] Please generate an SSH keypair using `ssh-keygen -t rsa`"
+        echo "$(date -R) [ERROR] Please generate an SSH keypair using 'ssh-keygen -t rsa' or specify one with the "-k" flag."
         exit 3
     else
         KEY=$(<${PUBKEY})
