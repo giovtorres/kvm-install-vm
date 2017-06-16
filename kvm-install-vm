@@ -11,7 +11,7 @@ function usage {
     echo "  -m          Memory Size (MB)    (default: 1024)"
     echo "  -d          Disk Size (GB)      (default: 10)"
     echo "  -t          Linux distribution  (default: centos7)"
-    echo "  -i          Location of Images  (default: $HOME/virt/images)"
+    echo "  -l          Location of Images  (default: $HOME/virt/images)"
     echo "  -k          SSH public key      (default: $HOME/.ssh/id_rsa.pub)"
     echo "  -b          Bridge              (default: virbr0)"
     echo "  -h          Display help"
@@ -21,7 +21,6 @@ function usage {
     echo "DISTRIBUTIONS"
     echo " - centos7"
     echo " - centos6"
-    echo " - debian8"
     echo ""
     echo "EXAMPLES"
     echo ""
@@ -56,12 +55,12 @@ DISTRO=centos7                  # Distribution
 # Parse command line arguments
 #--------------------------------------------------
 
-while getopts ":c:m:d:t:i:k:b:n:r:h" opt; do
+while getopts ":c:m:d:t:l:k:b:n:r:h" opt; do
     case "$opt" in
         c   ) CPUS="${OPTARG}" ;;
         m   ) MEMORY="${OPTARG}" ;;
         t   ) DISTRO="${OPTARG}" ;;
-        i   ) IMAGEDIR="${OPTARG}" ;;
+        l   ) IMAGEDIR="${OPTARG}" ;;
         n   ) VMNAME="${OPTARG}" ;;
         k   ) PUBKEY="${OPTARG}" ;;
         b   ) BRIDGE="${OPTARG}" ;;
