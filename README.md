@@ -1,7 +1,7 @@
 ## kvm-install-vm
 
 A bash wrapper around virt-install to build virtual machines on a local KVM
-hypervisor.
+hypervisor.  Tested on Fedora 25.
 
 ### Usage
 
@@ -42,8 +42,9 @@ Remove (destroy and undefine) a VM:
 
 ### Use Cases
 
-If Docker or Vagrant don't do it for you and you just want to spin up one or
-VMs quickly and locally to test things like:
+If you don't need to use Docker or Vagrant, don't want to make changes to a
+production machine, and just want to spin up one or more VMs locally to test
+things like:
 
 - high availability
 - clustering
@@ -52,4 +53,4 @@ VMs quickly and locally to test things like:
 - checking for system defaults
 - anything else you would do with a VM
 
-then this wrapper could be useful for you.
+...then this wrapper could be useful for you.
