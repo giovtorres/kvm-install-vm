@@ -10,11 +10,12 @@ function usage {
     echo "  -c          Number of vCPUs     (default: 1)"
     echo "  -m          Memory Size (MB)    (default: 1024)"
     echo "  -d          Disk Size (GB)      (default: 10)"
-    echo "  -t          Linux distribution  (default: centos7)"
+    echo "  -t          Linux Distribution  (default: centos7)"
     echo "  -l          Location of Images  (default: $HOME/virt/images)"
-    echo "  -k          SSH public key      (default: $HOME/.ssh/id_rsa.pub)"
+    echo "  -k          SSH Public Key      (default: $HOME/.ssh/id_rsa.pub)"
     echo "  -b          Bridge              (default: virbr0)"
     echo "  -h          Display help"
+    echo "  -i          Custom QCOW2 Image"
     echo "  -n vmname   Name of VM to create"
     echo "  -r vmname   Name of VM to delete"
     echo ""
@@ -55,7 +56,7 @@ DISTRO=centos7                  # Distribution
 # Parse command line arguments
 #--------------------------------------------------
 
-while getopts ":c:m:d:t:l:k:b:n:r:h" opt; do
+while getopts ":c:m:d:t:l:k:b:n:r:i:h" opt; do
     case "$opt" in
         c   ) CPUS="${OPTARG}" ;;
         m   ) MEMORY="${OPTARG}" ;;
@@ -64,6 +65,7 @@ while getopts ":c:m:d:t:l:k:b:n:r:h" opt; do
         n   ) VMNAME="${OPTARG}" ;;
         k   ) PUBKEY="${OPTARG}" ;;
         b   ) BRIDGE="${OPTARG}" ;;
+        i   ) IMAGE="${OPTARG}" ;;
         r   ) VMDEL="${OPTARG}" ;;
         d   )
             if [ "${OPTARG}" -gt ${DISK_SIZE} ]; then
@@ -177,7 +179,15 @@ CI_ISO=${VMNAME}-cidata.iso
 
 # Call functions
 check_ssh_key
-fetch_images
+
+if [ ! -z "${IMAGE+x}" ]
+then
+    echo "$(date -R) Using custom QCOW2 image: ${IMAGE}."
+    OS_VARIANT="auto"
+    LOGIN_USER="<use the default account in your custom image>"
+else
+    fetch_images
+fi
 
 # Check if domain already exists
 virsh dominfo ${VMNAME} > /dev/null 2>&1
@@ -206,38 +216,28 @@ pushd ${IMAGEDIR}/${VMNAME} > /dev/null
     # and add ssh-key 
     cat > $USER_DATA << _EOF_
 #cloud-config
-package_update: true
-package_upgrade: false
-packages:
-    - less
+
+# Hostname management
+preserve_hostname: False
+hostname: ${VMNAME}
+fqdn: ${VMNAME}.example.local
+
+# Configure where output will go
+output: 
+  all: ">> /var/log/cloud-init.log"
+
+# configure interaction with ssh server
+ssh_genkeytypes: ['ed25519', 'rsa']
+
+# Install my public ssh key to the first user-defined user configured 
+# in cloud.cfg in the template (which is centos for CentOS cloud images)
 ssh_authorized_keys:
   - ${KEY}
-final_message: "The system is finally up, after $UPTIME seconds."
-_EOF_
 
-##cloud-config
-#
-## Hostname management
-#preserve_hostname: False
-#hostname: ${VMNAME}
-#fqdn: ${VMNAME}.example.local
-#
-## Configure where output will go
-#output: 
-#  all: ">> /var/log/cloud-init.log"
-#
-## configure interaction with ssh server
-#ssh_genkeytypes: ['ed25519', 'rsa']
-#
-## Install my public ssh key to the first user-defined user configured 
-## in cloud.cfg in the template (which is centos for CentOS cloud images)
-#ssh_authorized_keys:
-#  - ${KEY}
-#
-## Remove cloud-init when finished with it
-#runcmd:
-#  - [ yum, -y, remove, cloud-init ]
-#_EOF_
+# Remove cloud-init when finished with it
+runcmd:
+  - [ yum, -y, remove, cloud-init ]
+_EOF_
 
     echo "instance-id: ${VMNAME}; local-hostname: ${VMNAME}" > $META_DATA
 
@@ -268,7 +268,7 @@ _EOF_
     echo "      --network bridge=${BRIDGE},model=virtio \\"
     echo "      --os-type=linux \\"
     echo "      --os-variant=${OS_VARIANT} \\"
-    echo "      --noautoconsole \\"
+    echo "      --noautoconsole "
 
     virt-install --import \
         --name ${VMNAME} \
@@ -288,7 +288,7 @@ _EOF_
     virsh change-media ${VMNAME} hda --eject --config >> ${VMNAME}.log
 
     # Remove the unnecessary cloud init files
-    ########rm $USER_DATA $META_DATA $CI_ISO
+    rm $USER_DATA $META_DATA $CI_ISO
 
     MAC=$(virsh dumpxml ${VMNAME} | awk -F\' '/mac address/ {print $2}')
     while true
