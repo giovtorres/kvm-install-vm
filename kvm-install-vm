@@ -268,6 +268,7 @@ _EOF_
     echo "      --network bridge=${BRIDGE},model=virtio \\"
     echo "      --os-type=linux \\"
     echo "      --os-variant=${OS_VARIANT} \\"
+    echo "      --graphics none \\"
     echo "      --noautoconsole "
 
     virt-install --import \
@@ -279,8 +280,14 @@ _EOF_
         --network bridge=${BRIDGE},model=virtio \
         --os-type=linux \
         --os-variant=${OS_VARIANT} \
+        --graphics none \
         --noautoconsole
 
+    RET=$?
+    if [ "$RET" -ne 0 ]; then
+        echo "[ERROR] virt-install failed."
+        exit 3
+    fi
     virsh dominfo ${VMNAME} >> ${VMNAME}.log 2>&1
 
     # Eject cdrom
