@@ -15,7 +15,6 @@ You need to have the KVM hypervisor installed, along with a few other packages:
 - libguestfs-tools-c
 - qemu-img
 - libvirt-client
-- qemu
 
 To install the dependencies, run:
 
