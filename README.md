@@ -56,8 +56,9 @@ Remove (destroy and undefine) a VM:
 
 ### Notes
 
-- This will download a cloud image from the CentOS site if the default QCOW2
-  image doesn't exist.
+- This will download a cloud image from the [CentOS
+  site](https://cloud.centos.org/centos/) if the default QCOW2 image doesn't
+  exist.
 
 ### Use Cases
 
