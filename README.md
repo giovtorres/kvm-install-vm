@@ -11,8 +11,8 @@ OPTIONS
   -m          Memory Size (MB)    (default: 1024)
   -d          Disk Size (GB)      (default: 10)
   -t          Linux Distribution  (default: centos7)
-  -l          Location of Images  (default: /home/giovanni/virt/images)
-  -k          SSH Public Key      (default: /home/giovanni/.ssh/id_rsa.pub)
+  -l          Location of Images  (default: $HOME/virt/images)
+  -k          SSH Public Key      (default: $HOME/.ssh/id_rsa.pub)
   -b          Bridge              (default: virbr0)
   -h          Display help
   -i          Custom QCOW2 Image
@@ -28,7 +28,7 @@ EXAMPLES
 Create VM with default params:
   ./kvm-install-vm -n foo
 
-Create VM with custom params:
+Create VM with custom params (2 vCPUs, 2048MB RAM and 20GB disk):
   ./kvm-install-vm -c 2 -m 2048 -d 20 -n foo
 
 Remove (destroy and undefine) a VM:
@@ -43,7 +43,7 @@ Remove (destroy and undefine) a VM:
 ### Use Cases
 
 If you don't need to use Docker or Vagrant, don't want to make changes to a
-production machine, and just want to spin up one or more VMs locally to test
+production machine, or just want to spin up one or more VMs locally to test
 things like:
 
 - high availability
