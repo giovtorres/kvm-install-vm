@@ -1,7 +1,7 @@
 ## kvm-install-vm
 
 A bash wrapper around virt-install to build virtual machines on a local KVM
-hypervisor.  You can run it as a normal user, using `qemu:///session` to
+hypervisor.  You can run it as a normal user which will use `qemu:///session` to
 connect locally to your KVM domains.
 
 Tested on Fedora 25/26.
