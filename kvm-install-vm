@@ -19,13 +19,12 @@ function usage {
     echo "  -i          Custom QCOW2 Image"
     echo "  -n vmname   Name of VM to create"
     echo "  -r vmname   Name of VM to delete"
-    echo "  -M mac      Mac address         (default: '')"
+    echo "  -M mac      Mac address         (default: None)"
     echo ""
     echo "DISTRIBUTIONS"
     echo " - centos7"
     echo " - centos6"
-    echo " - debian8"
-    echo " - ubuntu16"
+    echo " - ubuntu1604"
     echo ""
     echo "EXAMPLES"
     echo ""
@@ -56,7 +55,7 @@ IMAGEDIR=${HOME}/virt/images    # Directory to store images
 BRIDGE=virbr0                   # Hypervisor bridge
 PUBKEY=${HOME}/.ssh/id_rsa.pub  # SSH public key
 DISTRO=centos7                  # Distribution
-MACADDRESS=""
+MACADDRESS=                     # MAC Address
 
 #--------------------------------------------------
 # Parse command line arguments
@@ -127,11 +126,11 @@ fi
 
 function fetch_images {
     case "$DISTRO" in
-        centos7 ) QCOW=CentOS-7-x86_64-GenericCloud.qcow2 ;;
-        centos6 ) QCOW=CentOS-6-x86_64-GenericCloud.qcow2 ;;
-        debian8 ) QCOW=debian-8-20170521-openstack-amd64.qcow2 ;;
-        ubuntu16) QCOW=ubuntu-16.04-server-cloudimg-amd64-disk1.img ;;
-        *       ) usage; exit 2 ;;
+        centos7    ) QCOW=CentOS-7-x86_64-GenericCloud.qcow2 ;;
+        centos6    ) QCOW=CentOS-6-x86_64-GenericCloud.qcow2 ;;
+        debian8    ) QCOW=debian-8-openstack-amd64.qcow2 ;;
+        ubuntu1604 ) QCOW=ubuntu-16.04-server-cloudimg-amd64-disk1.img ;;
+        *          ) usage; exit 2 ;;
     esac
 
     mkdir -p ${IMAGEDIR}
@@ -166,7 +165,7 @@ function fetch_images {
             echo "$(date -R) Cloud image not found.  Downloading..."
             wget -P ${IMAGEDIR} ${DEBIAN8_URL}/${QCOW}
         fi
-    elif [ "${DISTRO}" == "ubuntu16" ]
+    elif [ "${DISTRO}" == "ubuntu1604" ]
     then
         OS_VARIANT="ubuntu16.04"
         UBUNTU16_URL=https://cloud-images.ubuntu.com/releases/16.04/release/
@@ -232,7 +231,7 @@ pushd ${IMAGEDIR}/${VMNAME} > /dev/null
     touch ${VMNAME}.log
 
     # cloud-init config: set hostname, remove cloud-init package,
-    # and add ssh-key 
+    # and add ssh-key
     cat > $USER_DATA << _EOF_
 #cloud-config
 
@@ -242,13 +241,13 @@ hostname: ${VMNAME}
 fqdn: ${VMNAME}.example.local
 
 # Configure where output will go
-output: 
+output:
   all: ">> /var/log/cloud-init.log"
 
 # configure interaction with ssh server
 ssh_genkeytypes: ['ed25519', 'rsa']
 
-# Install my public ssh key to the first user-defined user configured 
+# Install my public ssh key to the first user-defined user configured
 # in cloud.cfg in the template (which is centos for CentOS cloud images)
 ssh_authorized_keys:
   - ${KEY}
@@ -295,7 +294,7 @@ _EOF_
     echo "      --cpu ${FEATURE} \\"
     echo "      --disk $DISK,format=qcow2,bus=virtio \\"
     echo "      --disk $CI_ISO,device=cdrom \\"
-    if [ "${MACADDRESS}" == "" ]
+    if [ -z "${MACADDRESS}" ]
     then
         echo "      --network bridge=${BRIDGE},model=virtio \\"
     else
@@ -306,7 +305,7 @@ _EOF_
     echo "      --graphics none \\"
     echo "      --noautoconsole "
 
-    if [ "${MACADDRESS}" == "" ]
+    if [ -z "${MACADDRESS}" ]
     then
         virt-install --import \
             --name ${VMNAME} \
