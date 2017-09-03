@@ -28,6 +28,7 @@ sudo dnf -y install genisoimage virt-install libguestfs-tools-c qemu-img libvirt
 OPTIONS
   -c          Number of vCPUs     (default: 1)
   -m          Memory Size (MB)    (default: 1024)
+  -f          CPU Model / Feature (default: host)
   -d          Disk Size (GB)      (default: 10)
   -t          Linux Distribution  (default: centos7)
   -l          Location of Images  (default: $HOME/virt/images)
@@ -37,10 +38,12 @@ OPTIONS
   -i          Custom QCOW2 Image
   -n vmname   Name of VM to create
   -r vmname   Name of VM to delete
+  -M mac      Mac address         (default: None)
 
 DISTRIBUTIONS
  - centos7
  - centos6
+ - ubuntu1604
 
 EXAMPLES
 
