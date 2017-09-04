@@ -295,59 +295,52 @@ _EOF_
     echo "[$(date +%r)]----> Generating ISO for cloud-init..."
     genisoimage -output $CI_ISO -volid cidata -joliet -r $USER_DATA $META_DATA &>> ${VMNAME}.log
 
-    echo "[$(date +%r)]----> Creating Storage Pool..."
-    echo "      virsh pool-create-as --name ${VMNAME} --type dir --target ${IMAGEDIR}/${VMNAME}"
+    echo "[$(date +%r)]----> Creating Storage Pool with the following command:"
+    echo "    virsh pool-create-as \\"
+    echo "      --name ${VMNAME} \\"
+    echo "      --type dir \\"
+    echo "      --target ${IMAGEDIR}/${VMNAME}"
+
+    # Create new storage pool for new VM
     virsh pool-create-as --name ${VMNAME} --type dir --target ${IMAGEDIR}/${VMNAME}
 
+    # Add custom MAC Address if specified
+    if [ -z "${MACADDRESS}" ]
+    then
+        NETWORK_PARAMS="bridge=${BRIDGE},model=virtio"
+    else
+        NETWORK_PARAMS="bridge=${BRIDGE},model=virtio,mac=${MACADDRESS}"
+    fi
+
     echo "[$(date +%r)]----> Installing the domain and adjusting the configuration..."
-    echo "[INFO] Installing with the following parameters:"
+    echo "[$(date +%r)]----> Installing with the following command:"
     echo "    virt-install \\"
     echo "      --import \\"
     echo "      --name ${VMNAME} \\"
     echo "      --ram ${MEMORY} \\"
     echo "      --vcpus ${CPUS} \\"
     echo "      --cpu ${FEATURE} \\"
-    echo "      --disk $DISK,format=qcow2,bus=virtio \\"
-    echo "      --disk $CI_ISO,device=cdrom \\"
-    if [ -z "${MACADDRESS}" ]
-    then
-        echo "      --network bridge=${BRIDGE},model=virtio \\"
-    else
-        echo "      --network bridge=${BRIDGE},model=virtio,mac=${MACADDRESS} \\"
-    fi
+    echo "      --disk ${DISK},format=qcow2,bus=virtio \\"
+    echo "      --disk ${CI_ISO},device=cdrom \\"
+    echo "      --network ${NETWORK_PARAMS} \\"
     echo "      --os-type=linux \\"
     echo "      --os-variant=${OS_VARIANT} \\"
     echo "      --graphics none \\"
     echo "      --noautoconsole "
 
-    if [ -z "${MACADDRESS}" ]
-    then
-        virt-install --import \
-            --name ${VMNAME} \
-            --ram ${MEMORY} \
-            --vcpus ${CPUS} \
-            --cpu ${FEATURE} \
-            --disk $DISK,format=qcow2,bus=virtio \
-            --disk $CI_ISO,device=cdrom \
-            --network bridge=${BRIDGE},model=virtio \
-            --os-type=linux \
-            --os-variant=${OS_VARIANT} \
-            --graphics none \
-            --noautoconsole
-    else
-        virt-install --import \
-            --name ${VMNAME} \
-            --ram ${MEMORY} \
-            --vcpus ${CPUS} \
-            --cpu ${FEATURE} \
-            --disk $DISK,format=qcow2,bus=virtio \
-            --disk $CI_ISO,device=cdrom \
-            --network bridge=${BRIDGE},model=virtio,mac=${MACADDRESS} \
-            --os-type=linux \
-            --os-variant=${OS_VARIANT} \
-            --graphics none \
-            --noautoconsole
-    fi
+    # Call virt-install to import the cloud image and create a new VM
+    virt-install --import \
+        --name ${VMNAME} \
+        --ram ${MEMORY} \
+        --vcpus ${CPUS} \
+        --cpu ${FEATURE} \
+        --disk ${DISK},format=qcow2,bus=virtio \
+        --disk ${CI_ISO},device=cdrom \
+        --network ${NETWORK_PARAMS} \
+        --os-type=linux \
+        --os-variant=${OS_VARIANT} \
+        --graphics none \
+        --noautoconsole
 
     RET=$?
     if [ "$RET" -ne 0 ]; then
