@@ -98,16 +98,16 @@ fi
 
 function delete_vm {
     VM=$1
-    echo "$(date -R) Destroying ${VM} domain..."
+    echo "[$(date +%r)]----> Destroying ${VM} domain..."
     virsh destroy ${VM} > /dev/null 2>&1
-    echo "$(date -R) Destroying ${VM} storage pool..."
+    echo "[$(date +%r)]----> Destroying ${VM} storage pool..."
     virsh pool-destroy ${VM} > /dev/null 2>&1
-    echo "$(date -R) Undefining ${VM} storage pool..."
+    echo "[$(date +%r)]----> Undefining ${VM} storage pool..."
     virsh pool-undefine ${VM} > /dev/null 2>&1
-    echo "$(date -R) Undefining ${VM} domain..."
+    echo "[$(date +%r)]----> Undefining ${VM} domain..."
     virsh undefine ${VM} > /dev/null 2>&1
 
-    echo "$(date -R) Deleting ${VM} files..."
+    echo "[$(date +%r)]----> Deleting ${VM} files..."
     rm -rf $IMAGEDIR/$VM
 }
 
@@ -188,7 +188,7 @@ function fetch_images {
 
     if [ ! -f ${IMAGEDIR}/${QCOW} ]
     then
-        echo "$(date -R) Cloud image not found.  Downloading..."
+        echo "[$(date +%r)]----> Cloud image not found.  Downloading..."
         wget --quiet --show-progress --directory-prefix ${IMAGEDIR} ${IMAGE_URL}/${QCOW}
     fi
 
@@ -198,7 +198,7 @@ function check_ssh_key {
     if [ ! -f "${PUBKEY}" ]
     then
         # Check for existence of a pubkey, or else exit with message
-        echo "$(date -R) [ERROR] Please generate an SSH keypair using 'ssh-keygen -t rsa' or specify one with the "-k" flag."
+        echo "[$(date +%r)]----> [ERROR] Please generate an SSH keypair using 'ssh-keygen -t rsa' or specify one with the "-k" flag."
         exit 3
     else
         # Place contents of $PUBKEY into $KEY
@@ -211,7 +211,7 @@ check_ssh_key
 
 if [ ! -z "${IMAGE+x}" ]
 then
-    echo "$(date -R) Using custom QCOW2 image: ${IMAGE}."
+    echo "[$(date +%r)]----> Using custom QCOW2 image: ${IMAGE}."
     OS_VARIANT="auto"
     LOGIN_USER="<use the default account in your custom image>"
 else
@@ -280,26 +280,26 @@ _EOF_
 
     echo "instance-id: ${VMNAME}; local-hostname: ${VMNAME}" > $META_DATA
 
-    echo "$(date -R) Copying cloud image ($(basename ${IMAGE}))..."
+    echo "[$(date +%r)]----> Copying cloud image ($(basename ${IMAGE}))..."
     DISK=${VMNAME}.qcow2
     cp $IMAGE $DISK
     if $RESIZE_DISK
     then
-        echo "$(date -R) Resizing the disk to $DISK_SIZE..."
+        echo "[$(date +%r)]----> Resizing the disk to $DISK_SIZE..."
         qemu-img create -f qcow2 -o preallocation=metadata $DISK.new $DISK_SIZE >> ${VMNAME}.log 2>&1
         virt-resize --quiet --expand /dev/sda1 $DISK $DISK.new >> ${VMNAME}.log 2>&1
         mv $DISK.new $DISK
     fi
 
     # Create CD-ROM ISO with cloud-init config
-    echo "$(date -R) Generating ISO for cloud-init..."
+    echo "[$(date +%r)]----> Generating ISO for cloud-init..."
     genisoimage -output $CI_ISO -volid cidata -joliet -r $USER_DATA $META_DATA &>> ${VMNAME}.log
 
-    echo "$(date -R) Creating Storage Pool..."
+    echo "[$(date +%r)]----> Creating Storage Pool..."
     echo "      virsh pool-create-as --name ${VMNAME} --type dir --target ${IMAGEDIR}/${VMNAME}"
     virsh pool-create-as --name ${VMNAME} --type dir --target ${IMAGEDIR}/${VMNAME}
 
-    echo "$(date -R) Installing the domain and adjusting the configuration..."
+    echo "[$(date +%r)]----> Installing the domain and adjusting the configuration..."
     echo "[INFO] Installing with the following parameters:"
     echo "    virt-install \\"
     echo "      --import \\"
@@ -357,13 +357,13 @@ _EOF_
     virsh dominfo ${VMNAME} >> ${VMNAME}.log 2>&1
 
     # Eject cdrom
-    echo "$(date -R) Cleaning up cloud-init..."
+    echo "[$(date +%r)]----> Cleaning up cloud-init..."
     virsh change-media ${VMNAME} hda --eject --config >> ${VMNAME}.log
 
     # Remove the unnecessary cloud init files
     rm $USER_DATA $META_DATA $CI_ISO
 
-    echo "$(date -R) Waiting for SSH to become active..."
+    echo "[$(date +%r)]----> Waiting for domain to get an IP address ..."
     MAC=$(virsh dumpxml ${VMNAME} | awk -F\' '/mac address/ {print $2}')
     while true
     do
@@ -377,7 +377,7 @@ _EOF_
         fi
     done
 
-    echo "$(date -R) SSH to ${VMNAME}: 'ssh ${LOGIN_USER}@$IP'."
-    echo "$(date -R) DONE."
+    echo "[$(date +%r)]----> SSH to ${VMNAME}: 'ssh ${LOGIN_USER}@$IP'."
+    echo "[$(date +%r)]----> DONE."
 
 popd > /dev/null
