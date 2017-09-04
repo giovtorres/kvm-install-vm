@@ -44,6 +44,7 @@ DISTRIBUTIONS
  - centos7
  - centos6
  - ubuntu1604
+ - fedora26
 
 EXAMPLES
 

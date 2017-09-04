@@ -25,6 +25,7 @@ function usage {
     echo " - centos7"
     echo " - centos6"
     echo " - ubuntu1604"
+    echo " - fedora26"
     echo ""
     echo "EXAMPLES"
     echo ""
@@ -154,7 +155,7 @@ function fetch_images {
         ubuntu1604)
             QCOW=ubuntu-16.04-server-cloudimg-amd64-disk1.img
             OS_VARIANT="ubuntu16.04"
-            IMAGE_URL=https://cloud-images.ubuntu.com/releases/16.04/release/
+            IMAGE_URL=https://cloud-images.ubuntu.com/releases/16.04/release
             LOGIN_USER=ubuntu
             ;;
         debian8)
@@ -163,6 +164,19 @@ function fetch_images {
             OS_VARIANT="debian8"
             IMAGE_URL=https://cdimage.debian.org/cdimage/openstack/current-8
             LOGIN_USER=debian
+            ;;
+        debian9)
+            # FIXME: Not yet working.
+            QCOW=debian-9-openstack-amd64.qcow2
+            OS_VARIANT="debian9"
+            IMAGE_URL=https://cdimage.debian.org/cdimage/openstack/current-9
+            LOGIN_USER=debian
+            ;;
+        fedora26)
+            QCOW=Fedora-Cloud-Base-26-1.5.x86_64.qcow2
+            OS_VARIANT="fedora26"
+            IMAGE_URL=https://download.fedoraproject.org/pub/fedora/linux/releases/26/CloudImages/x86_64/images
+            LOGIN_USER=fedora
             ;;
         *)
             usage
@@ -175,7 +189,7 @@ function fetch_images {
     if [ ! -f ${IMAGEDIR}/${QCOW} ]
     then
         echo "$(date -R) Cloud image not found.  Downloading..."
-        wget -P ${IMAGEDIR} ${IMAGE}
+        wget --quiet --show-progress --directory-prefix ${IMAGEDIR} ${IMAGE_URL}/${QCOW}
     fi
 
 }
