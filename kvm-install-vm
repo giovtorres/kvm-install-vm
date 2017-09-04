@@ -124,76 +124,73 @@ then
     exit 2
 fi
 
-function fetch_images {
-    case "$DISTRO" in
-        centos7    ) QCOW=CentOS-7-x86_64-GenericCloud.qcow2 ;;
-        centos6    ) QCOW=CentOS-6-x86_64-GenericCloud.qcow2 ;;
-        debian8    ) QCOW=debian-8-openstack-amd64.qcow2 ;;
-        ubuntu1604 ) QCOW=ubuntu-16.04-server-cloudimg-amd64-disk1.img ;;
-        *          ) usage; exit 2 ;;
-    esac
+#--------------------------------------------------
+# cloud-init variables
+#--------------------------------------------------
 
+USER_DATA=user-data
+META_DATA=meta-data
+CI_ISO=${VMNAME}-cidata.iso
+
+
+function fetch_images {
+    # Create image directory if it doesn't already exist
     mkdir -p ${IMAGEDIR}
 
-    if [ "${DISTRO}" == "centos7" ]
-    then
-        OS_VARIANT="centos7.0"
-        CENTOS7_URL=https://cloud.centos.org/centos/7/images
-        LOGIN_USER=centos
-        if [ ! -f ${IMAGEDIR}/${QCOW} ]
-        then
-            echo "$(date -R) Cloud image not found.  Downloading..."
-            wget -P ${IMAGEDIR} ${CENTOS7_URL}/${QCOW}
-        fi
-    elif [ "${DISTRO}" == "centos6" ]
-    then
-        OS_VARIANT="centos6.9"
-        CENTOS6_URL=https://cloud.centos.org/centos/6/images
-        LOGIN_USER=centos
-        if [ ! -f ${IMAGEDIR}/${QCOW} ]
-        then
-            echo "$(date -R) Cloud image not found.  Downloading..."
-            wget -P ${IMAGEDIR} ${CENTOS6_URL}/${QCOW}
-        fi
-    elif [ "${DISTRO}" == "debian8" ]
-    then
-        OS_VARIANT="debian8"
-        DEBIAN8_URL=https://cdimage.debian.org/cdimage/openstack/current-8
-        LOGIN_USER=debian
-        if [ ! -f ${IMAGEDIR}/${QCOW} ]
-        then
-            echo "$(date -R) Cloud image not found.  Downloading..."
-            wget -P ${IMAGEDIR} ${DEBIAN8_URL}/${QCOW}
-        fi
-    elif [ "${DISTRO}" == "ubuntu1604" ]
-    then
-        OS_VARIANT="ubuntu16.04"
-        UBUNTU16_URL=https://cloud-images.ubuntu.com/releases/16.04/release/
-        LOGIN_USER=ubuntu
-        if [ ! -f ${IMAGEDIR}/${QCOW} ]
-        then
-            echo "$(date -R) Cloud image not found.  Downloading..."
-            wget -P ${IMAGEDIR} ${UBUNTU16_URL}/${QCOW}
-        fi
-    fi
+    # Set variables based on $DISTRO
+    case "$DISTRO" in
+        centos7)
+            QCOW=CentOS-7-x86_64-GenericCloud.qcow2
+            OS_VARIANT="centos7.0"
+            IMAGE_URL=https://cloud.centos.org/centos/7/images
+            LOGIN_USER=centos
+            ;;
+        centos6)
+            QCOW=CentOS-6-x86_64-GenericCloud.qcow2
+            OS_VARIANT="centos6.9"
+            IMAGE_URL=https://cloud.centos.org/centos/6/images
+            LOGIN_USER=centos
+            ;;
+        ubuntu1604)
+            QCOW=ubuntu-16.04-server-cloudimg-amd64-disk1.img
+            OS_VARIANT="ubuntu16.04"
+            IMAGE_URL=https://cloud-images.ubuntu.com/releases/16.04/release/
+            LOGIN_USER=ubuntu
+            ;;
+        debian8)
+            # FIXME: Not yet working.
+            QCOW=debian-8-openstack-amd64.qcow2
+            OS_VARIANT="debian8"
+            IMAGE_URL=https://cdimage.debian.org/cdimage/openstack/current-8
+            LOGIN_USER=debian
+            ;;
+        *)
+            usage
+            exit 2
+            ;;
+    esac
 
     IMAGE=${IMAGEDIR}/${QCOW}
+
+    if [ ! -f ${IMAGEDIR}/${QCOW} ]
+    then
+        echo "$(date -R) Cloud image not found.  Downloading..."
+        wget -P ${IMAGEDIR} ${IMAGE}
+    fi
+
 }
 
 function check_ssh_key {
     if [ ! -f "${PUBKEY}" ]
     then
+        # Check for existence of a pubkey, or else exit with message
         echo "$(date -R) [ERROR] Please generate an SSH keypair using 'ssh-keygen -t rsa' or specify one with the "-k" flag."
         exit 3
     else
+        # Place contents of $PUBKEY into $KEY
         KEY=$(<${PUBKEY})
     fi
 }
-
-# cloud-init variables
-USER_DATA=user-data
-META_DATA=meta-data
-CI_ISO=${VMNAME}-cidata.iso
 
 # Call functions
 check_ssh_key
@@ -284,6 +281,10 @@ _EOF_
     echo "$(date -R) Generating ISO for cloud-init..."
     genisoimage -output $CI_ISO -volid cidata -joliet -r $USER_DATA $META_DATA &>> ${VMNAME}.log
 
+    echo "$(date -R) Creating Storage Pool..."
+    echo "      virsh pool-create-as --name ${VMNAME} --type dir --target ${IMAGEDIR}/${VMNAME}"
+    virsh pool-create-as --name ${VMNAME} --type dir --target ${IMAGEDIR}/${VMNAME}
+
     echo "$(date -R) Installing the domain and adjusting the configuration..."
     echo "[INFO] Installing with the following parameters:"
     echo "    virt-install \\"
@@ -348,6 +349,7 @@ _EOF_
     # Remove the unnecessary cloud init files
     rm $USER_DATA $META_DATA $CI_ISO
 
+    echo "$(date -R) Waiting for SSH to become active..."
     MAC=$(virsh dumpxml ${VMNAME} | awk -F\' '/mac address/ {print $2}')
     while true
     do
@@ -361,6 +363,7 @@ _EOF_
         fi
     done
 
-    echo "$(date -R) DONE. SSH to ${VMNAME} using $IP with  username '${LOGIN_USER}'."
+    echo "$(date -R) SSH to ${VMNAME}: 'ssh ${LOGIN_USER}@$IP'."
+    echo "$(date -R) DONE."
 
 popd > /dev/null
