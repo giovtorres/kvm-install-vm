@@ -43,8 +43,9 @@ OPTIONS
 DISTRIBUTIONS
  - centos7
  - centos6
- - ubuntu1604
+ - debian9
  - fedora26
+ - ubuntu1604
 
 EXAMPLES
 
@@ -53,6 +54,9 @@ Create VM with default params:
 
 Create VM with custom params (2 vCPUs, 2048MB RAM and 20GB disk):
   ./kvm-install-vm -c 2 -m 2048 -d 20 -n foo
+
+Create a Debian9 VM:
+  ./kvm-install-vm -t debian9 -n foo
 
 Remove (destroy and undefine) a VM:
   ./kvm-install-vm -r foo

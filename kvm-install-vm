@@ -24,8 +24,9 @@ function usage {
     echo "DISTRIBUTIONS"
     echo " - centos7"
     echo " - centos6"
-    echo " - ubuntu1604"
+    echo " - debian9"
     echo " - fedora26"
+    echo " - ubuntu1604"
     echo ""
     echo "EXAMPLES"
     echo ""
@@ -166,7 +167,6 @@ function fetch_images {
             LOGIN_USER=debian
             ;;
         debian9)
-            # FIXME: Not yet working.
             QCOW=debian-9-openstack-amd64.qcow2
             OS_VARIANT="debian9"
             IMAGE_URL=https://cdimage.debian.org/cdimage/openstack/current-9
@@ -278,7 +278,7 @@ runcmd:
 _EOF_
     fi
 
-    echo "instance-id: ${VMNAME}; local-hostname: ${VMNAME}" > $META_DATA
+    { echo "instance-id: ${VMNAME}"; echo "local-hostname: ${VMNAME}"; } > $META_DATA
 
     echo "[$(date +%r)]----> Copying cloud image ($(basename ${IMAGE}))..."
     DISK=${VMNAME}.qcow2
@@ -325,7 +325,7 @@ _EOF_
     echo "      --network ${NETWORK_PARAMS} \\"
     echo "      --os-type=linux \\"
     echo "      --os-variant=${OS_VARIANT} \\"
-    echo "      --graphics none \\"
+    echo "      --graphics spice \\"
     echo "      --noautoconsole "
 
     # Call virt-install to import the cloud image and create a new VM
@@ -339,7 +339,7 @@ _EOF_
         --network ${NETWORK_PARAMS} \
         --os-type=linux \
         --os-variant=${OS_VARIANT} \
-        --graphics none \
+        --graphics spice \
         --noautoconsole
 
     RET=$?
