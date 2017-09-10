@@ -41,11 +41,13 @@ OPTIONS
   -M mac      Mac address         (default: None)
 
 DISTRIBUTIONS
- - centos7
- - centos6
- - debian9
- - fedora26
- - ubuntu1604
+
+NAME         DESCRIPTION                         LOGIN
+centos7      CentOS 7                            centos
+centos6      CentOS 6                            centos
+debian9      Debian 9 (Stretch)                  debian
+fedora26     Fedora 26                           fedora
+ubuntu1604   Ubuntu 16.04 LTS (Xenial Xerus)     ubuntu
 
 EXAMPLES
 
@@ -55,7 +57,7 @@ Create VM with default params:
 Create VM with custom params (2 vCPUs, 2048MB RAM and 20GB disk):
   ./kvm-install-vm -c 2 -m 2048 -d 20 -n foo
 
-Create a Debian9 VM:
+Create a Debian 9 VM:
   ./kvm-install-vm -t debian9 -n foo
 
 Remove (destroy and undefine) a VM:
