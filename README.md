@@ -40,6 +40,7 @@ OPTIONS
   -r vmname   Name of VM to delete
   -M mac      Mac address         (default: None)
 
+
 DISTRIBUTIONS
 
 NAME             DESCRIPTION                         LOGIN
@@ -68,9 +69,8 @@ Remove (destroy and undefine) a VM:
 
 ### Notes
 
-- This will download a cloud image from the [CentOS
-  site](https://cloud.centos.org/centos/) if the default QCOW2 image doesn't
-  exist.
+This script will download a qcow2 cloud image from the respective
+distribution's download site.
 
 ### Use Cases
 

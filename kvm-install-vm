@@ -21,6 +21,7 @@ function usage {
     echo "  -r vmname   Name of VM to delete"
     echo "  -M mac      Mac address         (default: None)"
     echo ""
+    echo ""
     echo "DISTRIBUTIONS"
     echo ""
     printf "%-16s %-35s %-10s\n" "NAME" "DESCRIPTION" "LOGIN"
