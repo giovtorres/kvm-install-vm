@@ -23,12 +23,13 @@ function usage {
     echo ""
     echo "DISTRIBUTIONS"
     echo ""
-    printf "%-12s %-35s %-10s\n" "NAME" "DESCRIPTION" "LOGIN"
-    printf "%-12s %-35s %-10s\n" "centos7" "CentOS 7" "centos"
-    printf "%-12s %-35s %-10s\n" "centos6" "CentOS 6" "centos"
-    printf "%-12s %-35s %-10s\n" "debian9" "Debian 9 (Stretch)" "debian"
-    printf "%-12s %-35s %-10s\n" "fedora26" "Fedora 26" "fedora"
-    printf "%-12s %-35s %-10s\n" "ubuntu1604" "Ubuntu 16.04 LTS (Xenial Xerus)" "ubuntu"
+    printf "%-16s %-35s %-10s\n" "NAME" "DESCRIPTION" "LOGIN"
+    printf "%-16s %-35s %-10s\n" "centos7" "CentOS 7" "centos"
+    printf "%-16s %-35s %-10s\n" "centos7-atomic" "CentOS 7 Atomic Host" "centos"
+    printf "%-16s %-35s %-10s\n" "centos6" "CentOS 6" "centos"
+    printf "%-16s %-35s %-10s\n" "debian9" "Debian 9 (Stretch)" "debian"
+    printf "%-16s %-35s %-10s\n" "fedora26" "Fedora 26" "fedora"
+    printf "%-16s %-35s %-10s\n" "ubuntu1604" "Ubuntu 16.04 LTS (Xenial Xerus)" "ubuntu"
     echo ""
     echo "EXAMPLES"
     echo ""
@@ -183,6 +184,12 @@ function fetch_images {
             IMAGE_URL=https://download.fedoraproject.org/pub/fedora/linux/releases/26/CloudImages/x86_64/images
             LOGIN_USER=fedora
             ;;
+        centos7-atomic)
+            QCOW=CentOS-Atomic-Host-7-GenericCloud.qcow2
+            OS_VARIANT="centos7.0"
+            IMAGE_URL=http://cloud.centos.org/centos/7/atomic/images
+            LOGIN_USER=centos
+            ;;
         *)
             usage
             exit 2
@@ -268,20 +275,30 @@ ssh_genkeytypes: ['ed25519', 'rsa']
 ssh_authorized_keys:
   - ${KEY}
 _EOF_
-    if [ "${DISTRO}" == "centos6" -o "${DISTRO}" == "centos7" ]
-    then
-        cat >> $USER_DATA << _EOF_
+
+    case "$DISTRO" in
+        centos? )
+            cat >> $USER_DATA << _EOF_
 # Remove cloud-init when finished with it
 runcmd:
   - [ yum, -y, remove, cloud-init ]
 _EOF_
-    else
-        cat >> $USER_DATA << _EOF_
+            ;;
+        fedora* )
+            cat >> $USER_DATA << _EOF_
+# Remove cloud-init when finished with it
+runcmd:
+  - [ dnf, -y, remove, cloud-init ]
+_EOF_
+            ;;
+        ubuntu*|debian? )
+            cat >> $USER_DATA << _EOF_
 # Remove cloud-init when finished with it
 runcmd:
   - [ apt-get, -y, remove, cloud-init ]
 _EOF_
-    fi
+            ;;
+    esac
 
     { echo "instance-id: ${VMNAME}"; echo "local-hostname: ${VMNAME}"; } > $META_DATA
 

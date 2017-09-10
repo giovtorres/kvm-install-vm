@@ -42,12 +42,14 @@ OPTIONS
 
 DISTRIBUTIONS
 
-NAME         DESCRIPTION                         LOGIN
-centos7      CentOS 7                            centos
-centos6      CentOS 6                            centos
-debian9      Debian 9 (Stretch)                  debian
-fedora26     Fedora 26                           fedora
-ubuntu1604   Ubuntu 16.04 LTS (Xenial Xerus)     ubuntu
+NAME             DESCRIPTION                         LOGIN
+centos7          CentOS 7                            centos
+centos7-atomic   CentOS 7 Atomic Host                centos
+centos6          CentOS 6                            centos
+debian9          Debian 9 (Stretch)                  debian
+fedora26         Fedora 26                           fedora
+ubuntu1604       Ubuntu 16.04 LTS (Xenial Xerus)     ubuntu
+
 
 EXAMPLES
 
