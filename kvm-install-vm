@@ -41,7 +41,7 @@ function usage {
     echo "  $prog -c 2 -m 2048 -d 20 -n foo"
     echo ""
     echo "Create a Debian 9 VM:"
-    echo "  ./kvm-install-vm -t debian9 -n foo"
+    echo "  $prog -t debian9 -n foo"
     echo ""
     echo "Remove (destroy and undefine) a VM:"
     echo "  $prog -r foo"
