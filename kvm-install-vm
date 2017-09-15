@@ -4,47 +4,62 @@
 prog=$0
 
 function usage {
-    echo "usage: $prog [OPTIONS] [-n vmname] [-r vmname]"
-    echo ""
-    echo "OPTIONS"
-    echo "  -c          Number of vCPUs     (default: 1)"
-    echo "  -f          CPU Model / Feature (default: host)"
-    echo "  -m          Memory Size (MB)    (default: 1024)"
-    echo "  -d          Disk Size (GB)      (default: 10)"
-    echo "  -t          Linux Distribution  (default: centos7)"
-    echo "  -l          Location of Images  (default: $HOME/virt/images)"
-    echo "  -k          SSH Public Key      (default: $HOME/.ssh/id_rsa.pub)"
-    echo "  -b          Bridge              (default: virbr0)"
-    echo "  -h          Display help"
-    echo "  -i          Custom QCOW2 Image"
-    echo "  -n vmname   Name of VM to create"
-    echo "  -r vmname   Name of VM to delete"
-    echo "  -M mac      Mac address         (default: None)"
-    echo ""
-    echo ""
-    echo "DISTRIBUTIONS"
-    echo ""
-    printf "%-16s %-35s %-10s\n" "NAME" "DESCRIPTION" "LOGIN"
-    printf "%-16s %-35s %-10s\n" "centos7" "CentOS 7" "centos"
-    printf "%-16s %-35s %-10s\n" "centos7-atomic" "CentOS 7 Atomic Host" "centos"
-    printf "%-16s %-35s %-10s\n" "centos6" "CentOS 6" "centos"
-    printf "%-16s %-35s %-10s\n" "debian9" "Debian 9 (Stretch)" "debian"
-    printf "%-16s %-35s %-10s\n" "fedora26" "Fedora 26" "fedora"
-    printf "%-16s %-35s %-10s\n" "ubuntu1604" "Ubuntu 16.04 LTS (Xenial Xerus)" "ubuntu"
-    echo ""
-    echo "EXAMPLES"
-    echo ""
-    echo "Create VM with default params:"
-    echo "  $prog -n foo"
-    echo ""
-    echo "Create VM with custom params:"
-    echo "  $prog -c 2 -m 2048 -d 20 -n foo"
-    echo ""
-    echo "Create a Debian 9 VM:"
-    echo "  $prog -t debian9 -n foo"
-    echo ""
-    echo "Remove (destroy and undefine) a VM:"
-    echo "  $prog -r foo"
+    cat << EOF
+NAME
+    kvm-install-vm - Install KVM Guests using cloud-init
+
+SYNOPSIS
+    $prog [OPTIONS] -n|-r vmname
+
+DESCRIPTION
+    A bash wrapper around virt-install to build virtual machines on a local KVM
+    hypervisor. You can run it as a normal user which will use qemu:///session
+    to connect locally to your KVM domains.
+
+MANDATORY ARGUMENTS
+    You must specify one of the following arguments to either create or delete
+    a VM:
+        -n vmname   Name of VM to create
+        -r vmname   Name of VM to delete
+
+OPTIONS
+    -b          Bridge              (default: virbr0)
+    -c          Number of vCPUs     (default: 1)
+    -d          Disk Size (GB)      (default: 10)
+    -f          CPU Model / Feature (default: host)
+    -h          Display help
+    -i          Custom QCOW2 Image
+    -k          SSH Public Key      (default: $HOME/.ssh/id_rsa.pub)
+    -l          Location of Images  (default: $HOME/virt/images)
+    -M mac      Mac address         (default: None)
+    -m          Memory Size (MB)    (default: 1024)
+    -t          Linux Distribution  (default: centos7)
+
+DISTRIBUTIONS
+    NAME            DESCRIPTION                         LOGIN
+    centos7         CentOS 7                            centos
+    centos7-atomic  CentOS 7 Atomic Host                centos
+    centos6         CentOS 6                            centos
+    debian9         Debian 9 (Stretch)                  debian
+    fedora26        Fedora 26                           fedora
+    ubuntu1604      Ubuntu 16.04 LTS (Xenial Xerus)     ubuntu
+
+EXAMPLES
+    $prog -n foo
+        Create VM with the default parameters: CentOS 7, 1 vCPU, 1GB RAM, 10GB
+        disk capacity.
+
+    $prog -c 2 -m 2048 -d 20 -n foo
+        Create VM with custom parameters: 2 vCPUs, 2GB RAM, and 20GB disk
+        capacity.
+
+    $prog -t debian9 -n foo
+        Create a Debian 9 VM with the default parameters.
+
+    $prog -r foo
+        Remove (destroy and undefine) a VM.  WARNING: This will delete all
+        customizations in the VM!
+EOF
 }
 
 # Reset OPTIND

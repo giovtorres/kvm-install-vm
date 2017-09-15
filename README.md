@@ -25,46 +25,60 @@ sudo dnf -y install genisoimage virt-install libguestfs-tools-c qemu-img libvirt
 ### Usage
 
 ```
-OPTIONS
-  -c          Number of vCPUs     (default: 1)
-  -m          Memory Size (MB)    (default: 1024)
-  -f          CPU Model / Feature (default: host)
-  -d          Disk Size (GB)      (default: 10)
-  -t          Linux Distribution  (default: centos7)
-  -l          Location of Images  (default: $HOME/virt/images)
-  -k          SSH Public Key      (default: $HOME/.ssh/id_rsa.pub)
-  -b          Bridge              (default: virbr0)
-  -h          Display help
-  -i          Custom QCOW2 Image
-  -n vmname   Name of VM to create
-  -r vmname   Name of VM to delete
-  -M mac      Mac address         (default: None)
+NAME
+    kvm-install-vm - Install KVM Guests using cloud-init
 
+SYNOPSIS
+    ./kvm-install-vm [OPTIONS] -n|-r vmname
+
+DESCRIPTION
+    A bash wrapper around virt-install to build virtual machines on a local KVM
+    hypervisor. You can run it as a normal user which will use qemu:///session
+    to connect locally to your KVM domains.
+
+MANDATORY ARGUMENTS
+    You must specify one of the following arguments to either create or delete
+    a VM:
+        -n vmname   Name of VM to create
+        -r vmname   Name of VM to delete
+
+OPTIONS
+    -b          Bridge              (default: virbr0)
+    -c          Number of vCPUs     (default: 1)
+    -d          Disk Size (GB)      (default: 10)
+    -f          CPU Model / Feature (default: host)
+    -h          Display help
+    -i          Custom QCOW2 Image
+    -k          SSH Public Key      (default: /home/torresgi/.ssh/id_rsa.pub)
+    -l          Location of Images  (default: /home/torresgi/virt/images)
+    -M mac      Mac address         (default: None)
+    -m          Memory Size (MB)    (default: 1024)
+    -t          Linux Distribution  (default: centos7)
 
 DISTRIBUTIONS
-
-NAME             DESCRIPTION                         LOGIN
-centos7          CentOS 7                            centos
-centos7-atomic   CentOS 7 Atomic Host                centos
-centos6          CentOS 6                            centos
-debian9          Debian 9 (Stretch)                  debian
-fedora26         Fedora 26                           fedora
-ubuntu1604       Ubuntu 16.04 LTS (Xenial Xerus)     ubuntu
-
+    NAME            DESCRIPTION                         LOGIN
+    centos7         CentOS 7                            centos
+    centos7-atomic  CentOS 7 Atomic Host                centos
+    centos6         CentOS 6                            centos
+    debian9         Debian 9 (Stretch)                  debian
+    fedora26        Fedora 26                           fedora
+    ubuntu1604      Ubuntu 16.04 LTS (Xenial Xerus)     ubuntu
 
 EXAMPLES
+    ./kvm-install-vm -n foo
+        Create VM with the default parameters: CentOS 7, 1 vCPU, 1GB RAM, 10GB
+        disk capacity.
 
-Create VM with default params:
-  ./kvm-install-vm -n foo
+    ./kvm-install-vm -c 2 -m 2048 -d 20 -n foo
+        Create VM with custom parameters: 2 vCPUs, 2GB RAM, and 20GB disk
+        capacity.
 
-Create VM with custom params (2 vCPUs, 2048MB RAM and 20GB disk):
-  ./kvm-install-vm -c 2 -m 2048 -d 20 -n foo
+    ./kvm-install-vm -t debian9 -n foo
+        Create a Debian 9 VM with the default parameters.
 
-Create a Debian 9 VM:
-  ./kvm-install-vm -t debian9 -n foo
-
-Remove (destroy and undefine) a VM:
-  ./kvm-install-vm -r foo
+    ./kvm-install-vm -r foo
+        Remove (destroy and undefine) a VM.  WARNING: This will delete all
+        customizations in the VM!
 ```
 
 ### Notes
