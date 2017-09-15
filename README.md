@@ -54,6 +54,8 @@ OPTIONS
     -M mac      Mac address         (default: auto-assigned)
     -m          Memory Size (MB)    (default: 1024)
     -t          Linux Distribution  (default: centos7)
+    -T          Timezone            (default: US/Eastern)
+
 
 DISTRIBUTIONS
     NAME            DESCRIPTION                         LOGIN

@@ -34,6 +34,7 @@ OPTIONS
     -M mac      Mac address         (default: None)
     -m          Memory Size (MB)    (default: 1024)
     -t          Linux Distribution  (default: centos7)
+    -T          Timezone            (default: US/Eastern)
 
 DISTRIBUTIONS
     NAME            DESCRIPTION                         LOGIN
@@ -56,9 +57,12 @@ EXAMPLES
     $prog -t debian9 -n foo
         Create a Debian 9 VM with the default parameters.
 
+    $prog -T UTC -n foo
+        Create a default VM with UTC timezone.
+
     $prog -r foo
-        Remove (destroy and undefine) a VM.  WARNING: This will delete all
-        customizations in the VM!
+        Remove (destroy and undefine) a VM.  WARNING: This will delete the VM
+        from disk, erasing all your customizations!
 EOF
 }
 
@@ -80,24 +84,16 @@ BRIDGE=virbr0                   # Hypervisor bridge
 PUBKEY=${HOME}/.ssh/id_rsa.pub  # SSH public key
 DISTRO=centos7                  # Distribution
 MACADDRESS=                     # MAC Address
+TIMEZONE=US/Eastern             # Timezone
 
 #--------------------------------------------------
 # Parse command line arguments
 #--------------------------------------------------
 
-while getopts ":c:f:m:d:t:l:k:b:n:r:i:M:h" opt; do
+while getopts ":c:f:m:d:t:l:k:b:n:r:i:M:T:h" opt; do
     case "$opt" in
-        c   ) CPUS="${OPTARG}" ;;
-        f   ) FEATURE="${OPTARG}" ;;
-        m   ) MEMORY="${OPTARG}" ;;
-        t   ) DISTRO="${OPTARG}" ;;
-        l   ) IMAGEDIR="${OPTARG}" ;;
-        n   ) VMNAME="${OPTARG}" ;;
-        k   ) PUBKEY="${OPTARG}" ;;
         b   ) BRIDGE="${OPTARG}" ;;
-        i   ) IMAGE="${OPTARG}" ;;
-        r   ) VMDEL="${OPTARG}" ;;
-        M   ) MACADDRESS="${OPTARG}" ;;
+        c   ) CPUS="${OPTARG}" ;;
         d   )
             if [ "${OPTARG}" -gt ${DISK_SIZE} ]; then
                 DISK_SIZE="${OPTARG}G"
@@ -106,6 +102,16 @@ while getopts ":c:f:m:d:t:l:k:b:n:r:i:M:h" opt; do
                 DISK_SIZE="${DISK_SIZE}G"
             fi
             ;;
+        f   ) FEATURE="${OPTARG}" ;;
+        i   ) IMAGE="${OPTARG}" ;;
+        k   ) PUBKEY="${OPTARG}" ;;
+        l   ) IMAGEDIR="${OPTARG}" ;;
+        M   ) MACADDRESS="${OPTARG}" ;;
+        m   ) MEMORY="${OPTARG}" ;;
+        n   ) VMNAME="${OPTARG}" ;;
+        r   ) VMDEL="${OPTARG}" ;;
+        t   ) DISTRO="${OPTARG}" ;;
+        T   ) TIMEZONE="${OPTARG}" ;;
         h|* ) usage; exit 1 ;;
     esac
 done
@@ -290,6 +296,9 @@ ssh_genkeytypes: ['ed25519', 'rsa']
 # in cloud.cfg in the template (which is centos for CentOS cloud images)
 ssh_authorized_keys:
   - ${KEY}
+
+timezone: ${TIMEZONE}
+
 _EOF_
 
     case "$DISTRO" in
