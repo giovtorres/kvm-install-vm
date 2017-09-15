@@ -49,8 +49,8 @@ OPTIONS
     -f          CPU Model / Feature (default: host)
     -h          Display help
     -i          Custom QCOW2 Image
-    -k          SSH Public Key      (default: /home/torresgi/.ssh/id_rsa.pub)
-    -l          Location of Images  (default: /home/torresgi/virt/images)
+    -k          SSH Public Key      (default: $HOME/.ssh/id_rsa.pub)
+    -l          Location of Images  (default: $HOME/virt/images)
     -M mac      Mac address         (default: None)
     -m          Memory Size (MB)    (default: 1024)
     -t          Linux Distribution  (default: centos7)
