@@ -26,7 +26,8 @@ sudo dnf -y install genisoimage virt-install libguestfs-tools-c qemu-img libvirt
 
 ```
 NAME
-    kvm-install-vm - Install KVM Guests using cloud-init
+    kvm-install-vm - Install virtual guests using cloud-init on a local KVM
+    hypervisor.
 
 SYNOPSIS
     ./kvm-install-vm [OPTIONS] -n|-r vmname

@@ -6,7 +6,8 @@ prog=$0
 function usage {
     cat << EOF
 NAME
-    kvm-install-vm - Install KVM Guests using cloud-init
+    kvm-install-vm - Install virtual guests using cloud-init on a local KVM
+    hypervisor.
 
 SYNOPSIS
     $prog [OPTIONS] -n|-r vmname
