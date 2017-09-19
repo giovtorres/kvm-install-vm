@@ -126,6 +126,19 @@ then
     exit 2
 fi
 
+#--------------------------------------------------
+# Detect OS and set wget parameters
+#--------------------------------------------------
+
+function set_wget {
+    if [ -f /etc/fedora-release ]
+    then
+        WGET="wget --quiet --show-progress"
+    else
+        WGET="wget"
+    fi
+}
+
 function delete_vm {
     VM=$1
     echo "[$(date +%r)]----> Destroying ${VM} domain..."
@@ -224,7 +237,8 @@ function fetch_images {
     if [ ! -f ${IMAGEDIR}/${QCOW} ]
     then
         echo "[$(date +%r)]----> Cloud image not found.  Downloading..."
-        wget --quiet --show-progress --directory-prefix ${IMAGEDIR} ${IMAGE_URL}/${QCOW}
+        set_wget
+        ${WGET} --directory-prefix ${IMAGEDIR} ${IMAGE_URL}/${QCOW}
     fi
 
 }
