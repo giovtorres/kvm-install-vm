@@ -84,6 +84,10 @@ EXAMPLES
         customizations in the VM!
 ```
 
+### Example
+
+[![asciicast](https://asciinema.org/a/bVgjJ3SHgvROX90iRuCCF1h4d.png)](https://asciinema.org/a/bVgjJ3SHgvROX90iRuCCF1h4d)
+
 ### Notes
 
 This script will download a qcow2 cloud image from the respective
