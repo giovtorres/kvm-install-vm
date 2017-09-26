@@ -379,7 +379,7 @@ _EOF_
     echo "    virt-install \\"
     echo "      --import \\"
     echo "      --name ${VMNAME} \\"
-    echo "      --ram ${MEMORY} \\"
+    echo "      --memory ${MEMORY} \\"
     echo "      --vcpus ${CPUS} \\"
     echo "      --cpu ${FEATURE} \\"
     echo "      --disk ${DISK},format=qcow2,bus=virtio \\"
@@ -393,7 +393,7 @@ _EOF_
     # Call virt-install to import the cloud image and create a new VM
     virt-install --import \
         --name ${VMNAME} \
-        --ram ${MEMORY} \
+        --memory ${MEMORY} \
         --vcpus ${CPUS} \
         --cpu ${FEATURE} \
         --disk ${DISK},format=qcow2,bus=virtio \
