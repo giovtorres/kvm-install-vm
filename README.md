@@ -65,6 +65,7 @@ DISTRIBUTIONS
     centos6         CentOS 6                            centos
     debian9         Debian 9 (Stretch)                  debian
     fedora26        Fedora 26                           fedora
+    fedora26-atomic Fedora 26 Atomic Host               fedora
     ubuntu1604      Ubuntu 16.04 LTS (Xenial Xerus)     ubuntu
 
 EXAMPLES
