@@ -44,6 +44,7 @@ DISTRIBUTIONS
     centos6         CentOS 6                            centos
     debian9         Debian 9 (Stretch)                  debian
     fedora26        Fedora 26                           fedora
+    fedora26-atomic Fedora 26 Atomic Host               fedora
     ubuntu1604      Ubuntu 16.04 LTS (Xenial Xerus)     ubuntu
 
 EXAMPLES
@@ -189,17 +190,17 @@ function fetch_images {
             IMAGE_URL=https://cloud.centos.org/centos/7/images
             LOGIN_USER=centos
             ;;
+        centos7-atomic)
+            QCOW=CentOS-Atomic-Host-7-GenericCloud.qcow2
+            OS_VARIANT="centos7.0"
+            IMAGE_URL=http://cloud.centos.org/centos/7/atomic/images
+            LOGIN_USER=centos
+            ;;
         centos6)
             QCOW=CentOS-6-x86_64-GenericCloud.qcow2
             OS_VARIANT="centos6.9"
             IMAGE_URL=https://cloud.centos.org/centos/6/images
             LOGIN_USER=centos
-            ;;
-        ubuntu1604)
-            QCOW=ubuntu-16.04-server-cloudimg-amd64-disk1.img
-            OS_VARIANT="ubuntu16.04"
-            IMAGE_URL=https://cloud-images.ubuntu.com/releases/16.04/release
-            LOGIN_USER=ubuntu
             ;;
         debian8)
             # FIXME: Not yet working.
@@ -220,11 +221,17 @@ function fetch_images {
             IMAGE_URL=https://download.fedoraproject.org/pub/fedora/linux/releases/26/CloudImages/x86_64/images
             LOGIN_USER=fedora
             ;;
-        centos7-atomic)
-            QCOW=CentOS-Atomic-Host-7-GenericCloud.qcow2
-            OS_VARIANT="centos7.0"
-            IMAGE_URL=http://cloud.centos.org/centos/7/atomic/images
-            LOGIN_USER=centos
+        fedora26-atomic)
+            QCOW=Fedora-Atomic-26-20170920.0.x86_64.qcow2
+            OS_VARIANT="fedora26"
+            IMAGE_URL=https://download.fedoraproject.org/pub/alt/atomic/stable/Fedora-Atomic-26-20170920.0/CloudImages/x86_64/images
+            LOGIN_USER=fedora
+            ;;
+        ubuntu1604)
+            QCOW=ubuntu-16.04-server-cloudimg-amd64-disk1.img
+            OS_VARIANT="ubuntu16.04"
+            IMAGE_URL=https://cloud-images.ubuntu.com/releases/16.04/release
+            LOGIN_USER=ubuntu
             ;;
         *)
             usage
