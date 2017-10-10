@@ -33,7 +33,7 @@ OPTIONS
     -k          SSH Public Key      (default: $HOME/.ssh/id_rsa.pub)
     -l          Location of Images  (default: $HOME/virt/images)
     -m          Memory Size (MB)    (default: 1024)
-    -M mac      Mac address         (default: None)
+    -M mac      Mac address         (default: auto-assigned)
     -t          Linux Distribution  (default: centos7)
     -T          Timezone            (default: US/Eastern)
 
@@ -222,9 +222,9 @@ function fetch_images {
             LOGIN_USER=fedora
             ;;
         fedora26-atomic)
-            QCOW=Fedora-Atomic-26-20170920.0.x86_64.qcow2
+            QCOW=Fedora-Atomic-26-20171003.0.x86_64.qcow2
             OS_VARIANT="fedora26"
-            IMAGE_URL=https://download.fedoraproject.org/pub/alt/atomic/stable/Fedora-Atomic-26-20170920.0/CloudImages/x86_64/images
+            IMAGE_URL=https://download.fedoraproject.org/pub/alt/atomic/stable/Fedora-Atomic-26-20171003.0/CloudImages/x86_64/images
             LOGIN_USER=fedora
             ;;
         ubuntu1604)
