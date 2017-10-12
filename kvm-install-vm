@@ -1,9 +1,10 @@
 #!/bin/bash
 
-# Set program name variable
-prog=$0
+# Set program name variable - basename without subshell
+prog=${0##*/}
 
-function usage {
+function usage ()
+{
     cat << EOF
 NAME
     kvm-install-vm - Install virtual guests using cloud-init on a local KVM
@@ -68,70 +69,9 @@ EXAMPLES
 EOF
 }
 
-# Reset OPTIND
-OPTIND=1
-
-#--------------------------------------------------
-# Defaults are set here.
-# Override using command line arguments.
-#--------------------------------------------------
-
-CPUS=1                          # Number of virtual CPUs
-FEATURE=host                    # Use host cpu features to the guest
-MEMORY=1024                     # Amount of RAM in MB
-DISK_SIZE=10                    # Disk Size in GB
-RESIZE_DISK=false               # Resize disk (boolean)
-IMAGEDIR=${HOME}/virt/images    # Directory to store images
-BRIDGE=virbr0                   # Hypervisor bridge
-PUBKEY=${HOME}/.ssh/id_rsa.pub  # SSH public key
-DISTRO=centos7                  # Distribution
-MACADDRESS=                     # MAC Address
-TIMEZONE=US/Eastern             # Timezone
-
-#--------------------------------------------------
-# Parse command line arguments
-#--------------------------------------------------
-
-while getopts ":c:f:m:d:t:l:k:b:n:r:i:M:T:h" opt; do
-    case "$opt" in
-        b   ) BRIDGE="${OPTARG}" ;;
-        c   ) CPUS="${OPTARG}" ;;
-        d   )
-            if [ "${OPTARG}" -gt ${DISK_SIZE} ]; then
-                DISK_SIZE="${OPTARG}G"
-                RESIZE_DISK=true
-            else
-                DISK_SIZE="${DISK_SIZE}G"
-            fi
-            ;;
-        f   ) FEATURE="${OPTARG}" ;;
-        i   ) IMAGE="${OPTARG}" ;;
-        k   ) PUBKEY="${OPTARG}" ;;
-        l   ) IMAGEDIR="${OPTARG}" ;;
-        M   ) MACADDRESS="${OPTARG}" ;;
-        m   ) MEMORY="${OPTARG}" ;;
-        n   ) VMNAME="${OPTARG}" ;;
-        r   ) VMDEL="${OPTARG}" ;;
-        t   ) DISTRO="${OPTARG}" ;;
-        T   ) TIMEZONE="${OPTARG}" ;;
-        h|* ) usage; exit 1 ;;
-    esac
-done
-
-shift $((OPTIND-1))
-
-# Can't specify both -n and -r together
-if [ ! -z "${VMNAME+x}" ] && [ ! -z "${VMDEL+x}" ]
-then
-    echo "-n and -r are mutually exclusive."
-    exit 2
-fi
-
-#--------------------------------------------------
 # Detect OS and set wget parameters
-#--------------------------------------------------
-
-function set_wget {
+function set_wget ()
+{
     if [ -f /etc/fedora-release ]
     then
         WGET="wget --quiet --show-progress"
@@ -140,7 +80,8 @@ function set_wget {
     fi
 }
 
-function delete_vm {
+function delete_vm ()
+{
     VM=$1
     echo "[$(date +%r)]----> Destroying ${VM} domain..."
     virsh destroy ${VM} > /dev/null 2>&1
@@ -151,34 +92,13 @@ function delete_vm {
     echo "[$(date +%r)]----> Undefining ${VM} domain..."
     virsh undefine ${VM} > /dev/null 2>&1
 
-    echo "[$(date +%r)]----> Deleting ${VM} files..."
-    rm -rf $IMAGEDIR/$VM
+    [ -d "$IMAGEDIR/$VM" ] \
+        && echo "[$(date +%r)]----> Deleting ${VM} files..." \
+        && rm -rf $IMAGEDIR/$VM
 }
 
-# Delete VM if -r is set
-if [ ! -z "${VMDEL+x}" ]
-then
-    delete_vm ${VMDEL}
-    exit 0
-fi
-
-# VMNAME must be set
-if [ -z "${VMNAME+x}" ]
-then
-    echo "You must specify a name for the VM with -n. Use -h to see usage."
-    exit 2
-fi
-
-#--------------------------------------------------
-# cloud-init variables
-#--------------------------------------------------
-
-USER_DATA=user-data
-META_DATA=meta-data
-CI_ISO=${VMNAME}-cidata.iso
-
-
-function fetch_images {
+function fetch_images ()
+{
     # Create image directory if it doesn't already exist
     mkdir -p ${IMAGEDIR}
 
@@ -250,7 +170,8 @@ function fetch_images {
 
 }
 
-function check_ssh_key {
+function check_ssh_key ()
+{
     if [ ! -f "${PUBKEY}" ]
     then
         # Check for existence of a pubkey, or else exit with message
@@ -262,37 +183,20 @@ function check_ssh_key {
     fi
 }
 
-# Call functions
-check_ssh_key
+function domain_exists ()
+{
+    virsh dominfo ${VMNAME} > /dev/null 2>&1 \
+        && DOMAIN_EXISTS=1 \
+        || DOMAIN_EXISTS=0
+}
 
-if [ ! -z "${IMAGE+x}" ]
-then
-    echo "[$(date +%r)]----> Using custom QCOW2 image: ${IMAGE}."
-    OS_VARIANT="auto"
-    LOGIN_USER="<use the default account in your custom image>"
-else
-    fetch_images
-fi
+function create_vm ()
+{
+    # Start clean
+    [ -d "${IMAGEDIR}/${VMNAME}" ] && rm -rf ${IMAGEDIR}/${VMNAME}
+    mkdir -p ${IMAGEDIR}/${VMNAME}
 
-# Check if domain already exists
-virsh dominfo ${VMNAME} > /dev/null 2>&1
-
-if [ "$?" -eq 0 ]; then
-    echo -n "[WARNING] ${VMNAME} already exists.  "
-    read -p "Do you want to overwrite ${VMNAME} [y/N]? " -r
-    if [[ $REPLY =~ ^[Yy]$ ]]; then
-        delete_vm ${VMNAME}
-    else
-        echo -e "\nNot overwriting ${VMNAME}. Exiting..."
-        exit 1
-    fi
-fi
-
-# Start clean
-rm -rf ${IMAGEDIR}/${VMNAME}
-mkdir -p ${IMAGEDIR}/${VMNAME}
-
-pushd ${IMAGEDIR}/${VMNAME} > /dev/null
+    pushd ${IMAGEDIR}/${VMNAME} > /dev/null
 
     # Create log file
     touch ${VMNAME}.log
@@ -344,7 +248,7 @@ _EOF_
 runcmd:
   - [ apt-get, -y, remove, cloud-init ]
 _EOF_
-            ;;
+                ;;
     esac
 
     { echo "instance-id: ${VMNAME}"; echo "local-hostname: ${VMNAME}"; } > $META_DATA
@@ -442,4 +346,109 @@ _EOF_
     echo "[$(date +%r)]----> SSH to ${VMNAME}: 'ssh ${LOGIN_USER}@$IP'."
     echo "[$(date +%r)]----> DONE."
 
-popd > /dev/null
+    popd > /dev/null
+}
+
+#--------------------------------------------------
+# Main
+#--------------------------------------------------
+
+# Defaults are set here. Override using command line arguments.
+CPUS=1                          # Number of virtual CPUs
+FEATURE=host                    # Use host cpu features to the guest
+MEMORY=1024                     # Amount of RAM in MB
+DISK_SIZE=10                    # Disk Size in GB
+RESIZE_DISK=false               # Resize disk (boolean)
+IMAGEDIR=${HOME}/virt/images    # Directory to store images
+BRIDGE=virbr0                   # Hypervisor bridge
+PUBKEY=${HOME}/.ssh/id_rsa.pub  # SSH public key
+DISTRO=centos7                  # Distribution
+MACADDRESS=                     # MAC Address
+TIMEZONE=US/Eastern             # Timezone
+
+# Reset OPTIND
+OPTIND=1
+
+# Parse command line arguments
+while getopts ":c:f:m:d:t:l:k:b:n:r:i:M:T:h" opt; do
+    case "$opt" in
+        b   ) BRIDGE="${OPTARG}" ;;
+        c   ) CPUS="${OPTARG}" ;;
+        d   )
+            if [ "${OPTARG}" -gt ${DISK_SIZE} ]; then
+                DISK_SIZE="${OPTARG}G"
+                RESIZE_DISK=true
+            else
+                DISK_SIZE="${DISK_SIZE}G"
+            fi
+            ;;
+        f   ) FEATURE="${OPTARG}" ;;
+        i   ) IMAGE="${OPTARG}" ;;
+        k   ) PUBKEY="${OPTARG}" ;;
+        l   ) IMAGEDIR="${OPTARG}" ;;
+        M   ) MACADDRESS="${OPTARG}" ;;
+        m   ) MEMORY="${OPTARG}" ;;
+        n   ) VMNAME="${OPTARG}" ;;
+        r   ) VMDEL="${OPTARG}" ;;
+        t   ) DISTRO="${OPTARG}" ;;
+        T   ) TIMEZONE="${OPTARG}" ;;
+        h|* ) usage; exit 1 ;;
+    esac
+done
+
+shift $((OPTIND-1))
+
+# cloud-init variables
+USER_DATA=user-data
+META_DATA=meta-data
+CI_ISO=${VMNAME}-cidata.iso
+
+# Can't specify both -n and -r together
+if [ ! -z "${VMNAME+x}" ] && [ ! -z "${VMDEL+x}" ]
+then
+    echo "-n and -r are mutually exclusive."
+    exit 2
+fi
+
+# Delete VM if -r is set
+if [ ! -z "${VMDEL+x}" ]
+then
+    delete_vm ${VMDEL}
+    exit 0
+fi
+
+# VMNAME must be set
+if [ -z "${VMNAME+x}" ]
+then
+    echo "You must specify a name for the VM with -n. Use -h to see usage."
+    exit 2
+fi
+
+# Check for ssh key
+check_ssh_key
+
+if [ ! -z "${IMAGE+x}" ]
+then
+    echo "[$(date +%r)]----> Using custom QCOW2 image: ${IMAGE}."
+    OS_VARIANT="auto"
+    LOGIN_USER="<use the default account in your custom image>"
+else
+    fetch_images
+fi
+
+# Check if domain already exists
+domain_exists
+
+if [ "${DOMAIN_EXISTS}" -eq 1 ]; then
+    echo -n "[WARNING] ${VMNAME} already exists.  "
+    read -p "Do you want to overwrite ${VMNAME} [y/N]? " -r
+    if [[ $REPLY =~ ^[Yy]$ ]]; then
+        delete_vm ${VMNAME}
+    else
+        echo -e "\nNot overwriting ${VMNAME}. Exiting..."
+        exit 1
+    fi
+fi
+
+# Finally, create requested VM
+create_vm
