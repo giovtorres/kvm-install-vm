@@ -190,6 +190,25 @@ function domain_exists ()
         || DOMAIN_EXISTS=0
 }
 
+function get_pkg_mgr ()
+{
+    case "${DISTRO}" in
+        centos? )           PKGMGR="yum" ;;
+        fedora?? )          PKGMRG="dnf" ;;
+        ubuntu*|debian? )   PKGMGR="apt-get" ;;
+        *)                  PKGMGR= ;;
+    esac
+}
+
+function check_delete_known_host ()
+{
+    echo "[$(date +%r)]----> Checking for ${IP} in known_hosts file..."
+    grep ${IP} ${HOME}/.ssh/known_hosts \
+        && echo "[$(date +%r)]----> Found entry for ${IP}. Removing..." \
+        && sed --in-place "/^${IP}/d" ~/.ssh/known_hosts \
+        || echo "[$(date +%r)]----> No entries found for ${IP}..."
+}
+
 function create_vm ()
 {
     # Start clean
@@ -227,29 +246,14 @@ timezone: ${TIMEZONE}
 
 _EOF_
 
-    case "$DISTRO" in
-        centos? )
-            cat >> $USER_DATA << _EOF_
+    if [ ! -z ${PKGMGR} ]
+    then
+        cat >> $USER_DATA << _EOF_
 # Remove cloud-init when finished with it
 runcmd:
-  - [ yum, -y, remove, cloud-init ]
+  - [ ${PKGMGR}, -y, remove, cloud-init ]
 _EOF_
-            ;;
-        fedora* )
-            cat >> $USER_DATA << _EOF_
-# Remove cloud-init when finished with it
-runcmd:
-  - [ dnf, -y, remove, cloud-init ]
-_EOF_
-            ;;
-        ubuntu*|debian? )
-            cat >> $USER_DATA << _EOF_
-# Remove cloud-init when finished with it
-runcmd:
-  - [ apt-get, -y, remove, cloud-init ]
-_EOF_
-                ;;
-    esac
+    fi
 
     { echo "instance-id: ${VMNAME}"; echo "local-hostname: ${VMNAME}"; } > $META_DATA
 
@@ -343,7 +347,8 @@ _EOF_
         fi
     done
 
-    echo "[$(date +%r)]----> SSH to ${VMNAME}: 'ssh ${LOGIN_USER}@$IP'."
+    check_delete_known_host
+    echo "[$(date +%r)]----> SSH to ${VMNAME}: 'ssh ${LOGIN_USER}@${IP}'."
     echo "[$(date +%r)]----> DONE."
 
     popd > /dev/null
@@ -370,7 +375,8 @@ TIMEZONE=US/Eastern             # Timezone
 OPTIND=1
 
 # Parse command line arguments
-while getopts ":c:f:m:d:t:l:k:b:n:r:i:M:T:h" opt; do
+while getopts ":b:c:d:f:i:k:l:m:M:n:r:t:T:h" opt
+do
     case "$opt" in
         b   ) BRIDGE="${OPTARG}" ;;
         c   ) CPUS="${OPTARG}" ;;
@@ -386,8 +392,8 @@ while getopts ":c:f:m:d:t:l:k:b:n:r:i:M:T:h" opt; do
         i   ) IMAGE="${OPTARG}" ;;
         k   ) PUBKEY="${OPTARG}" ;;
         l   ) IMAGEDIR="${OPTARG}" ;;
-        M   ) MACADDRESS="${OPTARG}" ;;
         m   ) MEMORY="${OPTARG}" ;;
+        M   ) MACADDRESS="${OPTARG}" ;;
         n   ) VMNAME="${OPTARG}" ;;
         r   ) VMDEL="${OPTARG}" ;;
         t   ) DISTRO="${OPTARG}" ;;
@@ -449,6 +455,9 @@ if [ "${DOMAIN_EXISTS}" -eq 1 ]; then
         exit 1
     fi
 fi
+
+# Set package manager
+get_pkg_mgr
 
 # Finally, create requested VM
 create_vm
