@@ -92,7 +92,12 @@ EXAMPLES
 ### Notes
 
 This script will download a qcow2 cloud image from the respective
-distribution's download site.
+distribution's download site.  See script for URLs.
+
+### Testing
+
+Tests are written using [Bats](https://github.com/sstephenson/bats).  To
+execute the tests, run `./test.sh` in the root directory of the project.
 
 ### Use Cases
 
