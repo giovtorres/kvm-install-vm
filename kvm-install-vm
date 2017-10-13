@@ -200,6 +200,14 @@ function get_pkg_mgr ()
     esac
 }
 
+function set_network_restart_cmd ()
+{
+    case "${DISTRO}" in
+        centos6 )           NETRESTART="service network restart" ;;
+        *)                  NETRESTART="systemctl restart network" ;;
+    esac
+}
+
 function check_delete_known_host ()
 {
     echo "[$(date +%r)]----> Checking for ${IP} in known_hosts file..."
@@ -252,6 +260,7 @@ _EOF_
 # Remove cloud-init when finished with it
 runcmd:
   - [ ${PKGMGR}, -y, remove, cloud-init ]
+  - ${NETRESTART}
 _EOF_
     fi
 
@@ -348,7 +357,7 @@ _EOF_
     done
 
     check_delete_known_host
-    echo "[$(date +%r)]----> SSH to ${VMNAME}: 'ssh ${LOGIN_USER}@${IP}'."
+    echo "[$(date +%r)]----> SSH to ${VMNAME}: 'ssh ${LOGIN_USER}@${IP}' or 'ssh ${LOGIN_USER}@${VMNAME}'"
     echo "[$(date +%r)]----> DONE."
 
     popd > /dev/null
