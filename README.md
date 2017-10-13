@@ -22,6 +22,16 @@ To install the dependencies, run:
 sudo dnf -y install genisoimage virt-install libguestfs-tools-c qemu-img libvirt-client wget
 ```
 
+If you want to resolve guests by their hostnames, install the `libvirt-nss` package:
+
+```
+sudo dnf -y install libvirt-nss
+```
+
+Then, add `libvirt` and `libvirt_guest` to list of **hosts** databases in
+`/etc/nsswitch.conf`.  See [here](https://libvirt.org/nss.html) for more
+information.
+
 ### Usage
 
 ```
@@ -94,11 +104,7 @@ EXAMPLES
 1. This script will download a qcow2 cloud image from the respective
    distribution's download site.  See script for URLs.
 
-2. To resolve guests by their hostnames, install the `libvirt-nss` package and
-   configure `nsswitch.conf`.  See [here](https://libvirt.org/nss.html) for
-   more information.
-
-3. If using libvirt-nss, keep in mind that DHCP leases take some time to
+2. If using libvirt-nss, keep in mind that DHCP leases take some time to
    expire, so if you create a VM, delete it, and recreate another VM with the
    same name in a short period of time, there will be two DHCP leases for the
    same host and its hostname will likely not resolve until the old lease
