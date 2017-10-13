@@ -203,7 +203,7 @@ function get_pkg_mgr ()
 function check_delete_known_host ()
 {
     echo "[$(date +%r)]----> Checking for ${IP} in known_hosts file..."
-    grep ${IP} ${HOME}/.ssh/known_hosts \
+    grep -q ${IP} ${HOME}/.ssh/known_hosts \
         && echo "[$(date +%r)]----> Found entry for ${IP}. Removing..." \
         && sed --in-place "/^${IP}/d" ~/.ssh/known_hosts \
         || echo "[$(date +%r)]----> No entries found for ${IP}..."
