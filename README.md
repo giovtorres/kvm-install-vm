@@ -94,7 +94,7 @@ EXAMPLES
 1. This script will download a qcow2 cloud image from the respective
    distribution's download site.  See script for URLs.
 
-2. To resolve guest's by their hostnames, install the `libvirt-nss` package and
+2. To resolve guests by their hostnames, install the `libvirt-nss` package and
    configure `nsswitch.conf`.  See [here](https://libvirt.org/nss.html) for
    more information.
 
