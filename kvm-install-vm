@@ -83,18 +83,29 @@ function set_wget ()
 function delete_vm ()
 {
     VM=$1
-    echo "[$(date +%r)]----> Destroying ${VM} domain..."
-    virsh destroy ${VM} > /dev/null 2>&1
-    echo "[$(date +%r)]----> Destroying ${VM} storage pool..."
-    virsh pool-destroy ${VM} > /dev/null 2>&1
-    echo "[$(date +%r)]----> Undefining ${VM} storage pool..."
-    virsh pool-undefine ${VM} > /dev/null 2>&1
-    echo "[$(date +%r)]----> Undefining ${VM} domain..."
-    virsh undefine ${VM} > /dev/null 2>&1
 
-    [ -d "$IMAGEDIR/$VM" ] \
-        && echo "[$(date +%r)]----> Deleting ${VM} files..." \
-        && rm -rf $IMAGEDIR/$VM
+    if [ "${DOMAIN_EXISTS}" -eq 1 ]
+    then
+        echo "[$(date +%r)]----> Destroying ${VM} domain..."
+        virsh destroy ${VM} > /dev/null 2>&1
+
+        echo "[$(date +%r)]----> Undefining ${VM} domain..."
+        virsh undefine ${VM} > /dev/null 2>&1
+
+        [ -d "$IMAGEDIR/$VM" ] \
+            && echo "[$(date +%r)]----> Deleting ${VM} files..." \
+            && rm -rf $IMAGEDIR/$VM
+    else
+        echo "[$(date +%r)]----> Domain ${VM} does not exist..."
+    fi
+
+    if [ "${STORPOOL_EXISTS}" -eq 1 ]
+    then
+        echo "[$(date +%r)]----> Destroying ${VM} storage pool..."
+        virsh pool-destroy ${VM} > /dev/null 2>&1
+    else
+        echo "[$(date +%r)]----> Storage pool ${VM} does not exist..."
+    fi
 }
 
 function fetch_images ()
@@ -185,9 +196,16 @@ function check_ssh_key ()
 
 function domain_exists ()
 {
-    virsh dominfo ${VMNAME} > /dev/null 2>&1 \
+    virsh dominfo "${1}" > /dev/null 2>&1 \
         && DOMAIN_EXISTS=1 \
         || DOMAIN_EXISTS=0
+}
+
+function storpool_exists ()
+{
+    virsh pool-info "${1}" > /dev/null 2>&1 \
+        && STORPOOL_EXISTS=1 \
+        || STORPOOL_EXISTS=0
 }
 
 function get_pkg_mgr ()
@@ -428,7 +446,9 @@ fi
 # Delete VM if -r is set
 if [ ! -z "${VMDEL+x}" ]
 then
-    delete_vm ${VMDEL}
+    domain_exists "${VMDEL}"
+    storpool_exists "${VMDEL}"
+    delete_vm "${VMDEL}"
     exit 0
 fi
 
@@ -452,7 +472,7 @@ else
 fi
 
 # Check if domain already exists
-domain_exists
+domain_exists "${VMNAME}"
 
 if [ "${DOMAIN_EXISTS}" -eq 1 ]; then
     echo -n "[WARNING] ${VMNAME} already exists.  "
