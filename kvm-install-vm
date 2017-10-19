@@ -212,7 +212,7 @@ function get_pkg_mgr ()
 {
     case "${DISTRO}" in
         centos? )           PKGMGR="yum" ;;
-        fedora?? )          PKGMRG="dnf" ;;
+        fedora?? )          PKGMGR="dnf" ;;
         ubuntu*|debian? )   PKGMGR="apt-get" ;;
         *)                  PKGMGR= ;;
     esac
