@@ -35,23 +35,33 @@ information.
 ### Usage
 
 ```
+$ kvm-install-vm help
 NAME
     kvm-install-vm - Install virtual guests using cloud-init on a local KVM
     hypervisor.
 
 SYNOPSIS
-    ./kvm-install-vm [OPTIONS] -n|-r vmname
+    kvm-install-vm COMMAND [OPTIONS]
 
 DESCRIPTION
     A bash wrapper around virt-install to build virtual machines on a local KVM
     hypervisor. You can run it as a normal user which will use qemu:///session
     to connect locally to your KVM domains.
 
-MANDATORY ARGUMENTS
-    You must specify one of the following arguments to either create or delete
-    a VM:
-        -n vmname   Name of VM to create
-        -r vmname   Name of VM to delete
+COMMANDS
+    help    - show this help or help for a subcommand
+    create  - create a new guest domain
+    list    - list all domains, running and stopped
+    remove  - delete a guest domain
+```
+
+```
+$ kvm-install-vm help create
+NAME
+    kvm-install-vm create [OPTIONS] VMNAME
+
+DESCRIPTION
+    Create a new guest domain.
 
 OPTIONS
     -b          Bridge              (default: virbr0)
@@ -60,13 +70,12 @@ OPTIONS
     -f          CPU Model / Feature (default: host)
     -h          Display help
     -i          Custom QCOW2 Image
-    -k          SSH Public Key      (default: $HOME/.ssh/id_rsa.pub)
-    -l          Location of Images  (default: $HOME/virt/images)
+    -k          SSH Public Key      (default: /home/torresgi/.ssh/id_rsa.pub)
+    -l          Location of Images  (default: /home/torresgi/virt/images)
     -m          Memory Size (MB)    (default: 1024)
     -M mac      Mac address         (default: auto-assigned)
     -t          Linux Distribution  (default: centos7)
     -T          Timezone            (default: US/Eastern)
-
 
 DISTRIBUTIONS
     NAME            DESCRIPTION                         LOGIN
@@ -79,25 +88,20 @@ DISTRIBUTIONS
     ubuntu1604      Ubuntu 16.04 LTS (Xenial Xerus)     ubuntu
 
 EXAMPLES
-    ./kvm-install-vm -n foo
+    kvm-install-vm create foo
         Create VM with the default parameters: CentOS 7, 1 vCPU, 1GB RAM, 10GB
         disk capacity.
 
-    ./kvm-install-vm -c 2 -m 2048 -d 20 -n foo
+    kvm-install-vm create -c 2 -m 2048 -d 20 foo
         Create VM with custom parameters: 2 vCPUs, 2GB RAM, and 20GB disk
         capacity.
 
-    ./kvm-install-vm -t debian9 -n foo
+    kvm-install-vm create -t debian9 foo
         Create a Debian 9 VM with the default parameters.
 
-    ./kvm-install-vm -r foo
-        Remove (destroy and undefine) a VM.  WARNING: This will delete all
-        customizations in the VM!
+    kvm-install-vm create -T UTC foo
+        Create a default VM with UTC timezone.
 ```
-
-### Example
-
-[![asciicast](https://asciinema.org/a/bVgjJ3SHgvROX90iRuCCF1h4d.png)](https://asciinema.org/a/bVgjJ3SHgvROX90iRuCCF1h4d)
 
 ### Notes
 

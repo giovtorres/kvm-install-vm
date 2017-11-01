@@ -11,18 +11,32 @@ NAME
     hypervisor.
 
 SYNOPSIS
-    $prog [OPTIONS] -n|-r vmname
+    $prog COMMAND [OPTIONS]
 
 DESCRIPTION
     A bash wrapper around virt-install to build virtual machines on a local KVM
     hypervisor. You can run it as a normal user which will use qemu:///session
     to connect locally to your KVM domains.
 
-MANDATORY ARGUMENTS
-    You must specify one of the following arguments to either create or delete
-    a VM:
-        -n vmname   Name of VM to create
-        -r vmname   Name of VM to delete
+COMMANDS
+    help    - show this help or help for a subcommand
+    create  - create a new guest domain
+    list    - list all domains, running and stopped
+    remove  - delete a guest domain
+
+EOF
+}
+
+function usage_subcommand ()
+{
+    case "$1" in
+        create)
+            cat << EOF
+NAME
+    $prog create [OPTIONS] VMNAME
+
+DESCRIPTION
+    Create a new guest domain.
 
 OPTIONS
     -b          Bridge              (default: virbr0)
@@ -49,24 +63,51 @@ DISTRIBUTIONS
     ubuntu1604      Ubuntu 16.04 LTS (Xenial Xerus)     ubuntu
 
 EXAMPLES
-    $prog -n foo
+    $prog create foo
         Create VM with the default parameters: CentOS 7, 1 vCPU, 1GB RAM, 10GB
         disk capacity.
 
-    $prog -c 2 -m 2048 -d 20 -n foo
+    $prog create -c 2 -m 2048 -d 20 foo
         Create VM with custom parameters: 2 vCPUs, 2GB RAM, and 20GB disk
         capacity.
 
-    $prog -t debian9 -n foo
+    $prog create -t debian9 foo
         Create a Debian 9 VM with the default parameters.
 
-    $prog -T UTC -n foo
+    $prog create -T UTC foo
         Create a default VM with UTC timezone.
 
-    $prog -r foo
-        Remove (destroy and undefine) a VM.  WARNING: This will delete the VM
-        from disk, erasing all your customizations!
 EOF
+            ;;
+        remove)
+            cat << EOF
+NAME
+    $prog remove VMNAME
+
+DESCRIPTION
+    Destroys (stops) and undefines a guest domain.  This also remove the
+    associated storage pool.
+
+EXAMPLE
+    $prog remove foo
+        Remove (destroy and undefine) a guest domain.  WARNING: This will
+        delete the guest domain and any changes made inside it!
+EOF
+            ;;
+        list)
+            cat << EOF
+NAME
+    $prog list
+
+DESCRIPTION
+    Lists all running and stopped guest domains.
+EOF
+            ;;
+        *)
+            printf "'$subcommand' is not a valid subcommand.\n"
+            exit 1
+            ;;
+    esac
 }
 
 # Detect OS and set wget parameters
@@ -211,10 +252,22 @@ function storpool_exists ()
 function get_pkg_mgr ()
 {
     case "${DISTRO}" in
-        centos? )           PKGMGR="yum" ;;
-        fedora?? )          PKGMGR="dnf" ;;
-        ubuntu*|debian? )   PKGMGR="apt-get" ;;
-        *)                  PKGMGR= ;;
+        centos? )
+            PKGMGR="yum"
+            SUDOGROUP="wheel"
+            ;;
+        fedora?? )
+            PKGMGR="dnf"
+            SUDOGROUP="wheel"
+            ;;
+        ubuntu*|debian? )
+            PKGMGR="apt-get"
+            SUDOGROUP="sudo"
+            ;;
+        *)
+            PKGMGR=
+            SUDOGROUP=
+            ;;
     esac
 }
 
@@ -381,112 +434,162 @@ _EOF_
     popd > /dev/null
 }
 
+# Delete VM
+function remove ()
+{
+    if [ "$#" != 1 ]
+    then
+        printf "Too many arguments.\n"
+        printf "Run '$prog help remove' for usage.\n"
+        exit 1
+    else
+        # Check if domain exists and set DOMAIN_EXISTS variable.
+        domain_exists "${1}"
+
+        # Check if storage pool exists and set STORPOOL_EXISTS variable.
+        storpool_exists "${1}"
+
+        delete_vm "${1}"
+        exit 0
+    fi
+}
+
+function help_func ()
+{
+    :
+}
+
+function set_defaults ()
+{
+    # Defaults are set here. Override using command line arguments.
+    CPUS=1                          # Number of virtual CPUs
+    FEATURE=host                    # Use host cpu features to the guest
+    MEMORY=1024                     # Amount of RAM in MB
+    DISK_SIZE=10                    # Disk Size in GB
+    RESIZE_DISK=false               # Resize disk (boolean)
+    IMAGEDIR=${HOME}/virt/images    # Directory to store images
+    BRIDGE=virbr0                   # Hypervisor bridge
+    PUBKEY=${HOME}/.ssh/id_rsa.pub  # SSH public key
+    DISTRO=centos7                  # Distribution
+    MACADDRESS=                     # MAC Address
+    TIMEZONE=US/Eastern             # Timezone
+
+    # Reset OPTIND
+    OPTIND=1
+}
+
+function create ()
+{
+    # Set default variables
+    set_defaults
+
+    # Parse command line arguments
+    while getopts ":b:c:d:f:i:k:l:m:M:t:T:h" opt
+    do
+        case "$opt" in
+            b   ) BRIDGE="${OPTARG}" ;;
+            c   ) CPUS="${OPTARG}" ;;
+            d   )
+                if [ "${OPTARG}" -gt ${DISK_SIZE} ]; then
+                    DISK_SIZE="${OPTARG}G"
+                    RESIZE_DISK=true
+                else
+                    DISK_SIZE="${DISK_SIZE}G"
+                fi
+                ;;
+            f   ) FEATURE="${OPTARG}" ;;
+            i   ) IMAGE="${OPTARG}" ;;
+            k   ) PUBKEY="${OPTARG}" ;;
+            l   ) IMAGEDIR="${OPTARG}" ;;
+            m   ) MEMORY="${OPTARG}" ;;
+            M   ) MACADDRESS="${OPTARG}" ;;
+            t   ) DISTRO="${OPTARG}" ;;
+            T   ) TIMEZONE="${OPTARG}" ;;
+            h|* ) usage; exit 1 ;;
+        esac
+    done
+
+    shift $((OPTIND - 1))
+
+    if [ "$#" != 1 ]
+    then
+        printf "Too many options.\n"
+    else
+        VMNAME=$1
+    fi
+
+    # Set cloud-init variables after VMNAME is assigned
+    USER_DATA=user-data
+    META_DATA=meta-data
+    CI_ISO=${VMNAME}-cidata.iso
+
+    # Check for ssh key
+    check_ssh_key
+
+    if [ ! -z "${IMAGE+x}" ]
+    then
+        echo "[$(date +%r)]----> Using custom QCOW2 image: ${IMAGE}."
+        OS_VARIANT="auto"
+        LOGIN_USER="<use the default account in your custom image>"
+    else
+        fetch_images
+    fi
+
+    # Check if domain already exists
+    domain_exists "${VMNAME}"
+
+    if [ "${DOMAIN_EXISTS}" -eq 1 ]; then
+        echo -n "[WARNING] ${VMNAME} already exists.  "
+        read -p "Do you want to overwrite ${VMNAME} [y/N]? " -r
+        if [[ $REPLY =~ ^[Yy]$ ]]; then
+            delete_vm ${VMNAME}
+        else
+            echo -e "\nNot overwriting ${VMNAME}. Exiting..."
+            exit 1
+        fi
+    fi
+
+    # Set package manager
+    get_pkg_mgr
+
+    # Finally, create requested VM
+    create_vm
+}
+
 #--------------------------------------------------
 # Main
 #--------------------------------------------------
 
-# Defaults are set here. Override using command line arguments.
-CPUS=1                          # Number of virtual CPUs
-FEATURE=host                    # Use host cpu features to the guest
-MEMORY=1024                     # Amount of RAM in MB
-DISK_SIZE=10                    # Disk Size in GB
-RESIZE_DISK=false               # Resize disk (boolean)
-IMAGEDIR=${HOME}/virt/images    # Directory to store images
-BRIDGE=virbr0                   # Hypervisor bridge
-PUBKEY=${HOME}/.ssh/id_rsa.pub  # SSH public key
-DISTRO=centos7                  # Distribution
-MACADDRESS=                     # MAC Address
-TIMEZONE=US/Eastern             # Timezone
+subcommand="${1:-none}"
+[[ "${subcommand}" != "none" ]] && shift
 
-# Reset OPTIND
-OPTIND=1
-
-# Parse command line arguments
-while getopts ":b:c:d:f:i:k:l:m:M:n:r:t:T:h" opt
-do
-    case "$opt" in
-        b   ) BRIDGE="${OPTARG}" ;;
-        c   ) CPUS="${OPTARG}" ;;
-        d   )
-            if [ "${OPTARG}" -gt ${DISK_SIZE} ]; then
-                DISK_SIZE="${OPTARG}G"
-                RESIZE_DISK=true
-            else
-                DISK_SIZE="${DISK_SIZE}G"
-            fi
-            ;;
-        f   ) FEATURE="${OPTARG}" ;;
-        i   ) IMAGE="${OPTARG}" ;;
-        k   ) PUBKEY="${OPTARG}" ;;
-        l   ) IMAGEDIR="${OPTARG}" ;;
-        m   ) MEMORY="${OPTARG}" ;;
-        M   ) MACADDRESS="${OPTARG}" ;;
-        n   ) VMNAME="${OPTARG}" ;;
-        r   ) VMDEL="${OPTARG}" ;;
-        t   ) DISTRO="${OPTARG}" ;;
-        T   ) TIMEZONE="${OPTARG}" ;;
-        h|* ) usage; exit 1 ;;
-    esac
-done
-
-shift $((OPTIND-1))
-
-# cloud-init variables
-USER_DATA=user-data
-META_DATA=meta-data
-CI_ISO=${VMNAME}-cidata.iso
-
-# Can't specify both -n and -r together
-if [ ! -z "${VMNAME+x}" ] && [ ! -z "${VMDEL+x}" ]
-then
-    echo "-n and -r are mutually exclusive."
-    exit 2
-fi
-
-# Delete VM if -r is set
-if [ ! -z "${VMDEL+x}" ]
-then
-    domain_exists "${VMDEL}"
-    storpool_exists "${VMDEL}"
-    delete_vm "${VMDEL}"
-    exit 0
-fi
-
-# VMNAME must be set
-if [ -z "${VMNAME+x}" ]
-then
-    echo "You must specify a name for the VM with -n. Use -h to see usage."
-    exit 2
-fi
-
-# Check for ssh key
-check_ssh_key
-
-if [ ! -z "${IMAGE+x}" ]
-then
-    echo "[$(date +%r)]----> Using custom QCOW2 image: ${IMAGE}."
-    OS_VARIANT="auto"
-    LOGIN_USER="<use the default account in your custom image>"
-else
-    fetch_images
-fi
-
-# Check if domain already exists
-domain_exists "${VMNAME}"
-
-if [ "${DOMAIN_EXISTS}" -eq 1 ]; then
-    echo -n "[WARNING] ${VMNAME} already exists.  "
-    read -p "Do you want to overwrite ${VMNAME} [y/N]? " -r
-    if [[ $REPLY =~ ^[Yy]$ ]]; then
-        delete_vm ${VMNAME}
-    else
-        echo -e "\nNot overwriting ${VMNAME}. Exiting..."
+case "${subcommand}" in
+    none)
+        usage
         exit 1
-    fi
-fi
-
-# Set package manager
-get_pkg_mgr
-
-# Finally, create requested VM
-create_vm
+        ;;
+    help)
+        if [[ "${1:-none}" == "none" ]]; then
+            usage
+        elif [[ "$1" =~ ^create$|^remove$|^list$ ]]; then
+            usage_subcommand "$1"
+        else
+            printf "'$1' is not a valid subcommand.\n\n"
+            usage
+            exit 1
+        fi
+        exit 0
+        ;;
+    list)
+        virsh list --all
+        exit 0
+        ;;
+    create|remove)
+        "${subcommand}" "$@"
+        exit $?
+        ;;
+    *)
+        echo "not valid"
+        exit 1
+        ;;
+esac

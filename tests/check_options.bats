@@ -2,11 +2,11 @@
 
 @test "Check for help usage message" {
     run kvm-install-vm
-    [ "$output" = "You must specify a name for the VM with -n. Use -h to see usage." ]
+    [[ "$output" =~ "NAME" ]]
 }
 
 @test "Install VM - batstestvm" {
-    run bash -c "kvm-install-vm -n batstestvm"
+    run bash -c "kvm-install-vm create batstestvm"
     [ "$status" -eq 0 ]
 }
 
@@ -16,7 +16,7 @@
 }
 
 @test "Delete VM - batstestvm" {
-    run bash -c "kvm-install-vm -r batstestvm"
+    run bash -c "kvm-install-vm remove batstestvm"
     [ "$status" -eq 0 ]
 }
 
