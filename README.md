@@ -67,6 +67,7 @@ OPTIONS
     -b          Bridge              (default: virbr0)
     -c          Number of vCPUs     (default: 1)
     -d          Disk Size (GB)      (default: 10)
+    -D          DNS Domain          (default: example.local)
     -f          CPU Model / Feature (default: host)
     -h          Display help
     -i          Custom QCOW2 Image
