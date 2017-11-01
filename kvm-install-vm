@@ -309,6 +309,18 @@ preserve_hostname: False
 hostname: ${VMNAME}
 fqdn: ${VMNAME}.example.local
 
+# Users
+users:
+    - default
+    - name: ${USER}
+      groups: ['${SUDOGROUP}']
+      shell: /bin/bash
+      sudo:
+        - ${USER} ALL=(ALL) NOPASSWD:ALL
+        - ${USER} ALL = NOPASSWD: ALL
+      ssh-authorized-keys:
+        - ${KEY}
+
 # Configure where output will go
 output:
   all: ">> /var/log/cloud-init.log"
