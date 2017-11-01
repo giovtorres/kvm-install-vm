@@ -316,9 +316,7 @@ users:
     - name: ${USER}
       groups: ['${SUDOGROUP}']
       shell: /bin/bash
-      sudo:
-        - ${USER} ALL=(ALL) NOPASSWD:ALL
-        - ${USER} ALL = NOPASSWD: ALL
+      sudo: ALL=(ALL) NOPASSWD:ALL
       ssh-authorized-keys:
         - ${KEY}
 
