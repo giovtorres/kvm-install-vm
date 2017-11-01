@@ -42,6 +42,7 @@ OPTIONS
     -b          Bridge              (default: virbr0)
     -c          Number of vCPUs     (default: 1)
     -d          Disk Size (GB)      (default: 10)
+    -D          DNS Domain          (default: example.local)
     -f          CPU Model / Feature (default: host)
     -h          Display help
     -i          Custom QCOW2 Image
@@ -307,7 +308,7 @@ function create_vm ()
 # Hostname management
 preserve_hostname: False
 hostname: ${VMNAME}
-fqdn: ${VMNAME}.example.local
+fqdn: ${VMNAME}.${DNSDOMAIN}
 
 # Users
 users:
@@ -478,6 +479,7 @@ function set_defaults ()
     FEATURE=host                    # Use host cpu features to the guest
     MEMORY=1024                     # Amount of RAM in MB
     DISK_SIZE=10                    # Disk Size in GB
+    DNSDOMAIN=example.local         # DNS domain
     RESIZE_DISK=false               # Resize disk (boolean)
     IMAGEDIR=${HOME}/virt/images    # Directory to store images
     BRIDGE=virbr0                   # Hypervisor bridge
@@ -496,7 +498,7 @@ function create ()
     set_defaults
 
     # Parse command line arguments
-    while getopts ":b:c:d:f:i:k:l:m:M:t:T:h" opt
+    while getopts ":b:c:d:D:f:i:k:l:m:M:t:T:h" opt
     do
         case "$opt" in
             b   ) BRIDGE="${OPTARG}" ;;
@@ -509,6 +511,7 @@ function create ()
                     DISK_SIZE="${DISK_SIZE}G"
                 fi
                 ;;
+            D   ) DNSDOMAIN="${OPTARG}" ;;
             f   ) FEATURE="${OPTARG}" ;;
             i   ) IMAGE="${OPTARG}" ;;
             k   ) PUBKEY="${OPTARG}" ;;
