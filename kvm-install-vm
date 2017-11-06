@@ -266,8 +266,8 @@ function get_pkg_mgr ()
             SUDOGROUP="sudo"
             ;;
         *)
-            PKGMGR=
-            SUDOGROUP=
+            echo "OS not supported."
+            exit 2
             ;;
     esac
 }
@@ -334,17 +334,11 @@ ssh_authorized_keys:
 
 timezone: ${TIMEZONE}
 
-_EOF_
-
-    if [ ! -z ${PKGMGR} ]
-    then
-        cat >> $USER_DATA << _EOF_
 # Remove cloud-init when finished with it
 runcmd:
-  - [ ${PKGMGR}, -y, remove, cloud-init ]
   - ${NETRESTART}
+  - ${PKGMGR} -y remove cloud-init
 _EOF_
-    fi
 
     { echo "instance-id: ${VMNAME}"; echo "local-hostname: ${VMNAME}"; } > $META_DATA
 
@@ -461,7 +455,6 @@ function remove ()
         storpool_exists "${1}"
 
         delete_vm "${1}"
-        exit 0
     fi
 }
 
@@ -555,12 +548,15 @@ function create ()
         echo -n "[WARNING] ${VMNAME} already exists.  "
         read -p "Do you want to overwrite ${VMNAME} [y/N]? " -r
         if [[ $REPLY =~ ^[Yy]$ ]]; then
-            delete_vm ${VMNAME}
+            remove ${VMNAME}
         else
             echo -e "\nNot overwriting ${VMNAME}. Exiting..."
             exit 1
         fi
     fi
+
+    # Set network restart command
+    set_network_restart_cmd
 
     # Set package manager
     get_pkg_mgr
