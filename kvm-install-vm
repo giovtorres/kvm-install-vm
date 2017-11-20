@@ -132,6 +132,9 @@ function delete_vm ()
 {
     VM=$1
 
+    # Set defaults to get IMAGEDIR
+    set_defaults
+
     if [ "${DOMAIN_EXISTS}" -eq 1 ]
     then
         echo "[$(date +%r)]----> Destroying ${VM} domain..."

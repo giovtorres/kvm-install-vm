@@ -57,3 +57,8 @@ VMNAME=batstestvm
     run bash -c "virsh -q domstate $VMNAME"
     [[ "$output" =~ "error: failed to get domain '$VMNAME'" ]]
 }
+
+@test "Check destroyed VM files" {
+    run bash -c "ls $HOME/virt/images/$VMNAME"
+    [[ "$output" =~ "No such file or directory" ]]
+}
