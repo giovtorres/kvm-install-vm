@@ -33,10 +33,13 @@ function usage_subcommand ()
         create)
             cat << EOF
 NAME
-    $prog create [OPTIONS] VMNAME
+    $prog create [COMMANDS] [OPTIONS] VMNAME
 
 DESCRIPTION
     Create a new guest domain.
+
+COMMANDS
+    help - show this help
 
 OPTIONS
     -b          Bridge              (default: virbr0)
@@ -83,11 +86,14 @@ EOF
         remove)
             cat << EOF
 NAME
-    $prog remove VMNAME
+    $prog remove [COMMANDS] VMNAME
 
 DESCRIPTION
     Destroys (stops) and undefines a guest domain.  This also remove the
     associated storage pool.
+
+COMMANDS
+    help - show this help
 
 EXAMPLE
     $prog remove foo
@@ -520,7 +526,9 @@ function create ()
 
     if [ "$#" != 1 ]
     then
-        printf "Too many options.\n"
+        printf "Please specify a single host to create.\n"
+        printf "Run 'kvm-install-vm help create' for usage.\n"
+        exit 1
     else
         VMNAME=$1
     fi
@@ -595,8 +603,16 @@ case "${subcommand}" in
         exit 0
         ;;
     create|remove)
-        "${subcommand}" "$@"
-        exit $?
+        if [[ "${1:-none}" == "none" ]]; then
+            usage_subcommand "${subcommand}"
+            exit 1
+        elif [[ "$1" =~ ^help$ ]]; then
+            usage_subcommand "${subcommand}"
+            exit 1
+        else
+            "${subcommand}" "$@"
+            exit $?
+        fi
         ;;
     *)
         echo "not valid"
