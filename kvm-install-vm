@@ -615,7 +615,8 @@ case "${subcommand}" in
         fi
         ;;
     *)
-        echo "not valid"
+        printf "'${subcommand}' is not a valid subcommand.\n"
+        usage
         exit 1
         ;;
 esac
