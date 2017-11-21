@@ -162,7 +162,6 @@ EXAMPLE
    same name in a short period of time, there will be two DHCP leases for the
    same host and its hostname will likely not resolve until the old lease
    expires.
-```
 
 ### Testing
 
