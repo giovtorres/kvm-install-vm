@@ -150,6 +150,7 @@ EXAMPLE
     kvm-install-vm attach-disk -d 10 -s example-5g.qcow2 -t vdb foo
         Attach a 10GB disk device named example-5g.qcow2 to the foo guest
         domain.
+```
 
 ### Notes
 
