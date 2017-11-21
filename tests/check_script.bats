@@ -48,6 +48,28 @@ VMNAME=batstestvm
     [[ "$output" =~ "package cloud-init is not installed" ]]
 }
 
+@test "Attach disk to VM without specifying target" {
+    run bash -c "kvm-install-vm attach-disk -d 1 $VMNAME"
+    [ "$status" -eq 2 ]
+    [[ "${lines[0]}" =~ "You must specify a target device" ]]
+}
+
+@test "Attach disk to VM without specifying disk size" {
+    run bash -c "kvm-install-vm attach-disk -t vdb $VMNAME"
+    [ "$status" -eq 2 ]
+    [[ "${lines[0]}" =~ "You must specify a size" ]]
+}
+
+@test "Attach disk to VM" {
+    run bash -c "kvm-install-vm attach-disk -d 1 -t vdb $VMNAME"
+    [ "$status" -eq 0 ]
+}
+
+@test "Check block list for VM" {
+    run bash -c "grep ^vdb <(virsh domblklist foobar)"
+    [ "$status" -eq 0 ]
+}
+
 @test "Delete VM - $VMNAME" {
     run bash -c "kvm-install-vm remove $VMNAME"
     [ "$status" -eq 0 ]

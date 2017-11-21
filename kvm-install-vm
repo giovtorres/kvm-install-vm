@@ -19,10 +19,12 @@ DESCRIPTION
     to connect locally to your KVM domains.
 
 COMMANDS
-    help    - show this help or help for a subcommand
-    create  - create a new guest domain
-    list    - list all domains, running and stopped
-    remove  - delete a guest domain
+    help        - show this help or help for a subcommand
+    attach-disk - create and attach a disk device to guest domain
+    create      - create a new guest domain
+    detach-disk - detach a disk device from a guest domain
+    list        - list all domains, running and stopped
+    remove      - delete a guest domain
 
 EOF
 }
@@ -101,6 +103,30 @@ EXAMPLE
         delete the guest domain and any changes made inside it!
 EOF
             ;;
+        attach-disk)
+            cat << EOF
+NAME
+    $prog attach-disk [OPTIONS] [COMMANDS] VMNAME
+
+DESCRIPTION
+    Destroys (stops) and undefines a guest domain.  This also remove the
+    associated storage pool.
+
+COMMANDS
+    help - show this help
+
+OPTIONS
+    -d SIZE     Disk size (GB)
+    -f FORMAT   Disk image format       (default: qcow2)
+    -s IMAGE    Source of disk device
+    -t TARGET   Disk device target
+
+EXAMPLE
+    $prog attach-disk -d 10 -s example-5g.qcow2 -t vdb foo
+        Attach a 10GB disk device named example-5g.qcow2 to the foo guest
+        domain.
+EOF
+            ;;
         list)
             cat << EOF
 NAME
@@ -116,6 +142,22 @@ EOF
             ;;
     esac
 }
+
+# Console output colors
+bold() { echo -e "\e[1m$@\e[0m" ; }
+red() { echo -e "\e[31m$@\e[0m" ; }
+green() { echo -e "\e[32m$@\e[0m" ; }
+
+die() { red "ERR: $@" >&2 ; exit 2 ; }
+silent() { "$@" > /dev/null 2>&1 ; }
+has_bin() { silent which $1 ; }
+title() { bold "$@" ; }
+par() { echo -e "- $@" ; }
+parn() { echo -en "- $@ ... " ; }
+ok() { green "${@:-OK}" ; }
+
+pushd() { command pushd "$@" >/dev/null ; }
+popd() { command popd "$@" >/dev/null ; }
 
 # Detect OS and set wget parameters
 function set_wget ()
@@ -302,7 +344,7 @@ function create_vm ()
     [ -d "${IMAGEDIR}/${VMNAME}" ] && rm -rf ${IMAGEDIR}/${VMNAME}
     mkdir -p ${IMAGEDIR}/${VMNAME}
 
-    pushd ${IMAGEDIR}/${VMNAME} > /dev/null
+    pushd ${IMAGEDIR}/${VMNAME}
 
     # Create log file
     touch ${VMNAME}.log
@@ -443,7 +485,7 @@ _EOF_
     echo "[$(date +%r)]----> SSH to ${VMNAME}: 'ssh ${LOGIN_USER}@${IP}' or 'ssh ${LOGIN_USER}@${VMNAME}'"
     echo "[$(date +%r)]----> DONE."
 
-    popd > /dev/null
+    popd
 }
 
 # Delete VM
@@ -463,11 +505,6 @@ function remove ()
 
         delete_vm "${1}"
     fi
-}
-
-function help_func ()
-{
-    :
 }
 
 function set_defaults ()
@@ -574,6 +611,64 @@ function create ()
     create_vm
 }
 
+function attach-disk ()
+{
+    # Set default variables
+    FORMAT=qcow2
+
+    # Parse command line arguments
+    while getopts ":d:f:ps:t:h" opt
+    do
+        case "$opt" in
+            d   ) DISKSIZE="${OPTARG}G" ;;
+            f   ) FORMAT="${OPTARG}" ;;
+            p   ) PERSISTENT="${OPTARG}" ;;
+            s   ) SOURCE="${OPTARG}" ;;
+            t   ) TARGET="${OPTARG}" ;;
+            h|* ) usage; exit 1 ;;
+        esac
+    done
+
+    shift $((OPTIND - 1))
+
+    [ ! -z ${TARGET} ] || die "You must specify a target device, for e.g. '-t vdb'"
+    [ ! -z ${DISKSIZE} ] || die "You must specify a size (in GB) for the new device, for e.g. '-d 5'"
+
+    if [ "$#" != 1 ]
+    then
+        printf "Please specify a single host to attach a disk to.\n"
+        printf "Run 'kvm-install-vm help attach-disk' for usage.\n"
+        exit 1
+    else
+        # Set variables
+        VMNAME=$1
+        DISKDIR=${HOME}/virt/images/${VMNAME}    # Directory to create attached disk
+        DISKNAME=${VMNAME}-${TARGET}-${DISKSIZE}.${FORMAT}
+
+        if [ ! -f "${DISKDIR}/${DISKNAME}" ]
+        then
+            echo "[$(date +%r)]----> Creating new '${TARGET}' disk image for domain ${VMNAME}."
+            qemu-img create -f ${FORMAT} -o size=$DISKSIZE,preallocation=metadata \
+                ${DISKDIR}/${DISKNAME} >> ${DISKDIR}/${VMNAME}.log  && \
+
+            echo "[$(date +%r)]----> Attaching ${DISKNAME} to domain ${VMNAME}." && \
+            virsh attach-disk ${VMNAME} \
+                --source $DISKDIR/${DISKNAME} \
+                --target ${TARGET} \
+                --subdriver ${FORMAT} \
+                --cache none \
+                --persistent >> ${DISKDIR}/${VMNAME}.log && \
+
+            exit "$?"
+        else
+            printf "Target ${TARGET} is already created or in use.\n"
+            exit 1
+        fi
+
+    fi
+
+}
+
 #--------------------------------------------------
 # Main
 #--------------------------------------------------
@@ -602,7 +697,7 @@ case "${subcommand}" in
         virsh list --all
         exit 0
         ;;
-    create|remove)
+    create|remove|attach-disk|remove-disk)
         if [[ "${1:-none}" == "none" ]]; then
             usage_subcommand "${subcommand}"
             exit 1

@@ -55,6 +55,8 @@ COMMANDS
     remove  - delete a guest domain
 ```
 
+#### Creating Guest VMs
+
 ```
 $ kvm-install-vm help create
 NAME
@@ -104,6 +106,50 @@ EXAMPLES
         Create a default VM with UTC timezone.
 ```
 
+#### Deleting a Guest Domain
+
+```
+NAME
+    kvm-install-vm remove [COMMANDS] VMNAME
+
+DESCRIPTION
+    Destroys (stops) and undefines a guest domain.  This also remove the
+    associated storage pool.
+
+COMMANDS
+    help - show this help
+
+EXAMPLE
+    kvm-install-vm remove foo
+        Remove (destroy and undefine) a guest domain.  WARNING: This will
+        delete the guest domain and any changes made inside it!
+```
+
+#### Attaching a new disk
+
+```
+$ kvm-install-vm attach-disk
+NAME
+    kvm-install-vm attach-disk [OPTIONS] [COMMANDS] VMNAME
+
+DESCRIPTION
+    Destroys (stops) and undefines a guest domain.  This also remove the
+    associated storage pool.
+
+COMMANDS
+    help - show this help
+
+OPTIONS
+    -d SIZE     Disk size (GB)
+    -f FORMAT   Disk image format       (default: qcow2)
+    -s IMAGE    Source of disk device
+    -t TARGET   Disk device target
+
+EXAMPLE
+    kvm-install-vm attach-disk -d 10 -s example-5g.qcow2 -t vdb foo
+        Attach a 10GB disk device named example-5g.qcow2 to the foo guest
+        domain.
+
 ### Notes
 
 1. This script will download a qcow2 cloud image from the respective
@@ -114,6 +160,7 @@ EXAMPLES
    same name in a short period of time, there will be two DHCP leases for the
    same host and its hostname will likely not resolve until the old lease
    expires.
+```
 
 ### Testing
 
