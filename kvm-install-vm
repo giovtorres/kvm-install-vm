@@ -687,7 +687,7 @@ case "${subcommand}" in
     help)
         if [[ "${1:-none}" == "none" ]]; then
             usage
-        elif [[ "$1" =~ ^create$|^remove$|^list$ ]]; then
+        elif [[ "$1" =~ ^create$|^remove$|^list$|^attach-disk$ ]]; then
             usage_subcommand "$1"
         else
             printf "'$1' is not a valid subcommand.\n\n"

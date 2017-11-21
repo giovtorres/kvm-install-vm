@@ -109,6 +109,7 @@ EXAMPLES
 #### Deleting a Guest Domain
 
 ```
+$ kvm-install-vm help remove
 NAME
     kvm-install-vm remove [COMMANDS] VMNAME
 
@@ -128,7 +129,7 @@ EXAMPLE
 #### Attaching a new disk
 
 ```
-$ kvm-install-vm attach-disk
+$ kvm-install-vm help attach-disk
 NAME
     kvm-install-vm attach-disk [OPTIONS] [COMMANDS] VMNAME
 
