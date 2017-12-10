@@ -33,108 +33,100 @@ function usage_subcommand ()
 {
     case "$1" in
         create)
-            cat << EOF
-NAME
-    $prog create [COMMANDS] [OPTIONS] VMNAME
-
-DESCRIPTION
-    Create a new guest domain.
-
-COMMANDS
-    help - show this help
-
-OPTIONS
-    -b          Bridge              (default: virbr0)
-    -c          Number of vCPUs     (default: 1)
-    -d          Disk Size (GB)      (default: 10)
-    -D          DNS Domain          (default: example.local)
-    -f          CPU Model / Feature (default: host)
-    -h          Display help
-    -i          Custom QCOW2 Image
-    -k          SSH Public Key      (default: $HOME/.ssh/id_rsa.pub)
-    -l          Location of Images  (default: $HOME/virt/images)
-    -m          Memory Size (MB)    (default: 1024)
-    -M mac      Mac address         (default: auto-assigned)
-    -t          Linux Distribution  (default: centos7)
-    -T          Timezone            (default: US/Eastern)
-
-DISTRIBUTIONS
-    NAME            DESCRIPTION                         LOGIN
-    centos7         CentOS 7                            centos
-    centos7-atomic  CentOS 7 Atomic Host                centos
-    centos6         CentOS 6                            centos
-    debian9         Debian 9 (Stretch)                  debian
-    fedora26        Fedora 26                           fedora
-    fedora26-atomic Fedora 26 Atomic Host               fedora
-    ubuntu1604      Ubuntu 16.04 LTS (Xenial Xerus)     ubuntu
-
-EXAMPLES
-    $prog create foo
-        Create VM with the default parameters: CentOS 7, 1 vCPU, 1GB RAM, 10GB
-        disk capacity.
-
-    $prog create -c 2 -m 2048 -d 20 foo
-        Create VM with custom parameters: 2 vCPUs, 2GB RAM, and 20GB disk
-        capacity.
-
-    $prog create -t debian9 foo
-        Create a Debian 9 VM with the default parameters.
-
-    $prog create -T UTC foo
-        Create a default VM with UTC timezone.
-
-EOF
+            printf "NAME\n"
+            printf "    $prog create [COMMANDS] [OPTIONS] VMNAME\n"
+            printf "\n"
+            printf "DESCRIPTION\n"
+            printf "    Create a new guest domain.\n"
+            printf "\n"
+            printf "COMMANDS\n"
+            printf "    help - show this help\n"
+            printf "\n"
+            printf "OPTIONS\n"
+            printf "    -b          Bridge              (default: virbr0)\n"
+            printf "    -c          Number of vCPUs     (default: 1)\n"
+            printf "    -d          Disk Size (GB)      (default: 10)\n"
+            printf "    -D          DNS Domain          (default: example.local)\n"
+            printf "    -f          CPU Model / Feature (default: host)\n"
+            printf "    -h          Display help\n"
+            printf "    -i          Custom QCOW2 Image\n"
+            printf "    -k          SSH Public Key      (default: $HOME/.ssh/id_rsa.pub)\n"
+            printf "    -l          Location of Images  (default: $HOME/virt/images)\n"
+            printf "    -m          Memory Size (MB)    (default: 1024)\n"
+            printf "    -M mac      Mac address         (default: auto-assigned)\n"
+            printf "    -t          Linux Distribution  (default: centos7)\n"
+            printf "    -T          Timezone            (default: US/Eastern)\n"
+            printf "\n"
+            printf "DISTRIBUTIONS\n"
+            printf "    NAME            DESCRIPTION                         LOGIN\n"
+            printf "    centos7         CentOS 7                            centos\n"
+            printf "    centos7-atomic  CentOS 7 Atomic Host                centos\n"
+            printf "    centos6         CentOS 6                            centos\n"
+            printf "    debian9         Debian 9 (Stretch)                  debian\n"
+            printf "    fedora26        Fedora 26                           fedora\n"
+            printf "    fedora26-atomic Fedora 26 Atomic Host               fedora\n"
+            printf "    ubuntu1604      Ubuntu 16.04 LTS (Xenial Xerus)     ubuntu\n"
+            printf "\n"
+            printf "EXAMPLES\n"
+            printf "    $prog create foo\n"
+            printf "        Create VM with the default parameters: CentOS 7, 1 vCPU, 1GB RAM, 10GB\n"
+            printf "        disk capacity.\n"
+            printf "\n"
+            printf "    $prog create -c 2 -m 2048 -d 20 foo\n"
+            printf "        Create VM with custom parameters: 2 vCPUs, 2GB RAM, and 20GB disk\n"
+            printf "        capacity.\n"
+            printf "\n"
+            printf "    $prog create -t debian9 foo\n"
+            printf "        Create a Debian 9 VM with the default parameters.\n"
+            printf "\n"
+            printf "    $prog create -T UTC foo\n"
+            printf "        Create a default VM with UTC timezone.\n"
+            printf "\n"
             ;;
         remove)
-            cat << EOF
-NAME
-    $prog remove [COMMANDS] VMNAME
-
-DESCRIPTION
-    Destroys (stops) and undefines a guest domain.  This also remove the
-    associated storage pool.
-
-COMMANDS
-    help - show this help
-
-EXAMPLE
-    $prog remove foo
-        Remove (destroy and undefine) a guest domain.  WARNING: This will
-        delete the guest domain and any changes made inside it!
-EOF
+            printf "NAME\n"
+            printf "    $prog remove [COMMANDS] VMNAME\n"
+            printf "\n"
+            printf "DESCRIPTION\n"
+            printf "    Destroys (stops) and undefines a guest domain.  This also remove the\n"
+            printf "    associated storage pool.\n"
+            printf "\n"
+            printf "COMMANDS\n"
+            printf "    help - show this help\n"
+            printf "\n"
+            printf "EXAMPLE\n"
+            printf "    $prog remove foo\n"
+            printf "        Remove (destroy and undefine) a guest domain.  WARNING: This will\n"
+            printf "        delete the guest domain and any changes made inside it!\n"
             ;;
         attach-disk)
-            cat << EOF
-NAME
-    $prog attach-disk [OPTIONS] [COMMANDS] VMNAME
-
-DESCRIPTION
-    Destroys (stops) and undefines a guest domain.  This also remove the
-    associated storage pool.
-
-COMMANDS
-    help - show this help
-
-OPTIONS
-    -d SIZE     Disk size (GB)
-    -f FORMAT   Disk image format       (default: qcow2)
-    -s IMAGE    Source of disk device
-    -t TARGET   Disk device target
-
-EXAMPLE
-    $prog attach-disk -d 10 -s example-5g.qcow2 -t vdb foo
-        Attach a 10GB disk device named example-5g.qcow2 to the foo guest
-        domain.
-EOF
+            printf "NAME\n"
+            printf "    $prog attach-disk [OPTIONS] [COMMANDS] VMNAME\n"
+            printf "\n"
+            printf "DESCRIPTION\n"
+            printf "    Destroys (stops) and undefines a guest domain.  This also remove the\n"
+            printf "    associated storage pool.\n"
+            printf "\n"
+            printf "COMMANDS\n"
+            printf "    help - show this help\n"
+            printf "\n"
+            printf "OPTIONS\n"
+            printf "    -d SIZE     Disk size (GB)\n"
+            printf "    -f FORMAT   Disk image format       (default: qcow2)\n"
+            printf "    -s IMAGE    Source of disk device\n"
+            printf "    -t TARGET   Disk device target\n"
+            printf "\n"
+            printf "EXAMPLE\n"
+            printf "    $prog attach-disk -d 10 -s example-5g.qcow2 -t vdb foo\n"
+            printf "        Attach a 10GB disk device named example-5g.qcow2 to the foo guest\n"
+            printf "        domain.\n"
             ;;
         list)
-            cat << EOF
-NAME
-    $prog list
-
-DESCRIPTION
-    Lists all running and stopped guest domains.
-EOF
+            printf "NAME\n"
+            printf "    $prog list\n"
+            printf "\n"
+            printf "DESCRIPTION\n"
+            printf "    Lists all running and stopped guest domains.\n"
             ;;
         *)
             printf "'$subcommand' is not a valid subcommand.\n"
