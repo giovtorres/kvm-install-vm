@@ -144,8 +144,8 @@ die() { red "ERR: $@" >&2 ; exit 2 ; }
 silent() { "$@" > /dev/null 2>&1 ; }
 has_bin() { silent which $1 ; }
 title() { bold "$@" ; }
-par() { echo -e "- $@" ; }
-parn() { echo -en "- $@ ... " ; }
+output() { echo -e "- $@" ; }
+outputn() { echo -en "- $@ ... " ; }
 ok() { green "${@:-OK}" ; }
 
 pushd() { command pushd "$@" >/dev/null ; }
@@ -171,25 +171,26 @@ function delete_vm ()
 
     if [ "${DOMAIN_EXISTS}" -eq 1 ]
     then
-        echo "[$(date +%r)]----> Destroying ${VM} domain..."
-        virsh destroy ${VM} > /dev/null 2>&1
+        outputn "Destroying ${VM} domain"
+        virsh destroy ${VM} > /dev/null 2>&1; ok
 
-        echo "[$(date +%r)]----> Undefining ${VM} domain..."
-        virsh undefine ${VM} > /dev/null 2>&1
+        outputn "Undefining ${VM} domain"
+        virsh undefine ${VM} > /dev/null 2>&1 && ok
 
         [ -d "$IMAGEDIR/$VM" ] \
-            && echo "[$(date +%r)]----> Deleting ${VM} files..." \
-            && rm -rf $IMAGEDIR/$VM
+            && outputn "Deleting ${VM} files" \
+            && rm -rf $IMAGEDIR/$VM \
+            && ok
     else
-        echo "[$(date +%r)]----> Domain ${VM} does not exist..."
+        output "Domain ${VM} does not exist"
     fi
 
     if [ "${STORPOOL_EXISTS}" -eq 1 ]
     then
-        echo "[$(date +%r)]----> Destroying ${VM} storage pool..."
-        virsh pool-destroy ${VM} > /dev/null 2>&1
+        outputn "Destroying ${VM} storage pool"
+        virsh pool-destroy ${VM} > /dev/null 2>&1 && ok
     else
-        echo "[$(date +%r)]----> Storage pool ${VM} does not exist..."
+        output "Storage pool ${VM} does not exist"
     fi
 }
 
@@ -259,9 +260,10 @@ function fetch_images ()
 
     if [ ! -f ${IMAGEDIR}/${QCOW} ]
     then
-        echo "[$(date +%r)]----> Cloud image not found.  Downloading..."
+        output "Cloud image not found.  Downloading"
         set_wget
-        ${WGET} --directory-prefix ${IMAGEDIR} ${IMAGE_URL}/${QCOW}
+        ${WGET} --directory-prefix ${IMAGEDIR} ${IMAGE_URL}/${QCOW} || \
+            die "Could not download image."
     fi
 
 }
@@ -271,8 +273,8 @@ function check_ssh_key ()
     if [ ! -f "${PUBKEY}" ]
     then
         # Check for existence of a pubkey, or else exit with message
-        echo "[$(date +%r)]----> [ERROR] Please generate an SSH keypair using 'ssh-keygen -t rsa' or specify one with the "-k" flag."
-        exit 3
+        die "Please generate an SSH keypair using 'ssh-keygen -t rsa' or \
+             specify one with the "-k" flag."
     else
         # Place contents of $PUBKEY into $KEY
         KEY=$(<${PUBKEY})
@@ -326,11 +328,11 @@ function set_network_restart_cmd ()
 
 function check_delete_known_host ()
 {
-    echo "[$(date +%r)]----> Checking for ${IP} in known_hosts file..."
+    output "Checking for ${IP} in known_hosts file"
     grep -q ${IP} ${HOME}/.ssh/known_hosts \
-        && echo "[$(date +%r)]----> Found entry for ${IP}. Removing..." \
-        && sed --in-place "/^${IP}/d" ~/.ssh/known_hosts \
-        || echo "[$(date +%r)]----> No entries found for ${IP}..."
+        && outputn "Found entry for ${IP}. Removing" \
+        && (sed --in-place "/^${IP}/d" ~/.ssh/known_hosts && ok ) \
+        || output "No entries found for ${IP}"
 }
 
 function create_vm ()
@@ -386,29 +388,37 @@ _EOF_
 
     { echo "instance-id: ${VMNAME}"; echo "local-hostname: ${VMNAME}"; } > $META_DATA
 
-    echo "[$(date +%r)]----> Copying cloud image ($(basename ${IMAGE}))..."
+    outputn "Copying cloud image ($(basename ${IMAGE}))"
     DISK=${VMNAME}.qcow2
-    cp $IMAGE $DISK
+    cp $IMAGE $DISK && ok
     if $RESIZE_DISK
     then
-        echo "[$(date +%r)]----> Resizing the disk to $DISK_SIZE..."
-        qemu-img create -f qcow2 -o preallocation=metadata $DISK.new $DISK_SIZE >> ${VMNAME}.log 2>&1
-        virt-resize --quiet --expand /dev/sda1 $DISK $DISK.new >> ${VMNAME}.log 2>&1
-        mv $DISK.new $DISK
+        outputn "Resizing the disk to $DISK_SIZE"
+        qemu-img create -f qcow2 -o preallocation=metadata $DISK.new $DISK_SIZE &>> ${VMNAME}.log \
+            && virt-resize --quiet --expand /dev/sda1 $DISK $DISK.new &>> ${VMNAME}.log \
+            && (mv $DISK.new $DISK && ok) \
+            || die "Could not resize disk."
     fi
 
     # Create CD-ROM ISO with cloud-init config
-    echo "[$(date +%r)]----> Generating ISO for cloud-init..."
-    genisoimage -output $CI_ISO -volid cidata -joliet -r $USER_DATA $META_DATA &>> ${VMNAME}.log
+    outputn "Generating ISO for cloud-init"
+    genisoimage -output $CI_ISO -volid cidata -joliet -r $USER_DATA $META_DATA &>> ${VMNAME}.log \
+        && ok
 
-    echo "[$(date +%r)]----> Creating Storage Pool with the following command:"
-    echo "    virsh pool-create-as \\"
-    echo "      --name ${VMNAME} \\"
-    echo "      --type dir \\"
-    echo "      --target ${IMAGEDIR}/${VMNAME}"
+# #TODO: only output if verbose
+#    echo "Creating Storage Pool with the following command:"
+#    echo "    virsh pool-create-as \\"
+#    echo "      --name ${VMNAME} \\"
+#    echo "      --type dir \\"
+#    echo "      --target ${IMAGEDIR}/${VMNAME}"
 
+    outputn "Creating storage pool"
     # Create new storage pool for new VM
-    virsh pool-create-as --name ${VMNAME} --type dir --target ${IMAGEDIR}/${VMNAME}
+    (virsh pool-create-as \
+        --name ${VMNAME} \
+        --type dir \
+        --target ${IMAGEDIR}/${VMNAME} &>> ${VMNAME}.log && ok) \
+        || die "Could not create storage pool."
 
     # Add custom MAC Address if specified
     if [ -z "${MACADDRESS}" ]
@@ -418,24 +428,25 @@ _EOF_
         NETWORK_PARAMS="bridge=${BRIDGE},model=virtio,mac=${MACADDRESS}"
     fi
 
-    echo "[$(date +%r)]----> Installing the domain and adjusting the configuration..."
-    echo "[$(date +%r)]----> Installing with the following command:"
-    echo "    virt-install \\"
-    echo "      --import \\"
-    echo "      --name ${VMNAME} \\"
-    echo "      --memory ${MEMORY} \\"
-    echo "      --vcpus ${CPUS} \\"
-    echo "      --cpu ${FEATURE} \\"
-    echo "      --disk ${DISK},format=qcow2,bus=virtio \\"
-    echo "      --disk ${CI_ISO},device=cdrom \\"
-    echo "      --network ${NETWORK_PARAMS} \\"
-    echo "      --os-type=linux \\"
-    echo "      --os-variant=${OS_VARIANT} \\"
-    echo "      --graphics spice \\"
-    echo "      --noautoconsole "
+    outputn "Installing the domain and adjusting the configuration"
+# #TODO: only output if verbose
+#    echo "[$(date +%r)]----> Installing with the following command:"
+#    echo "    virt-install \\"
+#    echo "      --import \\"
+#    echo "      --name ${VMNAME} \\"
+#    echo "      --memory ${MEMORY} \\"
+#    echo "      --vcpus ${CPUS} \\"
+#    echo "      --cpu ${FEATURE} \\"
+#    echo "      --disk ${DISK},format=qcow2,bus=virtio \\"
+#    echo "      --disk ${CI_ISO},device=cdrom \\"
+#    echo "      --network ${NETWORK_PARAMS} \\"
+#    echo "      --os-type=linux \\"
+#    echo "      --os-variant=${OS_VARIANT} \\"
+#    echo "      --graphics spice \\"
+#    echo "      --noautoconsole "
 
     # Call virt-install to import the cloud image and create a new VM
-    virt-install --import \
+    (virt-install --import \
         --name ${VMNAME} \
         --memory ${MEMORY} \
         --vcpus ${CPUS} \
@@ -446,23 +457,24 @@ _EOF_
         --os-type=linux \
         --os-variant=${OS_VARIANT} \
         --graphics spice \
-        --noautoconsole
+        --noautoconsole &>> ${VMNAME}.log && ok ) \
+        || die "Could not create domain with virt-install."
 
-    RET=$?
-    if [ "$RET" -ne 0 ]; then
-        echo "[ERROR] virt-install failed."
-        exit 3
-    fi
-    virsh dominfo ${VMNAME} >> ${VMNAME}.log 2>&1
+#    RET=$?
+#    if [ "$RET" -ne 0 ]; then
+#        echo "[ERROR] virt-install failed."
+#        exit 3
+#    fi
+    virsh dominfo ${VMNAME} &>> ${VMNAME}.log
 
     # Eject cdrom
-    echo "[$(date +%r)]----> Cleaning up cloud-init..."
-    virsh change-media ${VMNAME} hda --eject --config >> ${VMNAME}.log
+    virsh change-media ${VMNAME} hda --eject --config &>> ${VMNAME}.log
 
     # Remove the unnecessary cloud init files
-    rm $USER_DATA $META_DATA $CI_ISO
+    outputn "Cleaning up cloud-init"
+    rm $USER_DATA $META_DATA $CI_ISO && ok
 
-    echo "[$(date +%r)]----> Waiting for domain to get an IP address ..."
+    outputn "Waiting for domain to get an IP address"
     MAC=$(virsh dumpxml ${VMNAME} | awk -F\' '/mac address/ {print $2}')
     while true
     do
@@ -472,13 +484,15 @@ _EOF_
         then
             sleep 1
         else
+            ok
             break
         fi
     done
 
+    printf "\n"
     check_delete_known_host
-    echo "[$(date +%r)]----> SSH to ${VMNAME}: 'ssh ${LOGIN_USER}@${IP}' or 'ssh ${LOGIN_USER}@${VMNAME}'"
-    echo "[$(date +%r)]----> DONE."
+    output "SSH to ${VMNAME}: 'ssh ${LOGIN_USER}@${IP}' or 'ssh ${LOGIN_USER}@${VMNAME}'"
+    output "DONE"
 
     popd
 }
