@@ -1,4 +1,5 @@
 #!/bin/bash
+set -e
 
 # Set program name variable - basename without subshell
 prog=${0##*/}
