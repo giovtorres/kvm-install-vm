@@ -142,8 +142,6 @@ green() { echo -e "\e[32m$@\e[0m" ; }
 
 die() { red "ERR: $@" >&2 ; exit 2 ; }
 silent() { "$@" > /dev/null 2>&1 ; }
-has_bin() { silent which $1 ; }
-title() { bold "$@" ; }
 output() { echo -e "- $@" ; }
 outputn() { echo -en "- $@ ... " ; }
 ok() { green "${@:-OK}" ; }
@@ -162,35 +160,37 @@ function set_wget ()
     fi
 }
 
+function check_vmname_set ()
+{
+    test -n ${VMNAME} || die "VMNAME not set."
+}
+
 function delete_vm ()
 {
-    VM=$1
-
-    # Set defaults to get IMAGEDIR
-    set_defaults
+    check_vmname_set
 
     if [ "${DOMAIN_EXISTS}" -eq 1 ]
     then
-        outputn "Destroying ${VM} domain"
-        virsh destroy ${VM} > /dev/null 2>&1; ok
+        outputn "Destroying ${VMNAME} domain"
+        virsh destroy ${VMNAME} > /dev/null 2>&1; ok
 
-        outputn "Undefining ${VM} domain"
-        virsh undefine ${VM} > /dev/null 2>&1 && ok
+        outputn "Undefining ${VMNAME} domain"
+        virsh undefine ${VMNAME} > /dev/null 2>&1 && ok
 
-        [ -d "$IMAGEDIR/$VM" ] \
-            && outputn "Deleting ${VM} files" \
-            && rm -rf $IMAGEDIR/$VM \
+        [ -d "${IMAGEDIR}/${VMNAME}" ] \
+            && outputn "Deleting ${VMNAME} files" \
+            && rm -rf ${IMAGEDIR}/${VMNAME} \
             && ok
     else
-        output "Domain ${VM} does not exist"
+        output "Domain ${VMNAME} does not exist"
     fi
 
     if [ "${STORPOOL_EXISTS}" -eq 1 ]
     then
-        outputn "Destroying ${VM} storage pool"
-        virsh pool-destroy ${VM} > /dev/null 2>&1 && ok
+        outputn "Destroying ${VMNAME} storage pool"
+        virsh pool-destroy ${VMNAME} > /dev/null 2>&1 && ok
     else
-        output "Storage pool ${VM} does not exist"
+        output "Storage pool ${VMNAME} does not exist"
     fi
 }
 
@@ -311,8 +311,7 @@ function get_pkg_mgr ()
             SUDOGROUP="sudo"
             ;;
         *)
-            echo "OS not supported."
-            exit 2
+            die "OS not supported."
             ;;
     esac
 }
@@ -337,6 +336,8 @@ function check_delete_known_host ()
 
 function create_vm ()
 {
+    check_vmname_set
+
     # Start clean
     [ -d "${IMAGEDIR}/${VMNAME}" ] && rm -rf ${IMAGEDIR}/${VMNAME}
     mkdir -p ${IMAGEDIR}/${VMNAME}
@@ -405,14 +406,17 @@ _EOF_
     genisoimage -output $CI_ISO -volid cidata -joliet -r $USER_DATA $META_DATA &>> ${VMNAME}.log \
         && ok
 
-# #TODO: only output if verbose
-#    echo "Creating Storage Pool with the following command:"
-#    echo "    virsh pool-create-as \\"
-#    echo "      --name ${VMNAME} \\"
-#    echo "      --type dir \\"
-#    echo "      --target ${IMAGEDIR}/${VMNAME}"
+    if [ "${VERBOSE}" -eq 1 ]
+    then
+        output "Creating storage pool with the following command"
+        printf "    virsh pool-create-as \\ \n"
+        printf "      --name ${VMNAME} \\ \n"
+        printf "      --type dir \\ \n"
+        printf "      --target ${IMAGEDIR}/${VMNAME} \n"
+    else
+        outputn "Creating storage pool"
+    fi
 
-    outputn "Creating storage pool"
     # Create new storage pool for new VM
     (virsh pool-create-as \
         --name ${VMNAME} \
@@ -428,22 +432,25 @@ _EOF_
         NETWORK_PARAMS="bridge=${BRIDGE},model=virtio,mac=${MACADDRESS}"
     fi
 
-    outputn "Installing the domain and adjusting the configuration"
-# #TODO: only output if verbose
-#    echo "[$(date +%r)]----> Installing with the following command:"
-#    echo "    virt-install \\"
-#    echo "      --import \\"
-#    echo "      --name ${VMNAME} \\"
-#    echo "      --memory ${MEMORY} \\"
-#    echo "      --vcpus ${CPUS} \\"
-#    echo "      --cpu ${FEATURE} \\"
-#    echo "      --disk ${DISK},format=qcow2,bus=virtio \\"
-#    echo "      --disk ${CI_ISO},device=cdrom \\"
-#    echo "      --network ${NETWORK_PARAMS} \\"
-#    echo "      --os-type=linux \\"
-#    echo "      --os-variant=${OS_VARIANT} \\"
-#    echo "      --graphics spice \\"
-#    echo "      --noautoconsole "
+    if [ "${VERBOSE}" -eq 1 ]
+    then
+        output "Installing the domain with the following command"
+        printf "    virt-install \\ \n"
+        printf "      --import \\ \n"
+        printf "      --name ${VMNAME} \\ \n"
+        printf "      --memory ${MEMORY} \\ \n"
+        printf "      --vcpus ${CPUS} \\ \n"
+        printf "      --cpu ${FEATURE} \\ \n"
+        printf "      --disk ${DISK},format=qcow2,bus=virtio \\ \n"
+        printf "      --disk ${CI_ISO},device=cdrom \\ \n"
+        printf "      --network ${NETWORK_PARAMS} \\ \n"
+        printf "      --os-type=linux \\ \n"
+        printf "      --os-variant=${OS_VARIANT} \\ \n"
+        printf "      --graphics spice \\ \n"
+        printf "      --noautoconsole  \n"
+    else
+        outputn "Installing the domain"
+    fi
 
     # Call virt-install to import the cloud image and create a new VM
     (virt-install --import \
@@ -460,18 +467,13 @@ _EOF_
         --noautoconsole &>> ${VMNAME}.log && ok ) \
         || die "Could not create domain with virt-install."
 
-#    RET=$?
-#    if [ "$RET" -ne 0 ]; then
-#        echo "[ERROR] virt-install failed."
-#        exit 3
-#    fi
     virsh dominfo ${VMNAME} &>> ${VMNAME}.log
 
     # Eject cdrom
     virsh change-media ${VMNAME} hda --eject --config &>> ${VMNAME}.log
 
     # Remove the unnecessary cloud init files
-    outputn "Cleaning up cloud-init"
+    outputn "Cleaning up cloud-init files"
     rm $USER_DATA $META_DATA $CI_ISO && ok
 
     outputn "Waiting for domain to get an IP address"
@@ -491,6 +493,8 @@ _EOF_
 
     printf "\n"
     check_delete_known_host
+
+    printf "\n"
     output "SSH to ${VMNAME}: 'ssh ${LOGIN_USER}@${IP}' or 'ssh ${LOGIN_USER}@${VMNAME}'"
     output "DONE"
 
@@ -500,20 +504,33 @@ _EOF_
 # Delete VM
 function remove ()
 {
+    # Parse command line arguments
+    while getopts ":hv" opt
+    do
+        case "$opt" in
+            v   ) VERBOSE=1 ;;
+            h|* ) usage; exit 1 ;;
+        esac
+    done
+
+    shift $((OPTIND - 1))
+
     if [ "$#" != 1 ]
     then
-        printf "Too many arguments.\n"
-        printf "Run '$prog help remove' for usage.\n"
+        printf "Please specify a single host to remove.\n"
+        printf "Run 'kvm-install-vm help remove' for usage.\n"
         exit 1
     else
-        # Check if domain exists and set DOMAIN_EXISTS variable.
-        domain_exists "${1}"
-
-        # Check if storage pool exists and set STORPOOL_EXISTS variable.
-        storpool_exists "${1}"
-
-        delete_vm "${1}"
+        VMNAME=$1
     fi
+
+    # Check if domain exists and set DOMAIN_EXISTS variable.
+    domain_exists "${VMNAME}"
+
+    # Check if storage pool exists and set STORPOOL_EXISTS variable.
+    storpool_exists "${VMNAME}"
+
+    delete_vm "${VMNAME}"
 }
 
 function set_defaults ()
@@ -531,6 +548,7 @@ function set_defaults ()
     DISTRO=centos7                  # Distribution
     MACADDRESS=                     # MAC Address
     TIMEZONE=US/Eastern             # Timezone
+    VERBOSE=0                       # Verbosity
 
     # Reset OPTIND
     OPTIND=1
@@ -538,11 +556,8 @@ function set_defaults ()
 
 function create ()
 {
-    # Set default variables
-    set_defaults
-
     # Parse command line arguments
-    while getopts ":b:c:d:D:f:i:k:l:m:M:t:T:h" opt
+    while getopts ":b:c:d:D:f:i:k:l:m:M:t:T:hv" opt
     do
         case "$opt" in
             b   ) BRIDGE="${OPTARG}" ;;
@@ -564,6 +579,7 @@ function create ()
             M   ) MACADDRESS="${OPTARG}" ;;
             t   ) DISTRO="${OPTARG}" ;;
             T   ) TIMEZONE="${OPTARG}" ;;
+            v   ) VERBOSE=1 ;;
             h|* ) usage; exit 1 ;;
         esac
     done
@@ -578,7 +594,6 @@ function create ()
     else
         VMNAME=$1
     fi
-
     # Set cloud-init variables after VMNAME is assigned
     USER_DATA=user-data
     META_DATA=meta-data
@@ -589,7 +604,7 @@ function create ()
 
     if [ ! -z "${IMAGE+x}" ]
     then
-        echo "[$(date +%r)]----> Using custom QCOW2 image: ${IMAGE}."
+        output "Using custom QCOW2 image: ${IMAGE}."
         OS_VARIANT="auto"
         LOGIN_USER="<use the default account in your custom image>"
     else
@@ -656,22 +671,20 @@ function attach-disk ()
 
         if [ ! -f "${DISKDIR}/${DISKNAME}" ]
         then
-            echo "[$(date +%r)]----> Creating new '${TARGET}' disk image for domain ${VMNAME}."
-            qemu-img create -f ${FORMAT} -o size=$DISKSIZE,preallocation=metadata \
-                ${DISKDIR}/${DISKNAME} >> ${DISKDIR}/${VMNAME}.log  && \
+            outputn "Creating new '${TARGET}' disk image for domain ${VMNAME}"
+            (qemu-img create -f ${FORMAT} -o size=$DISKSIZE,preallocation=metadata \
+                ${DISKDIR}/${DISKNAME} &>> ${DISKDIR}/${VMNAME}.log  && ok ) && \
 
-            echo "[$(date +%r)]----> Attaching ${DISKNAME} to domain ${VMNAME}." && \
-            virsh attach-disk ${VMNAME} \
+            outputn "Attaching ${DISKNAME} to domain ${VMNAME}"
+            (virsh attach-disk ${VMNAME} \
                 --source $DISKDIR/${DISKNAME} \
                 --target ${TARGET} \
                 --subdriver ${FORMAT} \
                 --cache none \
-                --persistent >> ${DISKDIR}/${VMNAME}.log && \
-
-            exit "$?"
+                --persistent &>> ${DISKDIR}/${VMNAME}.log && ok ) \
+                || die "Could not attach disk."
         else
-            printf "Target ${TARGET} is already created or in use.\n"
-            exit 1
+            die "Target ${TARGET} is already created or in use."
         fi
 
     fi
@@ -714,6 +727,7 @@ case "${subcommand}" in
             usage_subcommand "${subcommand}"
             exit 1
         else
+            set_defaults
             "${subcommand}" "$@"
             exit $?
         fi

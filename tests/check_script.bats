@@ -51,7 +51,7 @@ VMNAME=batstestvm
 @test "Attach disk to VM without specifying target" {
     run bash -c "kvm-install-vm attach-disk -d 1 $VMNAME"
     [ "$status" -eq 2 ]
-    [[ "${lines[0]}" =~ "You must specify a target device" ]]
+    [[ "${lines[0]}" =~ "ERR: You must specify a target device" ]]
 }
 
 @test "Attach disk to VM without specifying disk size" {
@@ -66,7 +66,7 @@ VMNAME=batstestvm
 }
 
 @test "Check block list for VM" {
-    run bash -c "grep ^vdb <(virsh domblklist foobar)"
+    run bash -c "grep ^vdb <(virsh domblklist $VMNAME)"
     [ "$status" -eq 0 ]
 }
 
