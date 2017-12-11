@@ -555,6 +555,15 @@ function set_defaults ()
     OPTIND=1
 }
 
+function set_custom_defaults ()
+{
+    # Source custom defaults, if set
+    if [ -f ~/.kivrc ];
+    then
+        source ${HOME}/.kivrc
+    fi
+}
+
 function create ()
 {
     # Parse command line arguments
@@ -729,6 +738,7 @@ case "${subcommand}" in
             exit 1
         else
             set_defaults
+            set_custom_defaults
             "${subcommand}" "$@"
             exit $?
         fi

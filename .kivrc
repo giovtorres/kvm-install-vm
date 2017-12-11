@@ -1,0 +1,40 @@
+## .kivrc - Set custom defaults for kvm-install-vm
+
+# Number of virtual CPUs
+#CPUS=1
+
+# Use host cpu features to the guest
+#FEATURE=host
+
+# Amount of RAM in MB
+#MEMORY=1024
+
+# Disk Size in GB
+#DISK_SIZE=10
+
+# DNS domain
+#DNSDOMAIN=example.local
+
+# Resize disk (boolean)
+#RESIZE_DISK=false
+
+# Directory to store images
+#IMAGEDIR=${HOME}/virt/images
+
+# Hypervisor bridge
+#BRIDGE=virbr0
+
+# SSH public key
+#PUBKEY=${HOME}/.ssh/id_rsa.pub
+
+# Distribution
+#DISTRO=centos7
+
+# MAC Address
+#MACADDRESS=
+
+# Timezone
+#TIMEZONE=US/Eastern
+
+# Verbosity
+#VERBOSE=0

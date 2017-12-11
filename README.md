@@ -152,6 +152,18 @@ EXAMPLE
         domain.
 ```
 
+### Setting Custom Defaults
+
+Copy the `.kivrc` file to your $HOME directory to set custom defaults.  This is
+convenient if you find yourself repeatedly setting the same options on the
+command line, like the distribution or the number of vCPUs.
+
+Options are evaluated in the following order:
+
+- Default options set in the script
+- Custom options set in `.kivrc`
+- Option flags set on the command line
+
 ### Notes
 
 1. This script will download a qcow2 cloud image from the respective
