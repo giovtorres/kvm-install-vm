@@ -311,6 +311,10 @@ function get_pkg_mgr ()
             PKGMGR="apt-get"
             SUDOGROUP="sudo"
             ;;
+        *-atomic )
+            PKGMGR=""
+            SUDOGROUP="wheel"
+            ;;
         *)
             die "OS not supported."
             ;;
