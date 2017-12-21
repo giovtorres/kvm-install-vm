@@ -582,14 +582,7 @@ function create ()
         case "$opt" in
             b   ) BRIDGE="${OPTARG}" ;;
             c   ) CPUS="${OPTARG}" ;;
-            d   )
-                if [ "${OPTARG}" -gt ${DISK_SIZE} ]; then
-                    DISK_SIZE="${OPTARG}G"
-                    RESIZE_DISK=true
-                else
-                    DISK_SIZE="${DISK_SIZE}G"
-                fi
-                ;;
+            d   ) DISK_SIZE="${OPTARG}" ;;
             D   ) DNSDOMAIN="${OPTARG}" ;;
             f   ) FEATURE="${OPTARG}" ;;
             i   ) IMAGE="${OPTARG}" ;;
@@ -606,6 +599,16 @@ function create ()
 
     shift $((OPTIND - 1))
 
+    # Resize disk if you specify a disk size either via cmdline option or .kivrc
+    if [ -n "${DISK_SIZE}" ]
+    then
+        RESIZE_DISK=true
+    fi
+
+    # Append 'G' for Gigabyte
+    DISK_SIZE="${DISK_SIZE}G"
+
+    # After all options are processed, make sure only one variable is left (vmname)
     if [ "$#" != 1 ]
     then
         printf "Please specify a single host to create.\n"
@@ -614,6 +617,7 @@ function create ()
     else
         VMNAME=$1
     fi
+
     # Set cloud-init variables after VMNAME is assigned
     USER_DATA=user-data
     META_DATA=meta-data
