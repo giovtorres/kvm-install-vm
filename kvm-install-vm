@@ -163,7 +163,7 @@ function set_wget ()
 
 function check_vmname_set ()
 {
-    test -n ${VMNAME} || die "VMNAME not set."
+    [ -n "${VMNAME}" ] || die "VMNAME not set."
 }
 
 function delete_vm ()
@@ -296,27 +296,35 @@ function storpool_exists ()
         || STORPOOL_EXISTS=0
 }
 
-function get_pkg_mgr ()
+function set_sudo_group ()
 {
     case "${DISTRO}" in
-        centos? )
-            PKGMGR="yum"
-            SUDOGROUP="wheel"
-            ;;
-        fedora?? )
-            PKGMGR="dnf"
+        centos?|fedora??|*-atomic )
             SUDOGROUP="wheel"
             ;;
         ubuntu*|debian? )
-            PKGMGR="apt-get"
             SUDOGROUP="sudo"
-            ;;
-        *-atomic )
-            PKGMGR=""
-            SUDOGROUP="wheel"
             ;;
         *)
             die "OS not supported."
+            ;;
+    esac
+}
+
+function set_cloud_init_remove ()
+{
+    case "${DISTRO}" in
+        centos? )
+            CLOUDINITRM="yum -y remove cloud-init"
+            ;;
+        fedora?? )
+            CLOUDINITRM="dnf -y remove cloud-init"
+            ;;
+        ubuntu*|debian? )
+            CLOUDINITRM="apt-get -y remove cloud-init"
+            ;;
+        *-atomic)
+            CLOUDINITRM="/usr/bin/true"
             ;;
     esac
 }
@@ -389,7 +397,7 @@ timezone: ${TIMEZONE}
 # Remove cloud-init when finished with it
 runcmd:
   - ${NETRESTART}
-  - ${PKGMGR} -y remove cloud-init
+  - ${CLOUDINITRM}
 _EOF_
 
     { echo "instance-id: ${VMNAME}"; echo "local-hostname: ${VMNAME}"; } > $META_DATA
@@ -549,7 +557,7 @@ function set_defaults ()
     BRIDGE=virbr0                   # Hypervisor bridge
     PUBKEY=${HOME}/.ssh/id_rsa.pub  # SSH public key
     DISTRO=centos7                  # Distribution
-    MACADDRESS=                     # MAC Address
+    MACADDRESS=""                   # MAC Address
     TIMEZONE=US/Eastern             # Timezone
     VERBOSE=0                       # Verbosity
 
@@ -640,8 +648,11 @@ function create ()
     # Set network restart command
     set_network_restart_cmd
 
+    # Set cloud init remove command
+    set_cloud_init_remove
+
     # Set package manager
-    get_pkg_mgr
+    set_sudo_group
 
     # Finally, create requested VM
     create_vm
