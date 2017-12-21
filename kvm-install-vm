@@ -518,8 +518,6 @@ function remove ()
         esac
     done
 
-    shift $((OPTIND - 1))
-
     if [ "$#" != 1 ]
     then
         printf "Please specify a single host to remove.\n"
