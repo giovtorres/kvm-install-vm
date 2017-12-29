@@ -28,6 +28,7 @@ COMMANDS
     remove      - delete a guest domain
 
 EOF
+exit 0
 }
 
 function usage_subcommand ()
@@ -134,6 +135,7 @@ function usage_subcommand ()
             exit 1
             ;;
     esac
+    exit 0
 }
 
 # Console output colors
@@ -256,8 +258,7 @@ function fetch_images ()
             LOGIN_USER=ubuntu
             ;;
         *)
-            usage
-            exit 2
+            die "${DISTRO} not a supported OS.  Run 'kvm-install-vm create help'."
             ;;
     esac
 
@@ -529,8 +530,9 @@ function remove ()
     while getopts ":hv" opt
     do
         case "$opt" in
-            v   ) VERBOSE=1 ;;
-            h|* ) usage; exit 1 ;;
+            v ) VERBOSE=1 ;;
+            h ) usage ;;
+            * ) die "Unsupported option. Run 'kvm-install-vm help remove'." ;;
         esac
     done
 
@@ -588,20 +590,21 @@ function create ()
     while getopts ":b:c:d:D:f:i:k:l:m:M:t:T:hv" opt
     do
         case "$opt" in
-            b   ) BRIDGE="${OPTARG}" ;;
-            c   ) CPUS="${OPTARG}" ;;
-            d   ) DISK_SIZE="${OPTARG}" ;;
-            D   ) DNSDOMAIN="${OPTARG}" ;;
-            f   ) FEATURE="${OPTARG}" ;;
-            i   ) IMAGE="${OPTARG}" ;;
-            k   ) PUBKEY="${OPTARG}" ;;
-            l   ) IMAGEDIR="${OPTARG}" ;;
-            m   ) MEMORY="${OPTARG}" ;;
-            M   ) MACADDRESS="${OPTARG}" ;;
-            t   ) DISTRO="${OPTARG}" ;;
-            T   ) TIMEZONE="${OPTARG}" ;;
-            v   ) VERBOSE=1 ;;
-            h|* ) usage; exit 1 ;;
+            b ) BRIDGE="${OPTARG}" ;;
+            c ) CPUS="${OPTARG}" ;;
+            d ) DISK_SIZE="${OPTARG}" ;;
+            D ) DNSDOMAIN="${OPTARG}" ;;
+            f ) FEATURE="${OPTARG}" ;;
+            i ) IMAGE="${OPTARG}" ;;
+            k ) PUBKEY="${OPTARG}" ;;
+            l ) IMAGEDIR="${OPTARG}" ;;
+            m ) MEMORY="${OPTARG}" ;;
+            M ) MACADDRESS="${OPTARG}" ;;
+            t ) DISTRO="${OPTARG}" ;;
+            T ) TIMEZONE="${OPTARG}" ;;
+            v ) VERBOSE=1 ;;
+            h ) usage ;;
+            * ) die "Unsupported option. Run 'kvm-install-vm help create'." ;;
         esac
     done
 
@@ -678,12 +681,13 @@ function attach-disk ()
     while getopts ":d:f:ps:t:h" opt
     do
         case "$opt" in
-            d   ) DISKSIZE="${OPTARG}G" ;;
-            f   ) FORMAT="${OPTARG}" ;;
-            p   ) PERSISTENT="${OPTARG}" ;;
-            s   ) SOURCE="${OPTARG}" ;;
-            t   ) TARGET="${OPTARG}" ;;
-            h|* ) usage; exit 1 ;;
+            d ) DISKSIZE="${OPTARG}G" ;;
+            f ) FORMAT="${OPTARG}" ;;
+            p ) PERSISTENT="${OPTARG}" ;;
+            s ) SOURCE="${OPTARG}" ;;
+            t ) TARGET="${OPTARG}" ;;
+            h ) usage ;;
+            * ) die "Unsupported option. Run 'kvm-install-vm help attach-disk'." ;;
         esac
     done
 
@@ -735,7 +739,6 @@ subcommand="${1:-none}"
 case "${subcommand}" in
     none)
         usage
-        exit 1
         ;;
     help)
         if [[ "${1:-none}" == "none" ]]; then
@@ -745,9 +748,7 @@ case "${subcommand}" in
         else
             printf "'$1' is not a valid subcommand.\n\n"
             usage
-            exit 1
         fi
-        exit 0
         ;;
     list)
         virsh list --all
@@ -756,10 +757,8 @@ case "${subcommand}" in
     create|remove|attach-disk|remove-disk)
         if [[ "${1:-none}" == "none" ]]; then
             usage_subcommand "${subcommand}"
-            exit 1
         elif [[ "$1" =~ ^help$ ]]; then
             usage_subcommand "${subcommand}"
-            exit 1
         else
             set_defaults
             set_custom_defaults
@@ -768,8 +767,6 @@ case "${subcommand}" in
         fi
         ;;
     *)
-        printf "'${subcommand}' is not a valid subcommand.\n"
-        usage
-        exit 1
+        die "'${subcommand}' is not a valid subcommand.  See 'kvm-install-vm help' for a list of subcommands."
         ;;
 esac

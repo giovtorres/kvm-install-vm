@@ -4,29 +4,25 @@ VMNAME=batstestvm
 
 @test "Check for help usage message" {
     run kvm-install-vm
-    [ "$status" -eq 1 ]
     [[ "${lines[0]}" =~ "NAME" ]]
 }
 
 @test "Test create with no hostname" {
     run kvm-install-vm create
-    [ "$status" -eq 1 ]
     [[ "${lines[0]}" =~ "NAME" ]]
 }
 
 @test "Test create with options and no hostname" {
     run kvm-install-vm create -t debian9 -d 20
-    [ "$status" -eq 1 ]
     [[ "${lines[0]}" =~ "Please specify a single host to create." ]]
 }
 
 @test "Test remove with no hostname" {
     run kvm-install-vm remove
-    [ "$status" -eq 1 ]
     [[ "${lines[0]}" =~ "NAME" ]]
 }
 
-@test "Install VM - $VMNAME" {
+@test "Install VM (CentOS7) - $VMNAME" {
     run kvm-install-vm create $VMNAME
     [ "$status" -eq 0 ]
 }
