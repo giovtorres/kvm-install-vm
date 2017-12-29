@@ -173,10 +173,14 @@ function delete_vm ()
     if [ "${DOMAIN_EXISTS}" -eq 1 ]
     then
         outputn "Destroying ${VMNAME} domain"
-        virsh destroy ${VMNAME} > /dev/null 2>&1; ok
+        virsh destroy ${VMNAME} > /dev/null 2>&1 \
+            && ok \
+            || die "Could not destroy domain."
 
         outputn "Undefining ${VMNAME} domain"
-        virsh undefine ${VMNAME} > /dev/null 2>&1 && ok
+        virsh undefine ${VMNAME} > /dev/null 2>&1 \
+            && ok \
+            || die "Could not undefine domain."
 
         [ -d "${IMAGEDIR}/${VMNAME}" ] \
             && outputn "Deleting ${VMNAME} files" \
@@ -408,7 +412,8 @@ _EOF_
     if $RESIZE_DISK
     then
         outputn "Resizing the disk to $DISK_SIZE"
-        qemu-img create -f qcow2 -o preallocation=metadata $DISK.new $DISK_SIZE &>> ${VMNAME}.log \
+        qemu-img create -f qcow2 \
+            -o preallocation=metadata $DISK.new $DISK_SIZE &>> ${VMNAME}.log \
             && virt-resize --quiet --expand /dev/sda1 $DISK $DISK.new &>> ${VMNAME}.log \
             && (mv $DISK.new $DISK && ok) \
             || die "Could not resize disk."
@@ -416,8 +421,11 @@ _EOF_
 
     # Create CD-ROM ISO with cloud-init config
     outputn "Generating ISO for cloud-init"
-    genisoimage -output $CI_ISO -volid cidata -joliet -r $USER_DATA $META_DATA &>> ${VMNAME}.log \
-        && ok
+    genisoimage -output $CI_ISO \
+        -volid cidata \
+        -joliet -r $USER_DATA $META_DATA &>> ${VMNAME}.log \
+        && ok \
+        || die "Could not generate ISO."
 
     if [ "${VERBOSE}" -eq 1 ]
     then
@@ -550,7 +558,7 @@ function set_defaults ()
     CPUS=1                          # Number of virtual CPUs
     FEATURE=host                    # Use host cpu features to the guest
     MEMORY=1024                     # Amount of RAM in MB
-    DISK_SIZE=10                    # Disk Size in GB
+    DISK_SIZE=""                    # Disk Size in GB
     DNSDOMAIN=example.local         # DNS domain
     RESIZE_DISK=false               # Resize disk (boolean)
     IMAGEDIR=${HOME}/virt/images    # Directory to store images
@@ -603,10 +611,9 @@ function create ()
     if [ -n "${DISK_SIZE}" ]
     then
         RESIZE_DISK=true
+        DISK_SIZE="${DISK_SIZE}G"   # Append 'G' for Gigabyte
     fi
 
-    # Append 'G' for Gigabyte
-    DISK_SIZE="${DISK_SIZE}G"
 
     # After all options are processed, make sure only one variable is left (vmname)
     if [ "$#" != 1 ]
