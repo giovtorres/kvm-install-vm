@@ -4,13 +4,13 @@ A bash wrapper around virt-install to build virtual machines on a local KVM
 hypervisor.  You can run it as a normal user which will use `qemu:///session` to
 connect locally to your KVM domains.
 
-Tested on Fedora 25/26.
+Tested on Fedora 27.
 
 ### Prerequisites
 
 You need to have the KVM hypervisor installed, along with a few other packages:
 
-- genisoimage
+- genisoimage or mkisofs
 - virt-install
 - libguestfs-tools-c
 - qemu-img
