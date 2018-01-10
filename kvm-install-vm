@@ -142,6 +142,7 @@ function usage_subcommand ()
 bold() { echo -e "\e[1m$@\e[0m" ; }
 red() { echo -e "\e[31m$@\e[0m" ; }
 green() { echo -e "\e[32m$@\e[0m" ; }
+yellow() { echo -e "\e[33m$@\e[0m" ; }
 
 die() { red "ERR: $@" >&2 ; exit 2 ; }
 silent() { "$@" > /dev/null 2>&1 ; }
@@ -177,7 +178,7 @@ function delete_vm ()
         outputn "Destroying ${VMNAME} domain"
         virsh destroy ${VMNAME} > /dev/null 2>&1 \
             && ok \
-            || die "Could not destroy domain."
+            || yellow "(Domain is not running.)"
 
         outputn "Undefining ${VMNAME} domain"
         virsh undefine ${VMNAME} > /dev/null 2>&1 \
