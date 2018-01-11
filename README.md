@@ -88,6 +88,8 @@ DISTRIBUTIONS
     debian9         Debian 9 (Stretch)                  debian
     fedora26        Fedora 26                           fedora
     fedora26-atomic Fedora 26 Atomic Host               fedora
+    fedora27        Fedora 27                           fedora
+    fedora27-atomic Fedora 27 Atomic Host               fedora
     ubuntu1604      Ubuntu 16.04 LTS (Xenial Xerus)     ubuntu
 
 EXAMPLES

@@ -67,6 +67,8 @@ function usage_subcommand ()
             printf "    debian9         Debian 9 (Stretch)                  debian\n"
             printf "    fedora26        Fedora 26                           fedora\n"
             printf "    fedora26-atomic Fedora 26 Atomic Host               fedora\n"
+            printf "    fedora27        Fedora 27                           fedora\n"
+            printf "    fedora27-atomic Fedora 27 Atomic Host               fedora\n"
             printf "    ubuntu1604      Ubuntu 16.04 LTS (Xenial Xerus)     ubuntu\n"
             printf "\n"
             printf "EXAMPLES\n"
