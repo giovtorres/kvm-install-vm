@@ -186,14 +186,14 @@ function delete_vm ()
         virsh undefine ${VMNAME} > /dev/null 2>&1 \
             && ok \
             || die "Could not undefine domain."
-
-        [ -d "${IMAGEDIR}/${VMNAME}" ] \
-            && outputn "Deleting ${VMNAME} files" \
-            && rm -rf ${IMAGEDIR}/${VMNAME} \
-            && ok
     else
         output "Domain ${VMNAME} does not exist"
     fi
+
+    [ -d "${IMAGEDIR}/${VMNAME}" ] \
+        && outputn "Deleting ${VMNAME} files" \
+        && rm -rf ${IMAGEDIR}/${VMNAME} \
+        && ok
 
     if [ "${STORPOOL_EXISTS}" -eq 1 ]
     then
