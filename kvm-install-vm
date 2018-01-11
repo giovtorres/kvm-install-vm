@@ -252,6 +252,18 @@ function fetch_images ()
             IMAGE_URL=https://download.fedoraproject.org/pub/alt/atomic/stable/Fedora-Atomic-26-20171003.0/CloudImages/x86_64/images
             LOGIN_USER=fedora
             ;;
+        fedora27)
+            QCOW=Fedora-Cloud-Base-27-1.6.x86_64.qcow2
+            OS_VARIANT="fedora26"
+            IMAGE_URL=https://download.fedoraproject.org/pub/fedora/linux/releases/27/CloudImages/x86_64/images
+            LOGIN_USER=fedora
+            ;;
+        fedora27-atomic)
+            QCOW=Fedora-Atomic-27-1.6.x86_64.qcow2
+            OS_VARIANT="fedora26"
+            IMAGE_URL=https://download.fedoraproject.org/pub/fedora/linux/releases/27/CloudImages/x86_64/images
+            LOGIN_USER=fedora
+            ;;
         ubuntu1604)
             QCOW=ubuntu-16.04-server-cloudimg-amd64-disk1.img
             OS_VARIANT="ubuntu16.04"
