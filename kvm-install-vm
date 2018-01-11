@@ -61,6 +61,7 @@ function usage_subcommand ()
             printf "\n"
             printf "DISTRIBUTIONS\n"
             printf "    NAME            DESCRIPTION                         LOGIN\n"
+            printf "    amazon2         Amazon Linux 2                      ec2-user\n"
             printf "    centos7         CentOS 7                            centos\n"
             printf "    centos7-atomic  CentOS 7 Atomic Host                centos\n"
             printf "    centos6         CentOS 6                            centos\n"
@@ -210,7 +211,14 @@ function fetch_images ()
     mkdir -p ${IMAGEDIR}
 
     # Set variables based on $DISTRO
+    # Use the command "osinfo-query os" to get the list of the accepted OS variants.
     case "$DISTRO" in
+        amazon2)
+            QCOW=amzn2-kvm-2017.12.0.20171212.2-x86_64.xfs.gpt.qcow2
+            OS_VARIANT="auto"
+            IMAGE_URL=https://cdn.amazonlinux.com/os-images/2017.12.0.20171212.2/kvm
+            LOGIN_USER=ec2-user
+            ;;
         centos7)
             QCOW=CentOS-7-x86_64-GenericCloud.qcow2
             OS_VARIANT="centos7.0"
@@ -319,7 +327,7 @@ function storpool_exists ()
 function set_sudo_group ()
 {
     case "${DISTRO}" in
-        centos?|fedora??|*-atomic )
+        centos?|fedora??|*-atomic|amazon? )
             SUDOGROUP="wheel"
             ;;
         ubuntu*|debian? )
@@ -334,7 +342,7 @@ function set_sudo_group ()
 function set_cloud_init_remove ()
 {
     case "${DISTRO}" in
-        centos? )
+        centos?|amazon? )
             CLOUDINITRM="yum -y remove cloud-init"
             ;;
         fedora?? )

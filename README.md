@@ -82,6 +82,7 @@ OPTIONS
 
 DISTRIBUTIONS
     NAME            DESCRIPTION                         LOGIN
+    amazon2         Amazon Linux 2                      ec2-user
     centos7         CentOS 7                            centos
     centos7-atomic  CentOS 7 Atomic Host                centos
     centos6         CentOS 6                            centos

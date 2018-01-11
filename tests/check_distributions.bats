@@ -16,6 +16,14 @@ function remove_test_vm ()
     [ "$status" -eq 0 ]
 }
 
+@test "Install VM (Amazon Linux 2) - $VMNAME-amazon2" {
+    create_test_vm amazon2
+}
+
+@test "Delete VM (Amazon Linux 2) - $VMNAME-amazon2" {
+    remove_test_vm amazon2
+}
+
 @test "Install VM (CentOS 7 Atomic) - $VMNAME-centos7-atomic" {
     create_test_vm centos7-atomic
 }
