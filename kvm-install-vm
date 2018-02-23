@@ -179,12 +179,12 @@ function delete_vm ()
     if [ "${DOMAIN_EXISTS}" -eq 1 ]
     then
         outputn "Destroying ${VMNAME} domain"
-        virsh destroy ${VMNAME} > /dev/null 2>&1 \
+        virsh destroy --graceful ${VMNAME} > /dev/null 2>&1 \
             && ok \
             || yellow "(Domain is not running.)"
 
         outputn "Undefining ${VMNAME} domain"
-        virsh undefine ${VMNAME} > /dev/null 2>&1 \
+        virsh undefine --managed-save ${VMNAME} > /dev/null 2>&1 \
             && ok \
             || die "Could not undefine domain."
     else
