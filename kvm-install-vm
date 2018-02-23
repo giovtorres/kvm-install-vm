@@ -184,7 +184,7 @@ function delete_vm ()
             || yellow "(Domain is not running.)"
 
         outputn "Undefining ${VMNAME} domain"
-        virsh undefine ${VMNAME} > /dev/null 2>&1 \
+        virsh undefine --managed-save ${VMNAME} > /dev/null 2>&1 \
             && ok \
             || die "Could not undefine domain."
     else
