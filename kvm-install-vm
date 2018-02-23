@@ -179,7 +179,7 @@ function delete_vm ()
     if [ "${DOMAIN_EXISTS}" -eq 1 ]
     then
         outputn "Destroying ${VMNAME} domain"
-        virsh destroy ${VMNAME} > /dev/null 2>&1 \
+        virsh destroy --graceful ${VMNAME} > /dev/null 2>&1 \
             && ok \
             || yellow "(Domain is not running.)"
 
