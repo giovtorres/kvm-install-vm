@@ -61,6 +61,7 @@ function usage_subcommand ()
             printf "    -r          File with custom runcmd contents\n"
             printf "    -t          Linux Distribution  (default: centos7)\n"
             printf "    -T          Timezone            (default: US/Eastern)\n"
+            printf "    -u          Custom user         (default: $USER)\n"
             printf "\n"
             printf "DISTRIBUTIONS\n"
             printf "    NAME            DESCRIPTION                         LOGIN\n"
@@ -404,7 +405,7 @@ fqdn: ${VMNAME}.${DNSDOMAIN}
 # Users
 users:
     - default
-    - name: ${USER}
+    - name: ${ADDITIONAL_USER}
       groups: ['${SUDOGROUP}']
       shell: /bin/bash
       sudo: ALL=(ALL) NOPASSWD:ALL
@@ -609,6 +610,7 @@ function set_defaults ()
     DISTRO=centos7                  # Distribution
     MACADDRESS=""                   # MAC Address
     TIMEZONE=US/Eastern             # Timezone
+    ADDITIONAL_USER=${USER}         # User
     VERBOSE=0                       # Verbosity
 
     # Reset OPTIND
@@ -627,7 +629,7 @@ function set_custom_defaults ()
 function create ()
 {
     # Parse command line arguments
-    while getopts ":b:c:d:D:f:g:i:k:l:m:M:r:t:T:hv" opt
+    while getopts ":b:c:d:D:f:g:i:k:l:m:M:r:t:T:u:hv" opt
     do
         case "$opt" in
             b ) BRIDGE="${OPTARG}" ;;
@@ -644,6 +646,7 @@ function create ()
             r ) RUNCMD="${OPTARG}" ;;
             t ) DISTRO="${OPTARG}" ;;
             T ) TIMEZONE="${OPTARG}" ;;
+            u ) ADDITIONAL_USER="${OPTART}" ;;
             v ) VERBOSE=1 ;;
             h ) usage ;;
             * ) die "Unsupported option. Run 'kvm-install-vm help create'." ;;
