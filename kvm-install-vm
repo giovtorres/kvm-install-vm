@@ -528,20 +528,26 @@ _EOF_
     outputn "Cleaning up cloud-init files"
     rm $USER_DATA $META_DATA $CI_ISO && ok
 
-    outputn "Waiting for domain to get an IP address"
-    MAC=$(virsh dumpxml ${VMNAME} | awk -F\' '/mac address/ {print $2}')
-    while true
-    do
-        IP=$(grep -B1 $MAC /var/lib/libvirt/dnsmasq/$BRIDGE.status | head \
-             -n 1 | awk '{print $2}' | sed -e s/\"//g -e s/,//)
-        if [ "$IP" = "" ]
-        then
-            sleep 1
-        else
-            ok
-            break
-        fi
-    done
+    if [ -f "/var/lib/libvirt/dnsmasq/${BRIDGE}.status" ]
+    then
+        outputn "Waiting for domain to get an IP address"
+        MAC=$(virsh dumpxml ${VMNAME} | awk -F\' '/mac address/ {print $2}')
+        while true
+        do
+            IP=$(grep -B1 $MAC /var/lib/libvirt/dnsmasq/$BRIDGE.status | head \
+                 -n 1 | awk '{print $2}' | sed -e s/\"//g -e s/,//)
+            if [ "$IP" = "" ]
+            then
+                sleep 1
+            else
+                ok
+                break
+            fi
+        done
+    else
+        outputn "This looks like a layer 2 bridge, get its IP address from your DHCP server."
+        IP="<IP address from DHCP server>"
+    fi
 
     printf "\n"
     check_delete_known_host
