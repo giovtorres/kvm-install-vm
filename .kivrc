@@ -15,6 +15,9 @@
 # DNS domain
 #DNSDOMAIN=example.local
 
+# Graphics type
+#GRAPHICS=spice
+
 # Resize disk (boolean)
 #RESIZE_DISK=false
 

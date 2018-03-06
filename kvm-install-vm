@@ -50,12 +50,14 @@ function usage_subcommand ()
             printf "    -d          Disk Size (GB)      (default: 10)\n"
             printf "    -D          DNS Domain          (default: example.local)\n"
             printf "    -f          CPU Model / Feature (default: host)\n"
+            printf "    -g          Graphics type       (default: spice)\n"
             printf "    -h          Display help\n"
             printf "    -i          Custom QCOW2 Image\n"
             printf "    -k          SSH Public Key      (default: $HOME/.ssh/id_rsa.pub)\n"
             printf "    -l          Location of Images  (default: $HOME/virt/images)\n"
             printf "    -m          Memory Size (MB)    (default: 1024)\n"
             printf "    -M mac      Mac address         (default: auto-assigned)\n"
+            printf "    -p          Port for Spice/VNC  (default: auto)\n"
             printf "    -r          File with custom runcmd contents\n"
             printf "    -t          Linux Distribution  (default: centos7)\n"
             printf "    -T          Timezone            (default: US/Eastern)\n"
@@ -498,7 +500,7 @@ _EOF_
         printf "      --network ${NETWORK_PARAMS} \\ \n"
         printf "      --os-type=linux \\ \n"
         printf "      --os-variant=${OS_VARIANT} \\ \n"
-        printf "      --graphics spice \\ \n"
+        printf "      --graphics ${GRAPHICS},port=-1,autoport=yes \\ \n"
         printf "      --noautoconsole  \n"
     else
         outputn "Installing the domain"
@@ -515,7 +517,7 @@ _EOF_
         --network ${NETWORK_PARAMS} \
         --os-type=linux \
         --os-variant=${OS_VARIANT} \
-        --graphics spice \
+        --graphics ${GRAPHICS},port=-1,autoport=yes \
         --noautoconsole &>> ${VMNAME}.log && ok ) \
         || die "Could not create domain with virt-install."
 
@@ -553,6 +555,8 @@ _EOF_
 
     printf "\n"
     output "SSH to ${VMNAME}: 'ssh ${LOGIN_USER}@${IP}' or 'ssh ${LOGIN_USER}@${VMNAME}'"
+    CONSOLE=$(virsh domdisplay ${VMNAME})
+    output "Console at ${CONSOLE}"
     output "DONE"
 
     popd
@@ -597,6 +601,7 @@ function set_defaults ()
     MEMORY=1024                     # Amount of RAM in MB
     DISK_SIZE=""                    # Disk Size in GB
     DNSDOMAIN=example.local         # DNS domain
+    GRAPHICS=spice                  # Graphics type
     RESIZE_DISK=false               # Resize disk (boolean)
     IMAGEDIR=${HOME}/virt/images    # Directory to store images
     BRIDGE=virbr0                   # Hypervisor bridge
@@ -622,7 +627,7 @@ function set_custom_defaults ()
 function create ()
 {
     # Parse command line arguments
-    while getopts ":b:c:d:D:f:i:k:l:m:M:r:t:T:hv" opt
+    while getopts ":b:c:d:D:f:g:i:k:l:m:M:r:t:T:hv" opt
     do
         case "$opt" in
             b ) BRIDGE="${OPTARG}" ;;
@@ -630,6 +635,7 @@ function create ()
             d ) DISK_SIZE="${OPTARG}" ;;
             D ) DNSDOMAIN="${OPTARG}" ;;
             f ) FEATURE="${OPTARG}" ;;
+            g ) GRAPHICS="${OPTARG}" ;;
             i ) IMAGE="${OPTARG}" ;;
             k ) PUBKEY="${OPTARG}" ;;
             l ) IMAGEDIR="${OPTARG}" ;;
@@ -652,7 +658,6 @@ function create ()
         RESIZE_DISK=true
         DISK_SIZE="${DISK_SIZE}G"   # Append 'G' for Gigabyte
     fi
-
 
     # After all options are processed, make sure only one variable is left (vmname)
     if [ "$#" != 1 ]
