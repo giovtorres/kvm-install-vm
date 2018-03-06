@@ -78,7 +78,7 @@ OPTIONS
     -l          Location of Images  (default: /home/torresgi/virt/images)
     -m          Memory Size (MB)    (default: 1024)
     -M mac      Mac address         (default: auto-assigned)
-    -p          Port for Spice/VNC  (default: auto)
+    -p          Console port        (default: auto)
     -r          Custom runcmd file
     -t          Linux Distribution  (default: centos7)
     -T          Timezone            (default: US/Eastern)
