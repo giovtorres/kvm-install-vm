@@ -547,7 +547,7 @@ _EOF_
         printf "\n"
         check_delete_known_host
     else
-        outputn "This looks like a layer 2 bridge, get its IP address from your DHCP server."
+        outputn "Bridge looks like a layer 2 bridge, get the domain's IP address from your DHCP server"
         IP="<IP address>"
     fi
 
