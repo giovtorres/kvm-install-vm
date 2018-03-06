@@ -558,7 +558,15 @@ _EOF_
     printf "\n"
     output "SSH to ${VMNAME}: 'ssh ${LOGIN_USER}@${IP}' or 'ssh ${LOGIN_USER}@${VMNAME}'"
     CONSOLE=$(virsh domdisplay ${VMNAME})
-    output "Console at ${CONSOLE}"
+    # Workaround because VNC port number show by virsh domdisplay is offset from 5900
+    if [ "${GRAPHICS}" = 'vnc' ]
+    then
+        CONSOLE_NO_PORT=$(echo $CONSOLE | cut -d ':' -f 1,2 -)
+        CONSOLE_PORT=$(expr 5900 + $(echo $CONSOLE | cut -d ':' -f 3 -))
+        output "Console at ${CONSOLE_NO_PORT}${CONSOLE_PORT}"
+    else
+        output "Console at ${CONSOLE}"
+    fi
     output "DONE"
 
     popd
