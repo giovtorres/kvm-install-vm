@@ -56,6 +56,7 @@ function usage_subcommand ()
             printf "    -l          Location of Images  (default: $HOME/virt/images)\n"
             printf "    -m          Memory Size (MB)    (default: 1024)\n"
             printf "    -M mac      Mac address         (default: auto-assigned)\n"
+            printf "    -r          Custom runcmd contents\n"
             printf "    -t          Linux Distribution  (default: centos7)\n"
             printf "    -T          Timezone            (default: US/Eastern)\n"
             printf "\n"
@@ -424,8 +425,7 @@ timezone: ${TIMEZONE}
 
 # Remove cloud-init when finished with it
 runcmd:
-  - ${NETRESTART}
-  - ${CLOUDINITRM}
+${RUNCMD_CONTENTS}
 _EOF_
 
     { echo "instance-id: ${VMNAME}"; echo "local-hostname: ${VMNAME}"; } > $META_DATA
@@ -635,6 +635,7 @@ function create ()
             l ) IMAGEDIR="${OPTARG}" ;;
             m ) MEMORY="${OPTARG}" ;;
             M ) MACADDRESS="${OPTARG}" ;;
+            r ) RUNCMD="${OPTARG}" ;;
             t ) DISTRO="${OPTARG}" ;;
             T ) TIMEZONE="${OPTARG}" ;;
             v ) VERBOSE=1 ;;
@@ -699,6 +700,19 @@ function create ()
 
     # Set cloud init remove command
     set_cloud_init_remove
+
+    # Set runcmd contents
+    if [ ! -z "${RUNCMD+x}" ]
+    then
+        output "Using custom file for runcmd: ${RUNCMD}."
+        RUNCMD_CONTENTS=$(< $RUNCMD)
+        RUNCMD_CONTENTS="${RUNCMD_CONTENTS}
+  - ${NETRESTART}
+  - ${CLOUDINITRM}"
+    else
+        RUNCMD_CONTENTS="  - ${NETRESTART}
+  - ${CLOUDINITRM}"
+    fi
 
     # Set package manager
     set_sudo_group
