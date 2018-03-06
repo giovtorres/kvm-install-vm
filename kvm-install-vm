@@ -62,6 +62,7 @@ function usage_subcommand ()
             printf "    -t          Linux Distribution  (default: centos7)\n"
             printf "    -T          Timezone            (default: US/Eastern)\n"
             printf "    -u          Custom user         (default: $USER)\n"
+            printf "    -v          Be verbose\n"
             printf "\n"
             printf "DISTRIBUTIONS\n"
             printf "    NAME            DESCRIPTION                         LOGIN\n"

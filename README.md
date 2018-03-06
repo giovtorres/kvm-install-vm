@@ -83,6 +83,7 @@ OPTIONS
     -t          Linux Distribution  (default: centos7)
     -T          Timezone            (default: US/Eastern)
     -u          Custom user         (defualt: $USER)
+    -v          Be verbose
 
 DISTRIBUTIONS
     NAME            DESCRIPTION                         LOGIN

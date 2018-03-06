@@ -18,6 +18,9 @@
 # Graphics type
 #GRAPHICS=spice
 
+# Console port
+#PORT=-1
+
 # Resize disk (boolean)
 #RESIZE_DISK=false
 
@@ -35,9 +38,6 @@
 
 # MAC Address
 #MACADDRESS=
-
-# Console port
-#PORT=-1
 
 # Timezone
 #TIMEZONE=US/Eastern
