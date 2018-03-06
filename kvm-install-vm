@@ -57,8 +57,8 @@ function usage_subcommand ()
             printf "    -l          Location of Images  (default: $HOME/virt/images)\n"
             printf "    -m          Memory Size (MB)    (default: 1024)\n"
             printf "    -M mac      Mac address         (default: auto-assigned)\n"
-            printf "    -p          Port for Spice/VNC  (default: auto)\n"
-            printf "    -r          File with custom runcmd contents\n"
+            printf "    -p          Console port        (default: auto)\n"
+            printf "    -r          Custom runcmd file\n"
             printf "    -t          Linux Distribution  (default: centos7)\n"
             printf "    -T          Timezone            (default: US/Eastern)\n"
             printf "    -u          Custom user         (default: $USER)\n"
@@ -501,7 +501,7 @@ _EOF_
         printf "      --network ${NETWORK_PARAMS} \\ \n"
         printf "      --os-type=linux \\ \n"
         printf "      --os-variant=${OS_VARIANT} \\ \n"
-        printf "      --graphics ${GRAPHICS},port=-1,listen=localhost \\ \n"
+        printf "      --graphics ${GRAPHICS},port=${PORT},listen=localhost \\ \n"
         printf "      --noautoconsole  \n"
     else
         outputn "Installing the domain"
@@ -518,7 +518,7 @@ _EOF_
         --network ${NETWORK_PARAMS} \
         --os-type=linux \
         --os-variant=${OS_VARIANT} \
-        --graphics ${GRAPHICS},port=-1,listen=localhost \
+        --graphics ${GRAPHICS},port=${PORT},listen=localhost \
         --noautoconsole &>> ${VMNAME}.log && ok ) \
         || die "Could not create domain with virt-install."
 
@@ -609,6 +609,7 @@ function set_defaults ()
     PUBKEY=${HOME}/.ssh/id_rsa.pub  # SSH public key
     DISTRO=centos7                  # Distribution
     MACADDRESS=""                   # MAC Address
+    PORT="-1"                       # Console port
     TIMEZONE=US/Eastern             # Timezone
     ADDITIONAL_USER=${USER}         # User
     VERBOSE=0                       # Verbosity
@@ -629,7 +630,7 @@ function set_custom_defaults ()
 function create ()
 {
     # Parse command line arguments
-    while getopts ":b:c:d:D:f:g:i:k:l:m:M:r:t:T:u:hv" opt
+    while getopts ":b:c:d:D:f:g:i:k:l:m:M:p:r:t:T:u:hv" opt
     do
         case "$opt" in
             b ) BRIDGE="${OPTARG}" ;;
@@ -643,6 +644,7 @@ function create ()
             l ) IMAGEDIR="${OPTARG}" ;;
             m ) MEMORY="${OPTARG}" ;;
             M ) MACADDRESS="${OPTARG}" ;;
+            p ) PORT="${OPTART}" ;;
             r ) RUNCMD="${OPTARG}" ;;
             t ) DISTRO="${OPTARG}" ;;
             T ) TIMEZONE="${OPTARG}" ;;

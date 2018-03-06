@@ -71,14 +71,18 @@ OPTIONS
     -d          Disk Size (GB)      (default: 10)
     -D          DNS Domain          (default: example.local)
     -f          CPU Model / Feature (default: host)
+    -g          Graphics type       (default: spice)
     -h          Display help
     -i          Custom QCOW2 Image
     -k          SSH Public Key      (default: /home/torresgi/.ssh/id_rsa.pub)
     -l          Location of Images  (default: /home/torresgi/virt/images)
     -m          Memory Size (MB)    (default: 1024)
     -M mac      Mac address         (default: auto-assigned)
+    -p          Port for Spice/VNC  (default: auto)
+    -r          Custom runcmd file
     -t          Linux Distribution  (default: centos7)
     -T          Timezone            (default: US/Eastern)
+    -u          Custom user         (defualt: $USER)
 
 DISTRIBUTIONS
     NAME            DESCRIPTION                         LOGIN
@@ -107,6 +111,10 @@ EXAMPLES
 
     kvm-install-vm create -T UTC foo
         Create a default VM with UTC timezone.
+
+    kvm-install-vm create -r ~/runcmd.txt -g vnc -u bar foo
+        Create a VM with additional runcmd items, a graphical console
+        accesible over VNC, and a user named 'bar'.
 ```
 
 #### Deleting a Guest Domain

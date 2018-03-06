@@ -36,6 +36,9 @@
 # MAC Address
 #MACADDRESS=
 
+# Console port
+#PORT=-1
+
 # Timezone
 #TIMEZONE=US/Eastern
 
