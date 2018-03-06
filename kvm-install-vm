@@ -517,7 +517,7 @@ _EOF_
         --network ${NETWORK_PARAMS} \
         --os-type=linux \
         --os-variant=${OS_VARIANT} \
-        --graphics ${GRAPHICS},port=-1,autoport=yes \
+        --graphics ${GRAPHICS},port='-1',autoport='yes' \
         --noautoconsole &>> ${VMNAME}.log && ok ) \
         || die "Could not create domain with virt-install."
 
