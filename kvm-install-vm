@@ -56,7 +56,7 @@ function usage_subcommand ()
             printf "    -l          Location of Images  (default: $HOME/virt/images)\n"
             printf "    -m          Memory Size (MB)    (default: 1024)\n"
             printf "    -M mac      Mac address         (default: auto-assigned)\n"
-            printf "    -r          Custom runcmd contents\n"
+            printf "    -r          File with custom runcmd contents\n"
             printf "    -t          Linux Distribution  (default: centos7)\n"
             printf "    -T          Timezone            (default: US/Eastern)\n"
             printf "\n"
@@ -622,7 +622,7 @@ function set_custom_defaults ()
 function create ()
 {
     # Parse command line arguments
-    while getopts ":b:c:d:D:f:i:k:l:m:M:t:T:hv" opt
+    while getopts ":b:c:d:D:f:i:k:l:m:M:r:t:T:hv" opt
     do
         case "$opt" in
             b ) BRIDGE="${OPTARG}" ;;
