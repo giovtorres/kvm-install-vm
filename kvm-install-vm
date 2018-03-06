@@ -644,11 +644,11 @@ function create ()
             l ) IMAGEDIR="${OPTARG}" ;;
             m ) MEMORY="${OPTARG}" ;;
             M ) MACADDRESS="${OPTARG}" ;;
-            p ) PORT="${OPTART}" ;;
+            p ) PORT="${OPTARG}" ;;
             r ) RUNCMD="${OPTARG}" ;;
             t ) DISTRO="${OPTARG}" ;;
             T ) TIMEZONE="${OPTARG}" ;;
-            u ) ADDITIONAL_USER="${OPTART}" ;;
+            u ) ADDITIONAL_USER="${OPTARG}" ;;
             v ) VERBOSE=1 ;;
             h ) usage ;;
             * ) die "Unsupported option. Run 'kvm-install-vm help create'." ;;
