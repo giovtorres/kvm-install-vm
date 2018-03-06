@@ -610,7 +610,7 @@ function set_defaults ()
     PUBKEY=${HOME}/.ssh/id_rsa.pub  # SSH public key
     DISTRO=centos7                  # Distribution
     MACADDRESS=""                   # MAC Address
-    PORT="-1"                       # Console port
+    PORT=-1                         # Console port
     TIMEZONE=US/Eastern             # Timezone
     ADDITIONAL_USER=${USER}         # User
     VERBOSE=0                       # Verbosity
