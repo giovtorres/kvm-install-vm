@@ -500,7 +500,7 @@ _EOF_
         printf "      --network ${NETWORK_PARAMS} \\ \n"
         printf "      --os-type=linux \\ \n"
         printf "      --os-variant=${OS_VARIANT} \\ \n"
-        printf "      --graphics ${GRAPHICS},port=-1 \\ \n"
+        printf "      --graphics ${GRAPHICS},port=-1,listen=localhost \\ \n"
         printf "      --noautoconsole  \n"
     else
         outputn "Installing the domain"
@@ -517,7 +517,7 @@ _EOF_
         --network ${NETWORK_PARAMS} \
         --os-type=linux \
         --os-variant=${OS_VARIANT} \
-        --graphics ${GRAPHICS},port=-1 \
+        --graphics ${GRAPHICS},port=-1,listen=localhost \
         --noautoconsole &>> ${VMNAME}.log && ok ) \
         || die "Could not create domain with virt-install."
 
