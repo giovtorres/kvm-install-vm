@@ -544,13 +544,12 @@ _EOF_
                 break
             fi
         done
+        printf "\n"
+        check_delete_known_host
     else
         outputn "This looks like a layer 2 bridge, get its IP address from your DHCP server."
-        IP="<IP address from DHCP server>"
+        IP="<IP address>"
     fi
-
-    printf "\n"
-    check_delete_known_host
 
     printf "\n"
     output "SSH to ${VMNAME}: 'ssh ${LOGIN_USER}@${IP}' or 'ssh ${LOGIN_USER}@${VMNAME}'"
