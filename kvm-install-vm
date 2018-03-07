@@ -552,7 +552,10 @@ _EOF_
     # Enable autostart if true
     if $AUTOSTART
     then
-        virsh autostart ${VMNAME}
+        output "Enabling autostart"
+        (virsh autostart \
+            --domain ${VMNAME} && ok) \
+            || die "Could not enable autostart."
     fi
 
     # Eject cdrom
