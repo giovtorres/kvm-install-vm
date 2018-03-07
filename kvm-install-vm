@@ -772,7 +772,7 @@ function attach-disk ()
     else
         # Set variables
         VMNAME=$1
-        DISKDIR=${HOME}/virt/images/${VMNAME}    # Directory to create attached disk
+        DISKDIR=${IMAGEDIR}/${VMNAME}    # Directory to create attached disk
         DISKNAME=${VMNAME}-${TARGET}-${DISKSIZE}.${FORMAT}
 
         if [ ! -f "${DISKDIR}/${DISKNAME}" ]

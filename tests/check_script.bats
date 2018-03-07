@@ -1,5 +1,7 @@
 #!/usr/bin/env bats
 
+load imagedir
+
 VMNAME=batstestvm
 
 @test "Check for help usage message" {
@@ -33,7 +35,7 @@ VMNAME=batstestvm
 }
 
 @test "Check libvirt-nss hostname resolution" {
-    run sleep 10
+    run sleep 30
     run ping -c 1 $VMNAME
     [ "$status" -eq 0 ]
     [[ "${lines[-2]}" =~ "1 packets transmitted, 1 received," ]]
@@ -77,6 +79,6 @@ VMNAME=batstestvm
 }
 
 @test "Check destroyed VM files" {
-    run bash -c "ls $HOME/virt/images/$VMNAME"
+    run bash -c "ls ${IMAGEDIR}/${VMNAME}"
     [[ "$output" =~ "No such file or directory" ]]
 }
