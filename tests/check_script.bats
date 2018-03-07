@@ -41,7 +41,7 @@ load vmname
 }
 
 @test "Check cloud-init package is removed" {
-    run ssh -o StrictHostKeyChecking=no $VMNAME rpm -q cloud-init
+    run ssh -o StrictHostKeyChecking=no centos@$VMNAME rpm -q cloud-init
     [[ "$output" =~ "package cloud-init is not installed" ]]
 }
 
