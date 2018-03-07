@@ -437,7 +437,6 @@ runcmd:
   - ${CLOUDINITRM}
 _EOF_
 
-    # 
     if [ ! -z "${SCRIPTNAME+x}" ]
     then
         SCRIPT=$(< $SCRIPTNAME)
