@@ -58,7 +58,7 @@ function usage_subcommand ()
             printf "    -m          Memory Size (MB)    (default: 1024)\n"
             printf "    -M mac      Mac address         (default: auto-assigned)\n"
             printf "    -p          Console port        (default: auto)\n"
-            printf "    -r          Custom runcmd file\n"
+            printf "    -s          Custom shell script\n"
             printf "    -t          Linux Distribution  (default: centos7)\n"
             printf "    -T          Timezone            (default: US/Eastern)\n"
             printf "    -u          Custom user         (default: $USER)\n"
@@ -395,6 +395,11 @@ function create_vm ()
     # cloud-init config: set hostname, remove cloud-init package,
     # and add ssh-key
     cat > $USER_DATA << _EOF_
+Content-Type: multipart/mixed; boundary="==BOUNDARY=="
+MIME-Version: 1.0
+--==BOUNDARY==
+Content-Type: text/cloud-config; charset="us-ascii"
+
 #cloud-config
 
 # Hostname management
@@ -428,8 +433,28 @@ timezone: ${TIMEZONE}
 
 # Remove cloud-init when finished with it
 runcmd:
-${RUNCMD_CONTENTS}
+  - ${NETRESTART}
+  - ${CLOUDINITRM}
 _EOF_
+
+    # 
+    if [ ! -z "${SCRIPTNAME+x}" ]
+    then
+        SCRIPT=$(< $SCRIPTNAME)
+        cat >> $USER_DATA << _EOF_
+
+--==BOUNDARY
+Content-Type: text/x-shellscript; charset="us-ascii"
+${SCRIPT}
+
+--==BOUNDARY==--
+_EOF_
+    else
+       cat >> $USER_DATA << _EOF_
+
+--==BOUNDARY==--
+_EOF_
+    fi
 
     { echo "instance-id: ${VMNAME}"; echo "local-hostname: ${VMNAME}"; } > $META_DATA
 
@@ -638,7 +663,7 @@ function set_custom_defaults ()
 function create ()
 {
     # Parse command line arguments
-    while getopts ":b:c:d:D:f:g:i:k:l:m:M:p:r:t:T:u:hv" opt
+    while getopts ":b:c:d:D:f:g:i:k:l:m:M:p:s:t:T:u:hv" opt
     do
         case "$opt" in
             b ) BRIDGE="${OPTARG}" ;;
@@ -653,7 +678,7 @@ function create ()
             m ) MEMORY="${OPTARG}" ;;
             M ) MACADDRESS="${OPTARG}" ;;
             p ) PORT="${OPTARG}" ;;
-            r ) RUNCMD="${OPTARG}" ;;
+            s ) SCRIPTNAME="${OPTARG}" ;;
             t ) DISTRO="${OPTARG}" ;;
             T ) TIMEZONE="${OPTARG}" ;;
             u ) ADDITIONAL_USER="${OPTARG}" ;;
@@ -718,19 +743,6 @@ function create ()
 
     # Set cloud init remove command
     set_cloud_init_remove
-
-    # Set runcmd contents
-    if [ ! -z "${RUNCMD+x}" ]
-    then
-        output "Using custom file for runcmd: ${RUNCMD}."
-        RUNCMD_CONTENTS=$(< $RUNCMD)
-        RUNCMD_CONTENTS="${RUNCMD_CONTENTS}
-  - ${NETRESTART}
-  - ${CLOUDINITRM}"
-    else
-        RUNCMD_CONTENTS="  - ${NETRESTART}
-  - ${CLOUDINITRM}"
-    fi
 
     # Set package manager
     set_sudo_group

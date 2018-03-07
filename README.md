@@ -79,7 +79,7 @@ OPTIONS
     -m          Memory Size (MB)    (default: 1024)
     -M mac      Mac address         (default: auto-assigned)
     -p          Console port        (default: auto)
-    -r          Custom runcmd file
+    -s          Custom shell script
     -t          Linux Distribution  (default: centos7)
     -T          Timezone            (default: US/Eastern)
     -u          Custom user         (defualt: $USER)
@@ -113,9 +113,9 @@ EXAMPLES
     kvm-install-vm create -T UTC foo
         Create a default VM with UTC timezone.
 
-    kvm-install-vm create -r ~/runcmd.txt -g vnc -u bar foo
-        Create a VM with additional runcmd items, a graphical console
-        accesible over VNC, and a user named 'bar'.
+    kvm-install-vm create -s ~/script.sh -g vnc -u bar foo
+        Create a VM with a custom script included in user-data, a graphical
+        console accesible over VNC, and a user named 'bar'.
 ```
 
 #### Deleting a Guest Domain
