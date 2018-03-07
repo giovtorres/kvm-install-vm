@@ -443,7 +443,7 @@ _EOF_
         SCRIPT=$(< $SCRIPTNAME)
         cat >> $USER_DATA << _EOF_
 
---==BOUNDARY
+--==BOUNDARY==
 Content-Type: text/x-shellscript; charset="us-ascii"
 ${SCRIPT}
 
