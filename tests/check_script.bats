@@ -1,8 +1,7 @@
 #!/usr/bin/env bats
 
 load imagedir
-
-VMNAME=batstestvm
+load vmname
 
 @test "Check for help usage message" {
     run kvm-install-vm
