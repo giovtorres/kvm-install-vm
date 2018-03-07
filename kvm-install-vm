@@ -552,7 +552,7 @@ _EOF_
     # Enable autostart if true
     if $AUTOSTART
     then
-        output "Enabling autostart"
+        outputn "Enabling autostart"
         virsh autostart \
             --domain ${VMNAME} > /dev/null 2>&1 \
             && ok \
