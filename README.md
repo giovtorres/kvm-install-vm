@@ -146,8 +146,7 @@ NAME
     kvm-install-vm attach-disk [OPTIONS] [COMMANDS] VMNAME
 
 DESCRIPTION
-    Destroys (stops) and undefines a guest domain.  This also remove the
-    associated storage pool.
+    Attaches a new disk to a guest domain.
 
 COMMANDS
     help - show this help
