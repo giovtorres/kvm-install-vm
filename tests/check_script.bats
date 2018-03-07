@@ -34,7 +34,7 @@ load vmname
 }
 
 @test "Check libvirt-nss hostname resolution" {
-    run sleep 30
+    run sleep 45
     run ping -c 1 $VMNAME
     [ "$status" -eq 0 ]
     [[ "${lines[-2]}" =~ "1 packets transmitted, 1 received," ]]
