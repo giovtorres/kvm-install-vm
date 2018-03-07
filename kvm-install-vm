@@ -45,6 +45,7 @@ function usage_subcommand ()
             printf "    help - show this help\n"
             printf "\n"
             printf "OPTIONS\n"
+            printf "    -a          Autostart           (default: false)\n"
             printf "    -b          Bridge              (default: virbr0)\n"
             printf "    -c          Number of vCPUs     (default: 1)\n"
             printf "    -d          Disk Size (GB)      (default: 10)\n"
@@ -548,6 +549,12 @@ _EOF_
 
     virsh dominfo ${VMNAME} &>> ${VMNAME}.log
 
+    # Enable autostart if true
+    if $AUTOSTART
+    then
+        virsh autostart ${VMNAME}
+    fi
+
     # Eject cdrom
     virsh change-media ${VMNAME} hda --eject --config &>> ${VMNAME}.log
 
@@ -665,6 +672,7 @@ function create ()
     while getopts ":b:c:d:D:f:g:i:k:l:m:M:p:s:t:T:u:hv" opt
     do
         case "$opt" in
+            a ) AUTOSTART=true ;;
             b ) BRIDGE="${OPTARG}" ;;
             c ) CPUS="${OPTARG}" ;;
             d ) DISK_SIZE="${OPTARG}" ;;

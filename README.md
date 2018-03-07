@@ -66,6 +66,7 @@ DESCRIPTION
     Create a new guest domain.
 
 OPTIONS
+    -a          Autostart           (default: false)
     -b          Bridge              (default: virbr0)
     -c          Number of vCPUs     (default: 1)
     -d          Disk Size (GB)      (default: 10)
