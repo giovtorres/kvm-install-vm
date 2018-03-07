@@ -115,7 +115,7 @@ EXAMPLES
 
     kvm-install-vm create -s ~/script.sh -g vnc -u bar foo
         Create a VM with a custom script included in user-data, a graphical
-        console accesible over VNC, and a user named 'bar'.
+        console accessible over VNC, and a user named 'bar'.
 ```
 
 #### Deleting a Guest Domain
