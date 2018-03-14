@@ -1,5 +1,8 @@
 ## .kivrc - Set custom defaults for kvm-install-vm
 
+# Autostart
+#AUTOSTART=false
+
 # Number of virtual CPUs
 #CPUS=1
 
@@ -14,6 +17,12 @@
 
 # DNS domain
 #DNSDOMAIN=example.local
+
+# Graphics type
+#GRAPHICS=spice
+
+# Console port
+#PORT=-1
 
 # Resize disk (boolean)
 #RESIZE_DISK=false
@@ -35,6 +44,9 @@
 
 # Timezone
 #TIMEZONE=US/Eastern
+
+# User
+#ADDITIONAL_USER=${USER}
 
 # Verbosity
 #VERBOSE=0

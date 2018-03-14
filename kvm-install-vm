@@ -45,19 +45,25 @@ function usage_subcommand ()
             printf "    help - show this help\n"
             printf "\n"
             printf "OPTIONS\n"
+            printf "    -a          Autostart           (default: false)\n"
             printf "    -b          Bridge              (default: virbr0)\n"
             printf "    -c          Number of vCPUs     (default: 1)\n"
             printf "    -d          Disk Size (GB)      (default: 10)\n"
             printf "    -D          DNS Domain          (default: example.local)\n"
             printf "    -f          CPU Model / Feature (default: host)\n"
+            printf "    -g          Graphics type       (default: spice)\n"
             printf "    -h          Display help\n"
             printf "    -i          Custom QCOW2 Image\n"
             printf "    -k          SSH Public Key      (default: $HOME/.ssh/id_rsa.pub)\n"
             printf "    -l          Location of Images  (default: $HOME/virt/images)\n"
             printf "    -m          Memory Size (MB)    (default: 1024)\n"
             printf "    -M mac      Mac address         (default: auto-assigned)\n"
+            printf "    -p          Console port        (default: auto)\n"
+            printf "    -s          Custom shell script\n"
             printf "    -t          Linux Distribution  (default: centos7)\n"
             printf "    -T          Timezone            (default: US/Eastern)\n"
+            printf "    -u          Custom user         (default: $USER)\n"
+            printf "    -v          Be verbose\n"
             printf "\n"
             printf "DISTRIBUTIONS\n"
             printf "    NAME            DESCRIPTION                         LOGIN\n"
@@ -109,8 +115,7 @@ function usage_subcommand ()
             printf "    $prog attach-disk [OPTIONS] [COMMANDS] VMNAME\n"
             printf "\n"
             printf "DESCRIPTION\n"
-            printf "    Destroys (stops) and undefines a guest domain.  This also remove the\n"
-            printf "    associated storage pool.\n"
+            printf "    Attaches a new disk to a guest domain.\n"
             printf "\n"
             printf "COMMANDS\n"
             printf "    help - show this help\n"
@@ -391,6 +396,11 @@ function create_vm ()
     # cloud-init config: set hostname, remove cloud-init package,
     # and add ssh-key
     cat > $USER_DATA << _EOF_
+Content-Type: multipart/mixed; boundary="==BOUNDARY=="
+MIME-Version: 1.0
+--==BOUNDARY==
+Content-Type: text/cloud-config; charset="us-ascii"
+
 #cloud-config
 
 # Hostname management
@@ -401,7 +411,7 @@ fqdn: ${VMNAME}.${DNSDOMAIN}
 # Users
 users:
     - default
-    - name: ${USER}
+    - name: ${ADDITIONAL_USER}
       groups: ['${SUDOGROUP}']
       shell: /bin/bash
       sudo: ALL=(ALL) NOPASSWD:ALL
@@ -427,6 +437,24 @@ runcmd:
   - ${NETRESTART}
   - ${CLOUDINITRM}
 _EOF_
+
+    if [ ! -z "${SCRIPTNAME+x}" ]
+    then
+        SCRIPT=$(< $SCRIPTNAME)
+        cat >> $USER_DATA << _EOF_
+
+--==BOUNDARY==
+Content-Type: text/x-shellscript; charset="us-ascii"
+${SCRIPT}
+
+--==BOUNDARY==--
+_EOF_
+    else
+       cat >> $USER_DATA << _EOF_
+
+--==BOUNDARY==--
+_EOF_
+    fi
 
     { echo "instance-id: ${VMNAME}"; echo "local-hostname: ${VMNAME}"; } > $META_DATA
 
@@ -498,7 +526,7 @@ _EOF_
         printf "      --network ${NETWORK_PARAMS} \\ \n"
         printf "      --os-type=linux \\ \n"
         printf "      --os-variant=${OS_VARIANT} \\ \n"
-        printf "      --graphics spice \\ \n"
+        printf "      --graphics ${GRAPHICS},port=${PORT},listen=localhost \\ \n"
         printf "      --noautoconsole  \n"
     else
         outputn "Installing the domain"
@@ -515,11 +543,21 @@ _EOF_
         --network ${NETWORK_PARAMS} \
         --os-type=linux \
         --os-variant=${OS_VARIANT} \
-        --graphics spice \
+        --graphics ${GRAPHICS},port=${PORT},listen=localhost \
         --noautoconsole &>> ${VMNAME}.log && ok ) \
         || die "Could not create domain with virt-install."
 
     virsh dominfo ${VMNAME} &>> ${VMNAME}.log
+
+    # Enable autostart if true
+    if $AUTOSTART
+    then
+        outputn "Enabling autostart"
+        virsh autostart \
+            --domain ${VMNAME} > /dev/null 2>&1 \
+            && ok \
+            || die "Could not enable autostart."
+    fi
 
     # Eject cdrom
     virsh change-media ${VMNAME} hda --eject --config &>> ${VMNAME}.log
@@ -528,26 +566,41 @@ _EOF_
     outputn "Cleaning up cloud-init files"
     rm $USER_DATA $META_DATA $CI_ISO && ok
 
-    outputn "Waiting for domain to get an IP address"
-    MAC=$(virsh dumpxml ${VMNAME} | awk -F\' '/mac address/ {print $2}')
-    while true
-    do
-        IP=$(grep -B1 $MAC /var/lib/libvirt/dnsmasq/$BRIDGE.status | head \
-             -n 1 | awk '{print $2}' | sed -e s/\"//g -e s/,//)
-        if [ "$IP" = "" ]
-        then
-            sleep 1
-        else
-            ok
-            break
-        fi
-    done
-
-    printf "\n"
-    check_delete_known_host
+    if [ -f "/var/lib/libvirt/dnsmasq/${BRIDGE}.status" ]
+    then
+        outputn "Waiting for domain to get an IP address"
+        MAC=$(virsh dumpxml ${VMNAME} | awk -F\' '/mac address/ {print $2}')
+        while true
+        do
+            IP=$(grep -B1 $MAC /var/lib/libvirt/dnsmasq/$BRIDGE.status | head \
+                 -n 1 | awk '{print $2}' | sed -e s/\"//g -e s/,//)
+            if [ "$IP" = "" ]
+            then
+                sleep 1
+            else
+                ok
+                break
+            fi
+        done
+        printf "\n"
+        check_delete_known_host
+    else
+        outputn "Bridge looks like a layer 2 bridge, get the domain's IP address from your DHCP server"
+        IP="<IP address>"
+    fi
 
     printf "\n"
     output "SSH to ${VMNAME}: 'ssh ${LOGIN_USER}@${IP}' or 'ssh ${LOGIN_USER}@${VMNAME}'"
+    CONSOLE=$(virsh domdisplay ${VMNAME})
+    # Workaround because VNC port number shown by virsh domdisplay is offset from 5900
+    if [ "${GRAPHICS}" = 'vnc' ]
+    then
+        CONSOLE_NO_PORT=$(echo $CONSOLE | cut -d ':' -f 1,2 -)
+        CONSOLE_PORT=$(expr 5900 + $(echo $CONSOLE | cut -d ':' -f 3 -))
+        output "Console at ${CONSOLE_NO_PORT}:${CONSOLE_PORT}"
+    else
+        output "Console at ${CONSOLE}"
+    fi
     output "DONE"
 
     popd
@@ -592,13 +645,16 @@ function set_defaults ()
     MEMORY=1024                     # Amount of RAM in MB
     DISK_SIZE=""                    # Disk Size in GB
     DNSDOMAIN=example.local         # DNS domain
+    GRAPHICS=spice                  # Graphics type
     RESIZE_DISK=false               # Resize disk (boolean)
     IMAGEDIR=${HOME}/virt/images    # Directory to store images
     BRIDGE=virbr0                   # Hypervisor bridge
     PUBKEY=${HOME}/.ssh/id_rsa.pub  # SSH public key
     DISTRO=centos7                  # Distribution
     MACADDRESS=""                   # MAC Address
+    PORT=-1                         # Console port
     TIMEZONE=US/Eastern             # Timezone
+    ADDITIONAL_USER=${USER}         # User
     VERBOSE=0                       # Verbosity
 
     # Reset OPTIND
@@ -617,21 +673,26 @@ function set_custom_defaults ()
 function create ()
 {
     # Parse command line arguments
-    while getopts ":b:c:d:D:f:i:k:l:m:M:t:T:hv" opt
+    while getopts ":a:b:c:d:D:f:g:i:k:l:m:M:p:s:t:T:u:hv" opt
     do
         case "$opt" in
+            a ) AUTOSTART=true ;;
             b ) BRIDGE="${OPTARG}" ;;
             c ) CPUS="${OPTARG}" ;;
             d ) DISK_SIZE="${OPTARG}" ;;
             D ) DNSDOMAIN="${OPTARG}" ;;
             f ) FEATURE="${OPTARG}" ;;
+            g ) GRAPHICS="${OPTARG}" ;;
             i ) IMAGE="${OPTARG}" ;;
             k ) PUBKEY="${OPTARG}" ;;
             l ) IMAGEDIR="${OPTARG}" ;;
             m ) MEMORY="${OPTARG}" ;;
             M ) MACADDRESS="${OPTARG}" ;;
+            p ) PORT="${OPTARG}" ;;
+            s ) SCRIPTNAME="${OPTARG}" ;;
             t ) DISTRO="${OPTARG}" ;;
             T ) TIMEZONE="${OPTARG}" ;;
+            u ) ADDITIONAL_USER="${OPTARG}" ;;
             v ) VERBOSE=1 ;;
             h ) usage ;;
             * ) die "Unsupported option. Run 'kvm-install-vm help create'." ;;
@@ -646,7 +707,6 @@ function create ()
         RESIZE_DISK=true
         DISK_SIZE="${DISK_SIZE}G"   # Append 'G' for Gigabyte
     fi
-
 
     # After all options are processed, make sure only one variable is left (vmname)
     if [ "$#" != 1 ]
@@ -734,7 +794,7 @@ function attach-disk ()
     else
         # Set variables
         VMNAME=$1
-        DISKDIR=${HOME}/virt/images/${VMNAME}    # Directory to create attached disk
+        DISKDIR=${IMAGEDIR}/${VMNAME}    # Directory to create attached disk
         DISKNAME=${VMNAME}-${TARGET}-${DISKSIZE}.${FORMAT}
 
         if [ ! -f "${DISKDIR}/${DISKNAME}" ]

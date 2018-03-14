@@ -66,19 +66,25 @@ DESCRIPTION
     Create a new guest domain.
 
 OPTIONS
+    -a          Autostart           (default: false)
     -b          Bridge              (default: virbr0)
     -c          Number of vCPUs     (default: 1)
     -d          Disk Size (GB)      (default: 10)
     -D          DNS Domain          (default: example.local)
     -f          CPU Model / Feature (default: host)
+    -g          Graphics type       (default: spice)
     -h          Display help
     -i          Custom QCOW2 Image
     -k          SSH Public Key      (default: /home/torresgi/.ssh/id_rsa.pub)
     -l          Location of Images  (default: /home/torresgi/virt/images)
     -m          Memory Size (MB)    (default: 1024)
     -M mac      Mac address         (default: auto-assigned)
+    -p          Console port        (default: auto)
+    -s          Custom shell script
     -t          Linux Distribution  (default: centos7)
     -T          Timezone            (default: US/Eastern)
+    -u          Custom user         (defualt: $USER)
+    -v          Be verbose
 
 DISTRIBUTIONS
     NAME            DESCRIPTION                         LOGIN
@@ -107,6 +113,10 @@ EXAMPLES
 
     kvm-install-vm create -T UTC foo
         Create a default VM with UTC timezone.
+
+    kvm-install-vm create -s ~/script.sh -g vnc -u bar foo
+        Create a VM with a custom script included in user-data, a graphical
+        console accessible over VNC, and a user named 'bar'.
 ```
 
 #### Deleting a Guest Domain
@@ -137,8 +147,7 @@ NAME
     kvm-install-vm attach-disk [OPTIONS] [COMMANDS] VMNAME
 
 DESCRIPTION
-    Destroys (stops) and undefines a guest domain.  This also remove the
-    associated storage pool.
+    Attaches a new disk to a guest domain.
 
 COMMANDS
     help - show this help
