@@ -76,6 +76,8 @@ function usage_subcommand ()
             printf "    fedora26-atomic Fedora 26 Atomic Host               fedora\n"
             printf "    fedora27        Fedora 27                           fedora\n"
             printf "    fedora27-atomic Fedora 27 Atomic Host               fedora\n"
+            printf "    fedora28        Fedora 28                           fedora\n"
+            printf "    fedora28-atomic Fedora 28 Atomic Host               fedora\n"
             printf "    ubuntu1604      Ubuntu 16.04 LTS (Xenial Xerus)     ubuntu\n"
             printf "\n"
             printf "EXAMPLES\n"
@@ -269,16 +271,28 @@ function fetch_images ()
             ;;
         fedora27)
             QCOW=Fedora-Cloud-Base-27-1.6.x86_64.qcow2
-            OS_VARIANT="fedora26"
+            OS_VARIANT="fedora27"
             IMAGE_URL=https://download.fedoraproject.org/pub/fedora/linux/releases/27/CloudImages/x86_64/images
             LOGIN_USER=fedora
             ;;
         fedora27-atomic)
             QCOW=Fedora-Atomic-27-1.6.x86_64.qcow2
-            OS_VARIANT="fedora26"
+            OS_VARIANT="fedora27"
             IMAGE_URL=https://download.fedoraproject.org/pub/fedora/linux/releases/27/CloudImages/x86_64/images
             LOGIN_USER=fedora
             ;;
+        fedora28)
+          QCOW=Fedora-Cloud-Base-28-1.1.x86_64.qcow2
+          OS_VARIANT="fedora27"
+          IMAGE_URL=https://download.fedoraproject.org/pub/fedora/linux/releases/28/Cloud/x86_64/images
+          LOGIN_USER=fedora
+          ;;
+        fedora28-atomic)
+          QCOW=Fedora-AtomicHost-28-20180425.0.x86_64.qcow2
+          OS_VARIANT="fedora27"
+          IMAGE_URL=https://download.fedoraproject.org/pub/alt/atomic/stable/Fedora-Atomic-28-20180425.0/AtomicHost/x86_64/images
+          LOGIN_USER=fedora
+          ;;
         ubuntu1604)
             QCOW=ubuntu-16.04-server-cloudimg-amd64-disk1.img
             OS_VARIANT="ubuntu16.04"

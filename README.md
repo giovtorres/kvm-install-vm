@@ -97,6 +97,8 @@ DISTRIBUTIONS
     fedora26-atomic Fedora 26 Atomic Host               fedora
     fedora27        Fedora 27                           fedora
     fedora27-atomic Fedora 27 Atomic Host               fedora
+    fedora28        Fedora 28                           fedora
+    fedora28-atomic Fedora 28 Atomic Host               fedora
     ubuntu1604      Ubuntu 16.04 LTS (Xenial Xerus)     ubuntu
 
 EXAMPLES
