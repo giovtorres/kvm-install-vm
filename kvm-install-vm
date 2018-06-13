@@ -372,17 +372,14 @@ function set_sudo_group ()
 function set_cloud_init_remove ()
 {
     case "${DISTRO}" in
-        centos?|amazon? )
-            CLOUDINITRM="yum -y remove cloud-init"
+        centos6 )
+            CLOUDINITDISABLE="chkconfig cloud-init off"
             ;;
-        fedora?? )
-            CLOUDINITRM="dnf -y remove cloud-init"
-            ;;
-        ubuntu*|debian? )
-            CLOUDINITRM="apt-get -y remove cloud-init"
+        centos7|amazon?|fedora??|ubuntu*|debian? )
+            CLOUDINITDISABLE="systemctl disable cloud-init.service"
             ;;
         *-atomic)
-            CLOUDINITRM="/usr/bin/true"
+            CLOUDINITDISABLE="/usr/bin/true"
             ;;
     esac
 }
@@ -460,7 +457,7 @@ timezone: ${TIMEZONE}
 # Remove cloud-init when finished with it
 runcmd:
   - ${NETRESTART}
-  - ${CLOUDINITRM}
+  - ${CLOUDINITDISABLE}
 _EOF_
 
     if [ ! -z "${SCRIPTNAME+x}" ]
