@@ -1,6 +1,6 @@
 #!/usr/bin/env bats
 
-load imagedir
+load vmdir
 load vmname
 
 @test "Check for help usage message" {
@@ -78,6 +78,6 @@ load vmname
 }
 
 @test "Check destroyed VM files" {
-    run bash -c "ls ${IMAGEDIR}/${VMNAME}"
+    run bash -c "ls ${VMDIR}/${VMNAME}"
     [[ "$output" =~ "No such file or directory" ]]
 }
