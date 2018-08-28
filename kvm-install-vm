@@ -56,6 +56,7 @@ function usage_subcommand ()
             printf "    -i          Custom QCOW2 Image\n"
             printf "    -k          SSH Public Key      (default: $HOME/.ssh/id_rsa.pub)\n"
             printf "    -l          Location of Images  (default: $HOME/virt/images)\n"
+            printf "    -L          Location of VMs     (default: $HOME/virt/vms)\n"
             printf "    -m          Memory Size (MB)    (default: 1024)\n"
             printf "    -M mac      Mac address         (default: auto-assigned)\n"
             printf "    -p          Console port        (default: auto)\n"
@@ -197,10 +198,11 @@ function delete_vm ()
     else
         output "Domain ${VMNAME} does not exist"
     fi
-
-    [ -d "${IMAGEDIR}/${VMNAME}" ] \
+    
+    [[ -d ${VMDIR}/${VMNAME} ]] && DISKDIR=${VMDIR}/${VMNAME} || DISKDIR=${IMAGEDIR}/${VMNAME}
+    [ -d $DISKDIR ] \
         && outputn "Deleting ${VMNAME} files" \
-        && rm -rf ${IMAGEDIR}/${VMNAME} \
+        && rm -rf $DISKDIR \
         && ok
 
     if [ "${STORPOOL_EXISTS}" -eq 1 ]
@@ -404,13 +406,16 @@ function check_delete_known_host ()
 
 function create_vm ()
 {
+    # Create image directory if it doesn't already exist
+    mkdir -p ${VMDIR}
+
     check_vmname_set
 
     # Start clean
-    [ -d "${IMAGEDIR}/${VMNAME}" ] && rm -rf ${IMAGEDIR}/${VMNAME}
-    mkdir -p ${IMAGEDIR}/${VMNAME}
+    [ -d "${VMDIR}/${VMNAME}" ] && rm -rf ${VMDIR}/${VMNAME}
+    mkdir -p ${VMDIR}/${VMNAME}
 
-    pushd ${IMAGEDIR}/${VMNAME}
+    pushd ${VMDIR}/${VMNAME}
 
     # Create log file
     touch ${VMNAME}.log
@@ -514,7 +519,7 @@ _EOF_
         printf "    virsh pool-create-as \\ \n"
         printf "      --name ${VMNAME} \\ \n"
         printf "      --type dir \\ \n"
-        printf "      --target ${IMAGEDIR}/${VMNAME} \n"
+        printf "      --target ${VMDIR}/${VMNAME} \n"
     else
         outputn "Creating storage pool"
     fi
@@ -523,7 +528,7 @@ _EOF_
     (virsh pool-create-as \
         --name ${VMNAME} \
         --type dir \
-        --target ${IMAGEDIR}/${VMNAME} &>> ${VMNAME}.log && ok) \
+        --target ${VMDIR}/${VMNAME} &>> ${VMNAME}.log && ok) \
         || die "Could not create storage pool."
 
     # Add custom MAC Address if specified
@@ -670,6 +675,7 @@ function set_defaults ()
     GRAPHICS=spice                  # Graphics type
     RESIZE_DISK=false               # Resize disk (boolean)
     IMAGEDIR=${HOME}/virt/images    # Directory to store images
+    VMDIR=${HOME}/virt/vms    # Directory to store images
     BRIDGE=virbr0                   # Hypervisor bridge
     PUBKEY=""                       # SSH public key
     DISTRO=centos7                  # Distribution
@@ -708,6 +714,7 @@ function create ()
             i ) IMAGE="${OPTARG}" ;;
             k ) PUBKEY="${OPTARG}" ;;
             l ) IMAGEDIR="${OPTARG}" ;;
+            L ) VMDIR="${OPTARG}" ;;
             m ) MEMORY="${OPTARG}" ;;
             M ) MACADDRESS="${OPTARG}" ;;
             p ) PORT="${OPTARG}" ;;
@@ -816,7 +823,8 @@ function attach-disk ()
     else
         # Set variables
         VMNAME=$1
-        DISKDIR=${IMAGEDIR}/${VMNAME}    # Directory to create attached disk
+        # Directory to create attached disk (Checks both images an vms directories for backward compatibility!)
+        [[ -d ${VMDIR}/${VMNAME} ]] && DISKDIR=${VMDIR}/${VMNAME} || DISKDIR=${IMAGEDIR}/${VMNAME}
         DISKNAME=${VMNAME}-${TARGET}-${DISKSIZE}.${FORMAT}
 
         if [ ! -f "${DISKDIR}/${DISKNAME}" ]

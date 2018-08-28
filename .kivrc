@@ -30,6 +30,9 @@
 # Directory to store images
 #IMAGEDIR=${HOME}/virt/images
 
+# Directory to store vms
+#VMDIR=${HOME}/virt/vms
+
 # Hypervisor bridge
 #BRIDGE=virbr0
 
