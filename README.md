@@ -77,8 +77,9 @@ OPTIONS
     -i          Custom QCOW2 Image
     -k          SSH Public Key      (default: $HOME/.ssh/id_rsa.pub)
     -l          Location of Images  (default: $HOME/virt/images)
+    -L          Location of VMs     (default: $HOME/virt/vms)
     -m          Memory Size (MB)    (default: 1024)
-    -M mac      Mac address         (default: auto-assigned)
+    -M          Mac address         (default: auto-assigned)
     -p          Console port        (default: auto)
     -s          Custom shell script
     -t          Linux Distribution  (default: centos7)
