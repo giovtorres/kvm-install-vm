@@ -222,9 +222,9 @@ function fetch_images ()
     # Use the command "osinfo-query os" to get the list of the accepted OS variants.
     case "$DISTRO" in
         amazon2)
-            QCOW=amzn2-kvm-2017.12.0.20171212.2-x86_64.xfs.gpt.qcow2
+            QCOW=amzn2-kvm-2.0.20180810-x86_64.xfs.gpt.qcow2
             OS_VARIANT="auto"
-            IMAGE_URL=https://cdn.amazonlinux.com/os-images/2017.12.0.20171212.2/kvm
+            IMAGE_URL=https://cdn.amazonlinux.com/os-images/2.0.20180810/kvm
             LOGIN_USER=ec2-user
             ;;
         centos7)
