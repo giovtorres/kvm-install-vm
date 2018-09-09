@@ -4,7 +4,7 @@ A bash wrapper around virt-install to build virtual machines on a local KVM
 hypervisor.  You can run it as a normal user which will use `qemu:///session` to
 connect locally to your KVM domains.
 
-Tested on Fedora 27.
+Tested on the latest Fedora.
 
 ### Prerequisites
 
