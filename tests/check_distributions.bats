@@ -72,6 +72,14 @@ function remove_test_vm ()
     remove_test_vm ubuntu1604
 }
 
+@test "Install VM (Ubuntu 18.04) - $VMNAME-ubuntu1804" {
+    create_test_vm ubuntu1804
+}
+
+@test "Delete VM (Ubuntu 18.04) - $VMNAME-ubuntu1804" {
+    remove_test_vm ubuntu1804
+}
+
 @test "Install VM (Debian 9) - $VMNAME-debian9" {
     create_test_vm debian9
 }

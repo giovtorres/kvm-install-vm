@@ -94,13 +94,12 @@ DISTRIBUTIONS
     centos7-atomic  CentOS 7 Atomic Host                centos
     centos6         CentOS 6                            centos
     debian9         Debian 9 (Stretch)                  debian
-    fedora26        Fedora 26                           fedora
-    fedora26-atomic Fedora 26 Atomic Host               fedora
     fedora27        Fedora 27                           fedora
     fedora27-atomic Fedora 27 Atomic Host               fedora
     fedora28        Fedora 28                           fedora
     fedora28-atomic Fedora 28 Atomic Host               fedora
     ubuntu1604      Ubuntu 16.04 LTS (Xenial Xerus)     ubuntu
+    ubuntu1804      Ubuntu 18.04 LTS (Bionic Beaver)    ubuntu
 
 EXAMPLES
     kvm-install-vm create foo
