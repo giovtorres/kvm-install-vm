@@ -32,22 +32,6 @@ function remove_test_vm ()
     remove_test_vm centos7-atomic
 }
 
-@test "Install VM (Fedora 26 Atomic) - $VMNAME-fedora26-atomic" {
-    create_test_vm fedora26-atomic
-}
-
-@test "Delete VM (Fedora 26 Atomic) - $VMNAME-fedora26-atomic" {
-    remove_test_vm fedora26-atomic
-}
-
-@test "Install VM (Fedora 26) - $VMNAME-fedora26" {
-    create_test_vm fedora26
-}
-
-@test "Delete VM (Fedora 26) - $VMNAME-fedora26" {
-    remove_test_vm fedora26
-}
-
 @test "Install VM (Fedora 27) - $VMNAME-fedora27" {
     create_test_vm fedora27
 }

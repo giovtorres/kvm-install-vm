@@ -58,7 +58,7 @@ function usage_subcommand ()
             printf "    -l          Location of Images  (default: $HOME/virt/images)\n"
             printf "    -L          Location of VMs     (default: $HOME/virt/vms)\n"
             printf "    -m          Memory Size (MB)    (default: 1024)\n"
-            printf "    -M mac      Mac address         (default: auto-assigned)\n"
+            printf "    -M          Mac address         (default: auto-assigned)\n"
             printf "    -p          Console port        (default: auto)\n"
             printf "    -s          Custom shell script\n"
             printf "    -t          Linux Distribution  (default: centos7)\n"
@@ -73,8 +73,6 @@ function usage_subcommand ()
             printf "    centos7-atomic  CentOS 7 Atomic Host                centos\n"
             printf "    centos6         CentOS 6                            centos\n"
             printf "    debian9         Debian 9 (Stretch)                  debian\n"
-            printf "    fedora26        Fedora 26                           fedora\n"
-            printf "    fedora26-atomic Fedora 26 Atomic Host               fedora\n"
             printf "    fedora27        Fedora 27                           fedora\n"
             printf "    fedora27-atomic Fedora 27 Atomic Host               fedora\n"
             printf "    fedora28        Fedora 28                           fedora\n"
@@ -258,18 +256,6 @@ function fetch_images ()
             OS_VARIANT="debian9"
             IMAGE_URL=https://cdimage.debian.org/cdimage/openstack/current-9
             LOGIN_USER=debian
-            ;;
-        fedora26)
-            QCOW=Fedora-Cloud-Base-26-1.5.x86_64.qcow2
-            OS_VARIANT="fedora26"
-            IMAGE_URL=https://download.fedoraproject.org/pub/fedora/linux/releases/26/CloudImages/x86_64/images
-            LOGIN_USER=fedora
-            ;;
-        fedora26-atomic)
-            QCOW=Fedora-Atomic-26-20171003.0.x86_64.qcow2
-            OS_VARIANT="fedora26"
-            IMAGE_URL=https://download.fedoraproject.org/pub/alt/atomic/stable/Fedora-Atomic-26-20171003.0/CloudImages/x86_64/images
-            LOGIN_USER=fedora
             ;;
         fedora27)
             QCOW=Fedora-Cloud-Base-27-1.6.x86_64.qcow2
