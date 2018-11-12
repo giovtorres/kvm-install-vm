@@ -660,6 +660,7 @@ function remove ()
 function set_defaults ()
 {
     # Defaults are set here. Override using command line arguments.
+    AUTOSTART=false                 # Automatically start VM at boot time
     CPUS=1                          # Number of virtual CPUs
     FEATURE=host                    # Use host cpu features to the guest
     MEMORY=1024                     # Amount of RAM in MB
@@ -668,7 +669,7 @@ function set_defaults ()
     GRAPHICS=spice                  # Graphics type
     RESIZE_DISK=false               # Resize disk (boolean)
     IMAGEDIR=${HOME}/virt/images    # Directory to store images
-    VMDIR=${HOME}/virt/vms    # Directory to store images
+    VMDIR=${HOME}/virt/vms          # Directory to store virtual machines
     BRIDGE=virbr0                   # Hypervisor bridge
     PUBKEY=""                       # SSH public key
     DISTRO=centos7                  # Distribution
@@ -694,10 +695,10 @@ function set_custom_defaults ()
 function create ()
 {
     # Parse command line arguments
-    while getopts ":a:b:c:d:D:f:g:i:k:l:m:M:p:s:t:T:u:hv" opt
+    while getopts ":b:c:d:D:f:g:i:k:l:m:M:p:s:t:T:u:ahv" opt
     do
         case "$opt" in
-            a ) AUTOSTART=true ;;
+            a ) AUTOSTART=${OPTARG} ;;
             b ) BRIDGE="${OPTARG}" ;;
             c ) CPUS="${OPTARG}" ;;
             d ) DISK_SIZE="${OPTARG}" ;;
