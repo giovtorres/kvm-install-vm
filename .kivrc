@@ -45,6 +45,12 @@
 # MAC Address
 #MACADDRESS=
 
+# Gateway Address
+#GATEWAY=
+
+# Netmask Address
+#NETMASK=
+
 # Timezone
 #TIMEZONE=US/Eastern
 
@@ -53,3 +59,4 @@
 
 # Verbosity
 #VERBOSE=0
+

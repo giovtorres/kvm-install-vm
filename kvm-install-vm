@@ -52,13 +52,16 @@ function usage_subcommand ()
             printf "    -D          DNS Domain          (default: example.local)\n"
             printf "    -f          CPU Model / Feature (default: host)\n"
             printf "    -g          Graphics type       (default: spice)\n"
+            printf "    -G          Gateway Address     (default: 10.0.0.1)\n"
             printf "    -h          Display help\n"
             printf "    -i          Custom QCOW2 Image\n"
+            printf "    -I          IP Address\n"
             printf "    -k          SSH Public Key      (default: $HOME/.ssh/id_rsa.pub)\n"
             printf "    -l          Location of Images  (default: $HOME/virt/images)\n"
             printf "    -L          Location of VMs     (default: $HOME/virt/vms)\n"
             printf "    -m          Memory Size (MB)    (default: 1024)\n"
             printf "    -M          Mac address         (default: auto-assigned)\n"
+            printf "    -N          Netmask             (default: 255.255.255.0)\n"
             printf "    -p          Console port        (default: auto)\n"
             printf "    -s          Custom shell script\n"
             printf "    -t          Linux Distribution  (default: centos7)\n"
@@ -388,6 +391,20 @@ function set_network_restart_cmd ()
     esac
 }
 
+function set_boot_cmd ()
+{
+  BOOTCMDS=$(cat << _EOF_
+    - set -x; echo 'user-data/bootcmd:'
+    - set -x; sed -i -e 's/BOOTPROTO=dhcp/BOOTPROTO=static/g' /etc/sysconfig/network-scripts/ifcfg-eth0
+    - set -x; echo 'IPADDR=${IP}' >> /etc/sysconfig/network-scripts/ifcfg-eth0
+    - set -x; echo 'GATEWAY=${GATEWAY}' >> /etc/sysconfig/network-scripts/ifcfg-eth0
+    - set -x; echo 'NETMASK=${NETMASK}' >> /etc/sysconfig/network-scripts/ifcfg-eth0
+    - set -x; echo 'ONBOOT="yes"' >> /etc/sysconfig/network-scripts/ifcfg-eth0
+    - set -x; echo 'NM_CONTROLLED=no' >> /etc/sysconfig/network-scripts/ifcfg-eth0
+_EOF_
+)
+}
+
 function check_delete_known_host ()
 {
     output "Checking for ${IP} in known_hosts file"
@@ -437,6 +454,8 @@ users:
       sudo: ALL=(ALL) NOPASSWD:ALL
       ssh-authorized-keys:
         - ${KEY}
+bootcmd:
+${BOOTCMDS}
 
 # Configure where output will go
 output:
@@ -458,7 +477,7 @@ runcmd:
   - ${CLOUDINITDISABLE}
 _EOF_
 
-    if [ ! -z "${SCRIPTNAME+x}" ]
+    if [ ! -z "${SCRIPTNAME}" ]
     then
         SCRIPT=$(< $SCRIPTNAME)
         cat >> $USER_DATA << _EOF_
@@ -584,7 +603,7 @@ _EOF_
 
     # Remove the unnecessary cloud init files
     outputn "Cleaning up cloud-init files"
-    rm $USER_DATA $META_DATA $CI_ISO && ok
+#    rm $USER_DATA $META_DATA $CI_ISO && ok
 
     if [ -f "/var/lib/libvirt/dnsmasq/${BRIDGE}.status" ]
     then
@@ -678,6 +697,9 @@ function set_defaults ()
     TIMEZONE=US/Eastern             # Timezone
     ADDITIONAL_USER=${USER}         # User
     VERBOSE=0                       # Verbosity
+    GATEWAY=10.0.0.1
+    NETMASK=255.255.255.0
+    IP=""
 
     # Reset OPTIND
     OPTIND=1
@@ -695,7 +717,7 @@ function set_custom_defaults ()
 function create ()
 {
     # Parse command line arguments
-    while getopts ":b:c:d:D:f:g:i:k:l:m:M:p:s:t:T:u:ahv" opt
+    while getopts ":b:c:d:D:f:g:G:i:I:k:l:m:M:N:p:s:t:T:u:ahv" opt
     do
         case "$opt" in
             a ) AUTOSTART=${OPTARG} ;;
@@ -705,12 +727,15 @@ function create ()
             D ) DNSDOMAIN="${OPTARG}" ;;
             f ) FEATURE="${OPTARG}" ;;
             g ) GRAPHICS="${OPTARG}" ;;
+            G ) GATEWAY="${OPTARG}" ;;
             i ) IMAGE="${OPTARG}" ;;
+            I ) IP="${OPTARG}" ;;
             k ) PUBKEY="${OPTARG}" ;;
             l ) IMAGEDIR="${OPTARG}" ;;
             L ) VMDIR="${OPTARG}" ;;
             m ) MEMORY="${OPTARG}" ;;
             M ) MACADDRESS="${OPTARG}" ;;
+            N ) NETMASK="${OPTARG}" ;;
             p ) PORT="${OPTARG}" ;;
             s ) SCRIPTNAME="${OPTARG}" ;;
             t ) DISTRO="${OPTARG}" ;;
@@ -723,6 +748,12 @@ function create ()
     done
 
     shift $((OPTIND - 1))
+
+    # Set boot command
+    if [ -n "${IP}" ]
+    then
+        set_boot_cmd
+    fi
 
     # Resize disk if you specify a disk size either via cmdline option or .kivrc
     if [ -n "${DISK_SIZE}" ]
