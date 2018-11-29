@@ -484,6 +484,9 @@ _EOF_
     if $RESIZE_DISK
     then
         outputn "Resizing the disk to $DISK_SIZE"
+        # Workaround to prevent virt-resize from renumbering partitions and breaking grub
+        # See https://bugzilla.redhat.com/show_bug.cgi?id=1472039
+        # Ubuntu will automatically grow the partition to the new size on its first boot
         if [ "$DISTRO" = "ubuntu1804" ]
         then
             qemu-img resize $DISK $DISK_SIZE &>> ${VMNAME}.log \
