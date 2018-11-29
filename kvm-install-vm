@@ -56,8 +56,9 @@ function usage_subcommand ()
             printf "    -i          Custom QCOW2 Image\n"
             printf "    -k          SSH Public Key      (default: $HOME/.ssh/id_rsa.pub)\n"
             printf "    -l          Location of Images  (default: $HOME/virt/images)\n"
+            printf "    -L          Location of VMs     (default: $HOME/virt/vms)\n"
             printf "    -m          Memory Size (MB)    (default: 1024)\n"
-            printf "    -M mac      Mac address         (default: auto-assigned)\n"
+            printf "    -M          Mac address         (default: auto-assigned)\n"
             printf "    -p          Console port        (default: auto)\n"
             printf "    -s          Custom shell script\n"
             printf "    -t          Linux Distribution  (default: centos7)\n"
@@ -72,11 +73,12 @@ function usage_subcommand ()
             printf "    centos7-atomic  CentOS 7 Atomic Host                centos\n"
             printf "    centos6         CentOS 6                            centos\n"
             printf "    debian9         Debian 9 (Stretch)                  debian\n"
-            printf "    fedora26        Fedora 26                           fedora\n"
-            printf "    fedora26-atomic Fedora 26 Atomic Host               fedora\n"
             printf "    fedora27        Fedora 27                           fedora\n"
             printf "    fedora27-atomic Fedora 27 Atomic Host               fedora\n"
+            printf "    fedora28        Fedora 28                           fedora\n"
+            printf "    fedora28-atomic Fedora 28 Atomic Host               fedora\n"
             printf "    ubuntu1604      Ubuntu 16.04 LTS (Xenial Xerus)     ubuntu\n"
+            printf "    ubuntu1804      Ubuntu 18.04 LTS (Bionic Beaver)    ubuntu\n"
             printf "\n"
             printf "EXAMPLES\n"
             printf "    $prog create foo\n"
@@ -195,10 +197,11 @@ function delete_vm ()
     else
         output "Domain ${VMNAME} does not exist"
     fi
-
-    [ -d "${IMAGEDIR}/${VMNAME}" ] \
+    
+    [[ -d ${VMDIR}/${VMNAME} ]] && DISKDIR=${VMDIR}/${VMNAME} || DISKDIR=${IMAGEDIR}/${VMNAME}
+    [ -d $DISKDIR ] \
         && outputn "Deleting ${VMNAME} files" \
-        && rm -rf ${IMAGEDIR}/${VMNAME} \
+        && rm -rf $DISKDIR \
         && ok
 
     if [ "${STORPOOL_EXISTS}" -eq 1 ]
@@ -219,9 +222,9 @@ function fetch_images ()
     # Use the command "osinfo-query os" to get the list of the accepted OS variants.
     case "$DISTRO" in
         amazon2)
-            QCOW=amzn2-kvm-2017.12.0.20171212.2-x86_64.xfs.gpt.qcow2
+            QCOW=amzn2-kvm-2.0.20180810-x86_64.xfs.gpt.qcow2
             OS_VARIANT="auto"
-            IMAGE_URL=https://cdn.amazonlinux.com/os-images/2017.12.0.20171212.2/kvm
+            IMAGE_URL=https://cdn.amazonlinux.com/os-images/2.0.20180810/kvm
             LOGIN_USER=ec2-user
             ;;
         centos7)
@@ -255,34 +258,40 @@ function fetch_images ()
             IMAGE_URL=https://cdimage.debian.org/cdimage/openstack/current-9
             LOGIN_USER=debian
             ;;
-        fedora26)
-            QCOW=Fedora-Cloud-Base-26-1.5.x86_64.qcow2
-            OS_VARIANT="fedora26"
-            IMAGE_URL=https://download.fedoraproject.org/pub/fedora/linux/releases/26/CloudImages/x86_64/images
-            LOGIN_USER=fedora
-            ;;
-        fedora26-atomic)
-            QCOW=Fedora-Atomic-26-20171003.0.x86_64.qcow2
-            OS_VARIANT="fedora26"
-            IMAGE_URL=https://download.fedoraproject.org/pub/alt/atomic/stable/Fedora-Atomic-26-20171003.0/CloudImages/x86_64/images
-            LOGIN_USER=fedora
-            ;;
         fedora27)
             QCOW=Fedora-Cloud-Base-27-1.6.x86_64.qcow2
-            OS_VARIANT="fedora26"
+            OS_VARIANT="fedora27"
             IMAGE_URL=https://download.fedoraproject.org/pub/fedora/linux/releases/27/CloudImages/x86_64/images
             LOGIN_USER=fedora
             ;;
         fedora27-atomic)
             QCOW=Fedora-Atomic-27-1.6.x86_64.qcow2
-            OS_VARIANT="fedora26"
+            OS_VARIANT="fedora27"
             IMAGE_URL=https://download.fedoraproject.org/pub/fedora/linux/releases/27/CloudImages/x86_64/images
             LOGIN_USER=fedora
             ;;
+        fedora28)
+          QCOW=Fedora-Cloud-Base-28-1.1.x86_64.qcow2
+          OS_VARIANT="fedora27"
+          IMAGE_URL=https://download.fedoraproject.org/pub/fedora/linux/releases/28/Cloud/x86_64/images
+          LOGIN_USER=fedora
+          ;;
+        fedora28-atomic)
+          QCOW=Fedora-AtomicHost-28-20180425.0.x86_64.qcow2
+          OS_VARIANT="fedora27"
+          IMAGE_URL=https://download.fedoraproject.org/pub/alt/atomic/stable/Fedora-Atomic-28-20180425.0/AtomicHost/x86_64/images
+          LOGIN_USER=fedora
+          ;;
         ubuntu1604)
             QCOW=ubuntu-16.04-server-cloudimg-amd64-disk1.img
             OS_VARIANT="ubuntu16.04"
             IMAGE_URL=https://cloud-images.ubuntu.com/releases/16.04/release
+            LOGIN_USER=ubuntu
+            ;;
+        ubuntu1804)
+            QCOW=ubuntu-18.04-server-cloudimg-amd64.img
+            OS_VARIANT="ubuntu17.10"
+            IMAGE_URL=https://cloud-images.ubuntu.com/releases/18.04/release
             LOGIN_USER=ubuntu
             ;;
         *)
@@ -304,6 +313,17 @@ function fetch_images ()
 
 function check_ssh_key ()
 {
+    local key
+    if [ -z "${PUBKEY}" ]; then
+        # Try to find a suitable key file.
+        for key in ~/.ssh/id_{rsa,dsa,ed25519}.pub; do
+            if [ -f "$key" ]; then
+                PUBKEY="$key"
+                break
+            fi
+        done
+    fi
+
     if [ ! -f "${PUBKEY}" ]
     then
         # Check for existence of a pubkey, or else exit with message
@@ -347,17 +367,14 @@ function set_sudo_group ()
 function set_cloud_init_remove ()
 {
     case "${DISTRO}" in
-        centos?|amazon? )
-            CLOUDINITRM="yum -y remove cloud-init"
+        centos6 )
+            CLOUDINITDISABLE="chkconfig cloud-init off"
             ;;
-        fedora?? )
-            CLOUDINITRM="dnf -y remove cloud-init"
-            ;;
-        ubuntu*|debian? )
-            CLOUDINITRM="apt-get -y remove cloud-init"
+        centos7|amazon?|fedora??|ubuntu*|debian? )
+            CLOUDINITDISABLE="systemctl disable cloud-init.service"
             ;;
         *-atomic)
-            CLOUDINITRM="/usr/bin/true"
+            CLOUDINITDISABLE="/usr/bin/true"
             ;;
     esac
 }
@@ -382,13 +399,16 @@ function check_delete_known_host ()
 
 function create_vm ()
 {
+    # Create image directory if it doesn't already exist
+    mkdir -p ${VMDIR}
+
     check_vmname_set
 
     # Start clean
-    [ -d "${IMAGEDIR}/${VMNAME}" ] && rm -rf ${IMAGEDIR}/${VMNAME}
-    mkdir -p ${IMAGEDIR}/${VMNAME}
+    [ -d "${VMDIR}/${VMNAME}" ] && rm -rf ${VMDIR}/${VMNAME}
+    mkdir -p ${VMDIR}/${VMNAME}
 
-    pushd ${IMAGEDIR}/${VMNAME}
+    pushd ${VMDIR}/${VMNAME}
 
     # Create log file
     touch ${VMNAME}.log
@@ -435,7 +455,7 @@ timezone: ${TIMEZONE}
 # Remove cloud-init when finished with it
 runcmd:
   - ${NETRESTART}
-  - ${CLOUDINITRM}
+  - ${CLOUDINITDISABLE}
 _EOF_
 
     if [ ! -z "${SCRIPTNAME+x}" ]
@@ -492,7 +512,7 @@ _EOF_
         printf "    virsh pool-create-as \\ \n"
         printf "      --name ${VMNAME} \\ \n"
         printf "      --type dir \\ \n"
-        printf "      --target ${IMAGEDIR}/${VMNAME} \n"
+        printf "      --target ${VMDIR}/${VMNAME} \n"
     else
         outputn "Creating storage pool"
     fi
@@ -501,7 +521,7 @@ _EOF_
     (virsh pool-create-as \
         --name ${VMNAME} \
         --type dir \
-        --target ${IMAGEDIR}/${VMNAME} &>> ${VMNAME}.log && ok) \
+        --target ${VMDIR}/${VMNAME} &>> ${VMNAME}.log && ok) \
         || die "Could not create storage pool."
 
     # Add custom MAC Address if specified
@@ -640,6 +660,7 @@ function remove ()
 function set_defaults ()
 {
     # Defaults are set here. Override using command line arguments.
+    AUTOSTART=false                 # Automatically start VM at boot time
     CPUS=1                          # Number of virtual CPUs
     FEATURE=host                    # Use host cpu features to the guest
     MEMORY=1024                     # Amount of RAM in MB
@@ -648,8 +669,9 @@ function set_defaults ()
     GRAPHICS=spice                  # Graphics type
     RESIZE_DISK=false               # Resize disk (boolean)
     IMAGEDIR=${HOME}/virt/images    # Directory to store images
+    VMDIR=${HOME}/virt/vms          # Directory to store virtual machines
     BRIDGE=virbr0                   # Hypervisor bridge
-    PUBKEY=${HOME}/.ssh/id_rsa.pub  # SSH public key
+    PUBKEY=""                       # SSH public key
     DISTRO=centos7                  # Distribution
     MACADDRESS=""                   # MAC Address
     PORT=-1                         # Console port
@@ -673,10 +695,10 @@ function set_custom_defaults ()
 function create ()
 {
     # Parse command line arguments
-    while getopts ":a:b:c:d:D:f:g:i:k:l:m:M:p:s:t:T:u:hv" opt
+    while getopts ":b:c:d:D:f:g:i:k:l:m:M:p:s:t:T:u:ahv" opt
     do
         case "$opt" in
-            a ) AUTOSTART=true ;;
+            a ) AUTOSTART=${OPTARG} ;;
             b ) BRIDGE="${OPTARG}" ;;
             c ) CPUS="${OPTARG}" ;;
             d ) DISK_SIZE="${OPTARG}" ;;
@@ -686,6 +708,7 @@ function create ()
             i ) IMAGE="${OPTARG}" ;;
             k ) PUBKEY="${OPTARG}" ;;
             l ) IMAGEDIR="${OPTARG}" ;;
+            L ) VMDIR="${OPTARG}" ;;
             m ) MEMORY="${OPTARG}" ;;
             M ) MACADDRESS="${OPTARG}" ;;
             p ) PORT="${OPTARG}" ;;
@@ -794,7 +817,8 @@ function attach-disk ()
     else
         # Set variables
         VMNAME=$1
-        DISKDIR=${IMAGEDIR}/${VMNAME}    # Directory to create attached disk
+        # Directory to create attached disk (Checks both images an vms directories for backward compatibility!)
+        [[ -d ${VMDIR}/${VMNAME} ]] && DISKDIR=${VMDIR}/${VMNAME} || DISKDIR=${IMAGEDIR}/${VMNAME}
         DISKNAME=${VMNAME}-${TARGET}-${DISKSIZE}.${FORMAT}
 
         if [ ! -f "${DISKDIR}/${DISKNAME}" ]
