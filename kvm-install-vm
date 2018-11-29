@@ -484,7 +484,7 @@ _EOF_
     if $RESIZE_DISK
     then
         outputn "Resizing the disk to $DISK_SIZE"
-        if [ "${DISTRO}" = "ubuntu1804" ]
+        if [ "$DISTRO" = "ubuntu1804" ]
         then
             qemu-img resize $DISK $DISK_SIZE &>> ${VMNAME}.log \
                 && ok \
