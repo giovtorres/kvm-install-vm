@@ -503,7 +503,7 @@ _EOF_
 
     # Create CD-ROM ISO with cloud-init config
     outputn "Generating ISO for cloud-init"
-    if [ -e `which genisoimage` ]
+    if command -v genisoimage &>/dev/null
     then
         genisoimage -output $CI_ISO \
             -volid cidata \
