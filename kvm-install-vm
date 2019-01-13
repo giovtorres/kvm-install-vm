@@ -454,7 +454,7 @@ function check_delete_known_host ()
         || output "No entries found for ${IP}"
 }
 
-function create_vm ()
+function __create_vm ()
 {
     # Create image directory if it doesn't already exist
     mkdir -p ${VMDIR}
@@ -656,7 +656,7 @@ _EOF_
 
     # Remove the unnecessary cloud init files
     outputn "Cleaning up cloud-init files"
-    rm $USER_DATA $META_DATA $CI_ISO && ok
+    rm -f $USER_DATA $META_DATA $CI_ISO && ok
 
     if [ -f "/var/lib/libvirt/dnsmasq/${BRIDGE}.status" ]
     then
@@ -696,6 +696,61 @@ _EOF_
     output "DONE"
 
     popd
+}
+
+function create_vm ()
+{
+    # Resize disk if you specify a disk size either via cmdline option or .kivrc
+    if [ -n "${DISK_SIZE}" ]
+    then
+        RESIZE_DISK=true
+        DISK_SIZE="${DISK_SIZE}G"   # Append 'G' for Gigabyte
+    fi
+
+
+    # Set cloud-init variables after VMNAME is assigned
+    USER_DATA=user-data
+    META_DATA=meta-data
+    CI_ISO=${VMNAME}-cidata.iso
+
+    # Check for ssh key
+    check_ssh_key
+
+    if [ ! -z "${IMAGE+x}" ]
+    then
+        output "Using custom QCOW2 image: ${IMAGE}."
+        OS_VARIANT="auto"
+        LOGIN_USER="<use the default account in your custom image>"
+    else
+        fetch_images
+    fi
+
+    # Check if domain already exists
+    domain_exists "${VMNAME}"
+
+    if [ "${DOMAIN_EXISTS}" -eq 1 ]; then
+        echo -n "[WARNING] ${VMNAME} already exists.  "
+        read -p "Do you want to overwrite ${VMNAME} [y/N]? " -r
+        if [[ $REPLY =~ ^[Yy]$ ]]; then
+            remove ${VMNAME}
+        else
+            echo -e "\nNot overwriting ${VMNAME}. Exiting..."
+            exit 1
+        fi
+    fi
+
+    # Set network restart command
+    set_network_restart_cmd
+
+    # Set cloud init remove command
+    set_cloud_init_remove
+
+    # Set package manager
+    set_sudo_group
+
+    # Finally, create requested VM
+    __create_vm
+
 }
 
 # Delete VM
@@ -765,6 +820,17 @@ function set_custom_defaults ()
     fi
 }
 
+function set_net_defaults ()
+{
+    # Set default values
+    NETWORK="default"
+    ADDRESS="10.0.0.1"
+    NETMASK="255.255.255.0"
+    DHCP_START="10.0.0.2"
+    DHCP_END="10.0.0.254"
+    FORWARDING="nat"
+}
+
 function create ()
 {
     # Parse command line arguments
@@ -798,13 +864,6 @@ function create ()
 
     shift $((OPTIND - 1))
 
-    # Resize disk if you specify a disk size either via cmdline option or .kivrc
-    if [ -n "${DISK_SIZE}" ]
-    then
-        RESIZE_DISK=true
-        DISK_SIZE="${DISK_SIZE}G"   # Append 'G' for Gigabyte
-    fi
-
     # After all options are processed, make sure only one variable is left (vmname)
     if [ "$#" != 1 ]
     then
@@ -815,48 +874,8 @@ function create ()
         VMNAME=$1
     fi
 
-    # Set cloud-init variables after VMNAME is assigned
-    USER_DATA=user-data
-    META_DATA=meta-data
-    CI_ISO=${VMNAME}-cidata.iso
-
-    # Check for ssh key
-    check_ssh_key
-
-    if [ ! -z "${IMAGE+x}" ]
-    then
-        output "Using custom QCOW2 image: ${IMAGE}."
-        OS_VARIANT="auto"
-        LOGIN_USER="<use the default account in your custom image>"
-    else
-        fetch_images
-    fi
-
-    # Check if domain already exists
-    domain_exists "${VMNAME}"
-
-    if [ "${DOMAIN_EXISTS}" -eq 1 ]; then
-        echo -n "[WARNING] ${VMNAME} already exists.  "
-        read -p "Do you want to overwrite ${VMNAME} [y/N]? " -r
-        if [[ $REPLY =~ ^[Yy]$ ]]; then
-            remove ${VMNAME}
-        else
-            echo -e "\nNot overwriting ${VMNAME}. Exiting..."
-            exit 1
-        fi
-    fi
-
-    # Set network restart command
-    set_network_restart_cmd
-
-    # Set cloud init remove command
-    set_cloud_init_remove
-
-    # Set package manager
-    set_sudo_group
-
-    # Finally, create requested VM
     create_vm
+
 }
 
 function attach-disk ()
@@ -917,39 +936,9 @@ function attach-disk ()
 
 }
 
-function net-create ()
+function create_net ()
 {
-    # Set default values
-    NETWORK="default"
-    ADDRESS="10.0.0.1"
-    NETMASK="255.255.255.0"
-    DHCP_START="10.0.0.2"
-    DHCP_END="10.0.0.254"
-    FORWARDING="nat"
-
     NETWORK_CONF="network.xml"
-
-    # Parse command line options
-    while getopts ":b:n:s:e:M:A:m:f:d:ahv" opt
-    do
-        case "$opt" in
-            a ) AUTOSTART="${OPTARG}" ;;
-            h ) usage ;;
-            v ) VERBOSE=1 ;;
-            b ) BRIDGE="${OPTARG}" ;;
-            n ) NETWORK="${OPTARG}" ;;
-            s ) DHCP_START="${OPTARG}" ;;
-            e ) DHCP_END="${OPTARG}" ;;
-            M ) MACADDRESS="${OPTARG}" ;;
-            A ) ADDRESS="$(OPTARG)" ;;
-            m ) NETMASK="${OPTARG}" ;;
-            f ) FORWARDING="${OPTARG}" ;;
-            d ) DEVICE="${OPTARG}" ;;
-            * ) die "Unsupported option. Run 'kvm-install-vm help net-create'." ;;
-        esac
-    done
-
-    shift $((OPTIND - 1))
 
     # create the network.xml file
     > ${NETWORK_CONF}
@@ -996,6 +985,36 @@ function net-create ()
             && ok \
             || die "Could not autostart network."
     fi
+
+}
+
+function net-create ()
+{
+    set_net_defaults
+
+    # Parse command line options
+    while getopts ":b:n:s:e:M:A:m:f:d:ahv" opt
+    do
+        case "$opt" in
+            a ) AUTOSTART="${OPTARG}" ;;
+            h ) usage ;;
+            v ) VERBOSE=1 ;;
+            b ) BRIDGE="${OPTARG}" ;;
+            n ) NETWORK="${OPTARG}" ;;
+            s ) DHCP_START="${OPTARG}" ;;
+            e ) DHCP_END="${OPTARG}" ;;
+            M ) MACADDRESS="${OPTARG}" ;;
+            A ) ADDRESS="$(OPTARG)" ;;
+            m ) NETMASK="${OPTARG}" ;;
+            f ) FORWARDING="${OPTARG}" ;;
+            d ) DEVICE="${OPTARG}" ;;
+            * ) die "Unsupported option. Run 'kvm-install-vm help net-create'." ;;
+        esac
+    done
+
+    shift $((OPTIND - 1))
+
+    create_net
 }
 
 function net-remove ()
