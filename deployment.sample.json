@@ -1,0 +1,39 @@
+{
+    "networks": [
+        {
+            "network": "default",
+            "autostart": "false",
+            "bridge": "virbr0",
+            "address": "10.0.0.1",
+            "netmask": "255.255.255.0",
+            "dhcp_start": "10.0.0.2",
+            "dhcp_end": "10.0.0.254",
+            "forwarding": "nat",
+            "device": "eth0"
+        }
+    ],
+    "vms": [
+        {
+            "vmname": "hostname",
+            "autostart": "false",
+            "bridge": "virbr0",
+            "cpus": "1",
+            "disk_size": "10",
+            "dnsdomain": "",
+            "feature": "",
+            "graphics": "",
+            "image": "",
+            "pubkey": "",
+            "imagedir": "",
+            "vmdir": "",
+            "memory": "",
+            "macaddress": "",
+            "network": "",
+            "port": "",
+            "scriptname": "",
+            "distro": "",
+            "timezone": "",
+            "additional_user": ""
+        }
+    ]
+}

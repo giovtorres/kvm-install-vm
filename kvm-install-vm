@@ -29,6 +29,7 @@ COMMANDS
     net-create  - create and activate a network
     net-remove  - remove and undefine a network
     net-list    - list all networks
+    deploy      - deploy virtual networks and machine from a configuration file input
 
 EOF
 exit 0
@@ -196,6 +197,23 @@ function usage_subcommand ()
             printf "\n"
             printf "DESCRIPTION\n"
             printf "    List all active networks.\n"
+            ;;
+        deploy)
+            printf "NAME\n"
+            printf "    $prog deploy\n"
+            printf "\n"
+            printf "DESCRIPTION\n"
+            printf "    Deploy virtual networks and machine from a configuration file.\n"
+            printf "\n"
+            printf "COMMANDS\n"
+            printf "    help - show this help\n"
+            printf "\n"
+            printf "OPTIONS\n"
+            printf "    -f          filename (default deployment.json)\n"
+            printf "\n"
+            printf "EXAMPLE\n"
+            printf "    $prog deploy -f deployment.json\n"
+            printf "        Deploys all virtual networks and machines defined in the configuration file.\n"
             ;;
         *)
             printf "'$subcommand' is not a valid subcommand.\n"
@@ -1049,6 +1067,115 @@ function net-remove ()
         || die "Could not undefine network."
 }
 
+function vm_create_json ()
+{
+    JSONINPUT=$1
+
+    KEYS=$(echo "${JSONINPUT}" | jq -r 'keys | .[]')
+    for key in $KEYS
+    do
+        case $key in
+            "vmname")          VMNAME=$(echo ${JSONINPUT} | jq -r ".${key}") ;;
+            "autostart")       AUTOSTART=$(echo ${JSONINPUT} | jq -r ".${key}") ;;
+            "bridge")          BRIDGE=$(echo ${JSONINPUT} | jq -r ".${key}") ;;
+            "cpus")            CPUS=$(echo ${JSONINPUT} | jq -r ".${key}") ;;
+            "disk_size")       DISK_SIZE=$(echo ${JSONINPUT} | jq -r ".${key}") ;;
+            "dnsdomain")       DNSDOMAIN=$(echo ${JSONINPUT} | jq -r ".${key}") ;;
+            "feature")         FEATURE=$(echo ${JSONINPUT} | jq -r ".${key}") ;;
+            "graphics")        GRAPHICS=$(echo ${JSONINPUT} | jq -r ".${key}") ;;
+            "image")           IMAGE=$(echo ${JSONINPUT} | jq -r ".${key}") ;;
+            "pubkey")          PUBKEY=$(echo ${JSONINPUT} | jq -r ".${key}") ;;
+            "imagedir")        IMAGEDIR=$(echo ${JSONINPUT} | jq -r ".${key}") ;;
+            "vmdir")           VMDIR=$(echo ${JSONINPUT} | jq -r ".${key}") ;;
+            "memory")          MEMORY=$(echo ${JSONINPUT} | jq -r ".${key}") ;;
+            "macaddress")      MACADDRESS=$(echo ${JSONINPUT} | jq -r ".${key}") ;;
+            "network")         NETWORK=$(echo ${JSONINPUT} | jq -r ".${key}") ;;
+            "port")            PORT=$(echo ${JSONINPUT} | jq -r ".${key}") ;;
+            "scriptname")      SCRIPTNAME=$(echo ${JSONINPUT} | jq -r ".${key}") ;;
+            "distro")          DISTRO=$(echo ${JSONINPUT} | jq -r ".${key}") ;;
+            "timezone")        TIMEZONE=$(echo ${JSONINPUT} | jq -r ".${key}") ;;
+            "additional_user") ADDITIONAL_USER=$(echo ${JSONINPUT} | jq -r ".${key}") ;;
+            *) die "Unsupported option \'${key}\'." ;;
+        esac
+    done
+
+    if [ ${VERBOSE} -eq 1 ]
+    then
+        output "Deploying virtual machine ${VMNAME} with following JSON settings"
+        printf "$(echo ${JSONINPUT} | jq '.')"
+    else
+        output "Deploying virtual machine ${VMNAME}"
+    fi 
+
+    create_vm
+}
+
+function net_create_json ()
+{
+    JSONINPUT=$1
+
+    set_net_defaults
+    KEYS=$(echo "${JSONINPUT}" | jq -r 'keys | .[]')
+    for key in $KEYS
+    do
+        case $key in
+            "network")    NETWORK=$(echo ${JSONINPUT} | jq -r ".${key}") ;;
+            "autostart")  AUTOSTART=$(echo ${JSONINPUT} | jq -r ".${key}") ;;
+            "bridge")     BRIDGE=$(echo ${JSONINPUT} | jq -r ".${key}") ;;
+            "dhcp_start") DHCP_START=$(echo ${JSONINPUT} | jq -r ".${key}") ;;
+            "dhcp_end")   DHCP_END=$(echo ${JSONINPUT} | jq -r ".${key}") ;;
+            "macaddress") MACADDRESS=$(echo ${JSONINPUT} | jq -r ".${key}") ;;
+            "address")    ADDRESS=$(echo ${JSONINPUT} | jq -r ".${key}") ;;
+            "netmask")    NETMASK=$(echo ${JSONINPUT} | jq -r ".${key}") ;;
+            "forwarding") FORWARDING=$(echo ${JSONINPUT} | jq -r ".${key}") ;;
+            "device")     DEVICE=$(echo ${JSONINPUT} | jq -r ".${key}") ;;
+            *) die "Unsupported option \'${key}\'." ;;
+        esac
+    done
+
+    if [ ${VERBOSE} -eq 1 ]
+    then
+        output "Deploying new network ${NETWORK} with following JSON settings"
+        printf "$(echo ${JSONINPUT} | jq '.')"
+    else
+        output "Deploying network ${NETWORK}"
+    fi
+
+
+    create_net
+}
+
+function deploy ()
+{
+    # Set default values
+    DEPLOYFILE="deployment.json"
+
+    # Parse command line options
+    while getopts ":f:v" opt
+    do
+        case "$opt" in
+            f ) DEPLOYFILE="${OPTARG}" ;;
+            v ) VERBOSE=1 ;;
+            * ) die "Unsupported option. Run 'kvm-install-vm help deploy'." ;;
+        esac
+    done
+
+    shift $((OPTIND - 1))
+
+    # Parse the json file
+    NR_NET=$(jq -r '.networks|length' ${DEPLOYFILE})
+    NR_VM=$(jq -r '.vms|length' ${DEPLOYFILE})
+
+    for ((i=0; i<NR_NET; i++))
+    do
+        net_create_json "$(jq -r ".networks[$i]" ${DEPLOYFILE})"
+    done
+
+    for ((i=0; i<NR_VM; i++))
+    do
+        vm_create_json "$(jq -r ".vms[$i]" ${DEPLOYFILE})"
+    done
+}
 #--------------------------------------------------
 # Main
 #--------------------------------------------------
@@ -1078,7 +1205,17 @@ case "${subcommand}" in
         virsh net-list --all
         exit 0
         ;;
-    create|remove|attach-disk|remove-disk|net-create|net-remove)
+    net-create|deploy)
+        if [[ "$1" =~ ^help$ ]]; then
+            usage_subcommand "${subcommand}"
+        else
+            set_defaults
+            set_custom_defaults
+            "${subcommand}" "$@"
+            exit $?
+        fi
+        ;;
+    create|remove|attach-disk|remove-disk|net-remove)
         if [[ "${1:-none}" == "none" ]]; then
             usage_subcommand "${subcommand}"
         elif [[ "$1" =~ ^help$ ]]; then
