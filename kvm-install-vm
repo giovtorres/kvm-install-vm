@@ -222,9 +222,9 @@ function fetch_images ()
     # Use the command "osinfo-query os" to get the list of the accepted OS variants.
     case "$DISTRO" in
         amazon2)
-            QCOW=amzn2-kvm-2.0.20180810-x86_64.xfs.gpt.qcow2
+            QCOW=amzn2-kvm-2.0.20181114-x86_64.xfs.gpt.qcow2
             OS_VARIANT="auto"
-            IMAGE_URL=https://cdn.amazonlinux.com/os-images/2.0.20180810/kvm
+            IMAGE_URL=https://cdn.amazonlinux.com/os-images/2.0.20181114/kvm
             LOGIN_USER=ec2-user
             ;;
         centos7)
@@ -487,7 +487,7 @@ _EOF_
         # Workaround to prevent virt-resize from renumbering partitions and breaking grub
         # See https://bugzilla.redhat.com/show_bug.cgi?id=1472039
         # Ubuntu will automatically grow the partition to the new size on its first boot
-        if [ "$DISTRO" = "ubuntu1804" ]
+        if [[ "$DISTRO" = "ubuntu1804" ]] || [[ "$DISTRO" = "amazon2" ]]
         then
             qemu-img resize $DISK $DISK_SIZE &>> ${VMNAME}.log \
                 && ok \
