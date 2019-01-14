@@ -15,11 +15,12 @@ You need to have the KVM hypervisor installed, along with a few other packages:
 - libguestfs-tools-c
 - qemu-img
 - libvirt-client
+- jq
 
 To install the dependencies, run:
 
 ```
-sudo dnf -y install genisoimage virt-install libguestfs-tools-c qemu-img libvirt-client wget
+sudo dnf -y install genisoimage virt-install libguestfs-tools-c qemu-img libvirt-client wget jq
 ```
 
 If you want to resolve guests by their hostnames, install the `libvirt-nss` package:
@@ -49,10 +50,16 @@ DESCRIPTION
     to connect locally to your KVM domains.
 
 COMMANDS
-    help    - show this help or help for a subcommand
-    create  - create a new guest domain
-    list    - list all domains, running and stopped
-    remove  - delete a guest domain
+    help        - show this help or help for a subcommand
+    attach-disk - create and attach a disk device to guest domain
+    create      - create a new guest domain
+    detach-disk - detach a disk device from a guest domain
+    list        - list all domains, running and stopped
+    remove      - delete a guest domain
+    net-create  - create and activate a network
+    net-remove  - remove and undefine a network
+    net-list    - list all networks
+    deploy      - deploy virtual networks and machine from a configuration file input
 ```
 
 #### Creating Guest VMs
@@ -164,6 +171,77 @@ EXAMPLE
     kvm-install-vm attach-disk -d 10 -s example-5g.qcow2 -t vdb foo
         Attach a 10GB disk device named example-5g.qcow2 to the foo guest
         domain.
+```
+
+### Create a virtual network
+```
+$ ./kvm-install-vm net-create help
+NAME
+    kvm-install-vm net-create
+
+DESCRIPTION
+    Create a new network.
+
+COMMANDS
+    help - show this help
+
+OPTIONS
+    -a          Autostart           (default: false)
+    -b          Bridge              (default: virbr0)
+    -n          Network             (default: default)
+    -s          DHCP start address  (default: 10.0.0.2)
+    -e          DHCP end address    (default: 10.0.0.254)
+    -M          Mac address         (default: auto-assigned)
+    -A          IP address          (default: 10.0.0.1)
+    -m          Netmask             (default: 255.255.255.0)
+    -f          Forwarding mode     (default: nat)
+    -d          Interface device    (default: none)
+
+FORWARDING MODES
+    nat
+    routed
+    isolated
+
+EXAMPLE
+    kvm-install-vm net-create
+        Creates a default network
+```
+
+### Removing a virtual network
+```
+$ ./kvm-install-vm net-remove help
+NAME
+    kvm-install-vm net-remove
+
+DESCRIPTION
+    Removes and undefines a network.
+
+COMMANDS
+    help - show this help
+
+EXAMPLE
+    kvm-install-vm net-remove default
+        Removes and undefines network default
+```
+
+### Deploying virtual networks and guest domains from a configuration file
+```
+$ ./kvm-install-vm deploy help
+NAME
+    kvm-install-vm deploy
+
+DESCRIPTION
+    Deploy virtual networks and machine from a configuration file.
+
+COMMANDS
+    help - show this help
+
+OPTIONS
+    -f          filename (default deployment.json)
+
+EXAMPLE
+    kvm-install-vm deploy -f deployment.json
+        Deploys all virtual networks and machines defined in the configuration file.
 ```
 
 ### Setting Custom Defaults
