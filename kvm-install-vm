@@ -1004,6 +1004,8 @@ function create_net ()
             || die "Could not autostart network."
     fi
 
+    # Cleanup unneeded network config file
+    rm -f ${NETWORK_CONF}
 }
 
 function net-create ()
