@@ -705,7 +705,7 @@ function set_custom_defaults ()
 function create ()
 {
     # Parse command line arguments
-    while getopts ":b:c:d:D:f:g:i:k:l:m:M:p:s:t:T:u:ahv" opt
+    while getopts ":b:c:d:D:f:g:i:k:l:L:m:M:p:s:t:T:u:ahv" opt
     do
         case "$opt" in
             a ) AUTOSTART=${OPTARG} ;;
