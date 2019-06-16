@@ -78,7 +78,6 @@ function usage_subcommand ()
             printf "    fedora30        Fedora 30                           fedora\n"
             printf "    ubuntu1604      Ubuntu 16.04 LTS (Xenial Xerus)     ubuntu\n"
             printf "    ubuntu1804      Ubuntu 18.04 LTS (Bionic Beaver)    ubuntu\n"
-            printf "    ubuntu1904      Ubuntu 19.04 LTS (Disco Dingo)      ubuntu\n"
             printf "\n"
             printf "EXAMPLES\n"
             printf "    $prog create foo\n"
@@ -286,12 +285,6 @@ function fetch_images ()
             QCOW=ubuntu-18.04-server-cloudimg-amd64.img
             OS_VARIANT="ubuntu18.04"
             IMAGE_URL=https://cloud-images.ubuntu.com/releases/18.04/release
-            LOGIN_USER=ubuntu
-            ;;
-        ubuntu1904)
-            QCOW=ubuntu-19.04-server-cloudimg-amd64.img
-            OS_VARIANT="ubuntu19.04"
-            IMAGE_URL=https://cloud-images.ubuntu.com/releases/19.04/release
             LOGIN_USER=ubuntu
             ;;
         *)
