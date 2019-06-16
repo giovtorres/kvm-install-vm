@@ -32,36 +32,28 @@ function remove_test_vm ()
     remove_test_vm centos7-atomic
 }
 
-@test "Install VM (Fedora 27) - $VMNAME-fedora27" {
+@test "Install VM (Fedora 29) - $VMNAME-fedora29" {
     create_test_vm fedora27
 }
 
-@test "Delete VM (Fedora 27) - $VMNAME-fedora27" {
+@test "Delete VM (Fedora 29) - $VMNAME-fedora29" {
     remove_test_vm fedora27
 }
 
-@test "Install VM (Fedora 27 Atomic) - $VMNAME-fedora27-atomic" {
+@test "Install VM (Fedora 29 Atomic) - $VMNAME-fedora29-atomic" {
     create_test_vm fedora27-atomic
 }
 
-@test "Delete VM (Fedora 27 Atomic) - $VMNAME-fedora27-atomic" {
+@test "Delete VM (Fedora 29 Atomic) - $VMNAME-fedora29-atomic" {
     remove_test_vm fedora27-atomic
 }
 
-@test "Install VM (Fedora 28) - $VMNAME-fedora28" {
+@test "Install VM (Fedora 30) - $VMNAME-fedora30" {
     create_test_vm fedora28
 }
 
-@test "Delete VM (Fedora 28) - $VMNAME-fedora28" {
+@test "Delete VM (Fedora 30) - $VMNAME-fedora30" {
     remove_test_vm fedora28
-}
-
-@test "Install VM (Fedora 28 Atomic) - $VMNAME-fedora28-atomic" {
-    create_test_vm fedora28-atomic
-}
-
-@test "Delete VM (Fedora 28 Atomic) - $VMNAME-fedora28-atomic" {
-    remove_test_vm fedora28-atomic
 }
 
 @test "Install VM (Ubuntu 16.04) - $VMNAME-ubuntu1604" {
@@ -77,6 +69,14 @@ function remove_test_vm ()
 }
 
 @test "Delete VM (Ubuntu 18.04) - $VMNAME-ubuntu1804" {
+    remove_test_vm ubuntu1804
+}
+
+@test "Install VM (Ubuntu 19.04) - $VMNAME-ubuntu1904" {
+    create_test_vm ubuntu1804
+}
+
+@test "Delete VM (Ubuntu 19.04) - $VMNAME-ubuntu1904" {
     remove_test_vm ubuntu1804
 }
 
