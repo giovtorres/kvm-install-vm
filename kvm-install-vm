@@ -107,6 +107,8 @@ function usage_subcommand ()
             printf "    help - show this help\n"
             printf "\n"
             printf "OPTIONS\n"
+            printf "    -l          Location of Images  (default: $HOME/virt/images)\n"
+            printf "    -L          Location of VMs     (default: $HOME/virt/vms)\n"
             printf "    -v          Be verbose\n"
             printf "\n"
             printf "EXAMPLE\n"
@@ -642,9 +644,11 @@ _EOF_
 function remove ()
 {
     # Parse command line arguments
-    while getopts ":hv" opt
+    while getopts ":l:L:hv" opt
     do
         case "$opt" in
+            l ) IMAGEDIR="${OPTARG}" ;;
+            L ) VMDIR="${OPTARG}" ;;
             v ) VERBOSE=1 ;;
             h ) usage ;;
             * ) die "Unsupported option. Run 'kvm-install-vm help remove'." ;;
