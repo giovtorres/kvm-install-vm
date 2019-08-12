@@ -106,6 +106,9 @@ function usage_subcommand ()
             printf "COMMANDS\n"
             printf "    help - show this help\n"
             printf "\n"
+            printf "OPTIONS\n"
+            printf "    -v          Be verbose\n"
+            printf "\n"
             printf "EXAMPLE\n"
             printf "    $prog remove foo\n"
             printf "        Remove (destroy and undefine) a guest domain.  WARNING: This will\n"
@@ -180,6 +183,12 @@ function check_vmname_set ()
 
 function delete_vm ()
 {
+    # Check if domain exists and set DOMAIN_EXISTS variable.
+    domain_exists "${VMNAME}"
+
+    # Check if storage pool exists and set STORPOOL_EXISTS variable.
+    storpool_exists "${VMNAME}"
+
     check_vmname_set
 
     if [ "${DOMAIN_EXISTS}" -eq 1 ]
@@ -642,6 +651,8 @@ function remove ()
         esac
     done
 
+    shift $((OPTIND - 1))
+
     if [ "$#" != 1 ]
     then
         printf "Please specify a single host to remove.\n"
@@ -651,13 +662,7 @@ function remove ()
         VMNAME=$1
     fi
 
-    # Check if domain exists and set DOMAIN_EXISTS variable.
-    domain_exists "${VMNAME}"
-
-    # Check if storage pool exists and set STORPOOL_EXISTS variable.
-    storpool_exists "${VMNAME}"
-
-    delete_vm "${VMNAME}"
+    delete_vm
 }
 
 function set_defaults ()
@@ -768,7 +773,7 @@ function create ()
         echo -n "[WARNING] ${VMNAME} already exists.  "
         read -p "Do you want to overwrite ${VMNAME} [y/N]? " -r
         if [[ $REPLY =~ ^[Yy]$ ]]; then
-            remove ${VMNAME}
+            delete_vm
         else
             echo -e "\nNot overwriting ${VMNAME}. Exiting..."
             exit 1
