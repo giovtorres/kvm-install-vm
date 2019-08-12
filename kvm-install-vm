@@ -64,6 +64,8 @@ function usage_subcommand ()
             printf "    -t          Linux Distribution  (default: centos7)\n"
             printf "    -T          Timezone            (default: US/Eastern)\n"
             printf "    -u          Custom user         (default: $USER)\n"
+            printf "    -y          Assume yes to prompts (default: false)\n"
+            printf "    -n          Assume no to prompts  (default: false)\n"
             printf "    -v          Be verbose\n"
             printf "\n"
             printf "DISTRIBUTIONS\n"
@@ -689,6 +691,8 @@ function set_defaults ()
     PORT=-1                         # Console port
     TIMEZONE=US/Eastern             # Timezone
     ADDITIONAL_USER=${USER}         # User
+    ASSUME_YES=0                    # Assume yes to prompts
+    ASSUME_NO=0                     # Assume no to prompts
     VERBOSE=0                       # Verbosity
 
     # Reset OPTIND
@@ -707,7 +711,7 @@ function set_custom_defaults ()
 function create ()
 {
     # Parse command line arguments
-    while getopts ":b:c:d:D:f:g:i:k:l:L:m:M:p:s:t:T:u:ahv" opt
+    while getopts ":b:c:d:D:f:g:i:k:l:L:m:M:p:s:t:T:u:ahynv" opt
     do
         case "$opt" in
             a ) AUTOSTART=${OPTARG} ;;
@@ -728,6 +732,8 @@ function create ()
             t ) DISTRO="${OPTARG}" ;;
             T ) TIMEZONE="${OPTARG}" ;;
             u ) ADDITIONAL_USER="${OPTARG}" ;;
+            y ) ASSUME_YES=1 ;;
+            n ) ASSUME_NO=1 ;;
             v ) VERBOSE=1 ;;
             h ) usage ;;
             * ) die "Unsupported option. Run 'kvm-install-vm help create'." ;;
@@ -741,6 +747,16 @@ function create ()
     then
         RESIZE_DISK=true
         DISK_SIZE="${DISK_SIZE}G"   # Append 'G' for Gigabyte
+    fi
+
+    # Yes (-y) and No (-n) are mutually exclusive.
+    if [ "${ASSUME_YES}" -eq 1 ]
+    then
+        if [ "${ASSUME_NO}" -eq 1 ]
+        then
+            printf "Please specify only one of -y or -n flags.\n"
+            exit 1
+        fi
     fi
 
     # After all options are processed, make sure only one variable is left (vmname)
@@ -774,8 +790,16 @@ function create ()
     domain_exists "${VMNAME}"
 
     if [ "${DOMAIN_EXISTS}" -eq 1 ]; then
-        echo -n "[WARNING] ${VMNAME} already exists.  "
-        read -p "Do you want to overwrite ${VMNAME} [y/N]? " -r
+        echo -n "[WARNING] ${VMNAME} already exists.  Do you want to overwrite ${VMNAME} [y/N]? "
+        if [ "${ASSUME_YES}" -eq 1 ]; then
+            REPLY="y"
+            echo $REPLY
+        elif [ "${ASSUME_NO}" -eq 1 ]; then
+            REPLY="n"
+            echo $REPLY
+        else
+            read -r
+        fi
         if [[ $REPLY =~ ^[Yy]$ ]]; then
             delete_vm
         else
