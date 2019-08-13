@@ -583,7 +583,7 @@ _EOF_
     fi
 
     # Eject cdrom
-    virsh change-media ${VMNAME} hda --eject --config &>> ${VMNAME}.log
+    virsh change-media ${VMNAME} --path ${VMDIR}/${VMNAME}/${CI_ISO} --eject --config &>> ${VMNAME}.log
 
     # Remove the unnecessary cloud init files
     outputn "Cleaning up cloud-init files"
