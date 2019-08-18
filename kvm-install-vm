@@ -307,10 +307,23 @@ function fetch_images ()
 
     if [ ! -f ${IMAGEDIR}/${QCOW} ]
     then
-        output "Cloud image not found.  Downloading"
         set_wget
-        ${WGET} --directory-prefix ${IMAGEDIR} ${IMAGE_URL}/${QCOW} || \
+        if [ -f ${IMAGEDIR}/${QCOW}.part ]
+        then
+            CONTINUE="--continue"
+            output "Partial cloud image found.  Resuming download"
+        else
+            CONTINUE=""
+            output "Cloud image not found.  Downloading"
+        fi
+        ${WGET} \
+            ${CONTINUE} \
+            --directory-prefix ${IMAGEDIR} \
+            --output-document=${IMAGEDIR}/${QCOW}.part \
+            ${IMAGE_URL}/${QCOW} || \
             die "Could not download image."
+
+        mv ${IMAGEDIR}/${QCOW}.part ${IMAGEDIR}/${QCOW}
     fi
 
 }
