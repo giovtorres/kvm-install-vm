@@ -53,3 +53,38 @@
 
 # Verbosity
 #VERBOSE=0
+
+
+#
+# Advanced virt-install options.
+#
+# You probably will not need to change any of the following
+# unless you are running a non-KVM hypervisor, such as Xen.
+#
+
+# The --network model type.
+#NETWORK_MODEL=virtio
+
+# Additional --network parameters.
+#NETWORK_EXTRA=""
+
+# The --disk bus type. Specify none to auto-detect.
+#DISK_BUS=virtio
+
+# Additional --disk parameters.
+#DISK_EXTRA=""
+
+# The CI ISO --disk device type.
+#CI_ISO_DEVICE=cdrom
+
+# Additional CI ISO --disk parameters.
+#CI_ISO_EXTRA=""
+
+# The --graphics listen parameter.
+#GRAPHICS_LISTEN=localhost
+
+# Additional --graphics parameters.
+#GRAPHICS_EXTRA=""
+
+# Additional virt-install options.
+#VIRT_INSTALL_EXTRA=""
