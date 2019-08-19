@@ -590,6 +590,14 @@ _EOF_
         NETWORK_PARAMS="bridge=${BRIDGE},model=virtio,mac=${MACADDRESS}"
     fi
 
+    # Omit the --graphics option to auto-detect.
+    if [ "${GRAPHICS}" = 'auto' ]
+    then
+        GRAPHICS_OPTION=""
+    else
+        GRAPHICS_OPTION="--graphics=${GRAPHICS},port=${PORT},listen=localhost"
+    fi
+
     # Call virt-install to import the cloud image and create a new VM
     run "Installing the domain" \
         virt-install --import \
@@ -602,8 +610,8 @@ _EOF_
         --network=${NETWORK_PARAMS} \
         --os-type=linux \
         --os-variant=${OS_VARIANT} \
-        --graphics=${GRAPHICS},port=${PORT},listen=localhost \
         --noautoconsole \
+        ${GRAPHICS_OPTION} \
         || die "Could not create domain with virt-install."
 
     virsh dominfo ${VMNAME} &>> ${VMNAME}.log
@@ -703,7 +711,7 @@ function set_defaults ()
     MEMORY=1024                     # Amount of RAM in MB
     DISK_SIZE=""                    # Disk Size in GB
     DNSDOMAIN=example.local         # DNS domain
-    GRAPHICS=spice                  # Graphics type
+    GRAPHICS=spice                  # Graphics type or "auto"
     RESIZE_DISK=false               # Resize disk (boolean)
     IMAGEDIR=${HOME}/virt/images    # Directory to store images
     VMDIR=${HOME}/virt/vms          # Directory to store virtual machines
