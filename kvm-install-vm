@@ -169,6 +169,45 @@ ok() { green "${@:-OK}" ; }
 pushd() { command pushd "$@" >/dev/null ; }
 popd() { command popd "$@" >/dev/null ; }
 
+# Join zero or more strings into a delimited string.
+function join ()
+{
+    local sep="$1"
+    if [ $# -eq 0 ]; then
+        return
+    fi
+    shift
+    while [ $# -gt 1 ]; do
+        printf "%s%s" "$1" "$sep"
+        shift
+    done
+    printf "%s\n" "$1"
+}
+
+# Output a command, one argument per line.
+function output_command ()
+{
+    local line_cont=$'  \\ \n     '
+    local command_lines=$(join "$line_cont" "$@")
+    printf "    %s\n" "$command_lines"
+}
+
+# Command wrapper to output the command to be run in verbose
+# mode and redirect stdout and stderr to the vm log file.
+function run ()
+{
+    local msg="$1"
+    shift
+    if [ "${VERBOSE}" -eq 1 ]
+    then
+        output "$msg with the following command"
+        output_command "$@"
+    else
+        outputn "$msg"
+    fi
+    ( "$@" &>> ${VMNAME}.log && ok )
+}
+
 # Detect OS and set wget parameters
 function set_wget ()
 {
@@ -535,22 +574,12 @@ _EOF_
             || die "Could not generate ISO."
     fi
 
-    if [ "${VERBOSE}" -eq 1 ]
-    then
-        output "Creating storage pool with the following command"
-        printf "    virsh pool-create-as \\ \n"
-        printf "      --name ${VMNAME} \\ \n"
-        printf "      --type dir \\ \n"
-        printf "      --target ${VMDIR}/${VMNAME} \n"
-    else
-        outputn "Creating storage pool"
-    fi
-
     # Create new storage pool for new VM
-    (virsh pool-create-as \
-        --name ${VMNAME} \
-        --type dir \
-        --target ${VMDIR}/${VMNAME} &>> ${VMNAME}.log && ok) \
+    run "Creating storage pool" \
+        virsh pool-create-as \
+        --name=${VMNAME} \
+        --type=dir \
+        --target=${VMDIR}/${VMNAME} \
         || die "Could not create storage pool."
 
     # Add custom MAC Address if specified
@@ -561,39 +590,20 @@ _EOF_
         NETWORK_PARAMS="bridge=${BRIDGE},model=virtio,mac=${MACADDRESS}"
     fi
 
-    if [ "${VERBOSE}" -eq 1 ]
-    then
-        output "Installing the domain with the following command"
-        printf "    virt-install \\ \n"
-        printf "      --import \\ \n"
-        printf "      --name ${VMNAME} \\ \n"
-        printf "      --memory ${MEMORY} \\ \n"
-        printf "      --vcpus ${CPUS} \\ \n"
-        printf "      --cpu ${FEATURE} \\ \n"
-        printf "      --disk ${DISK},format=qcow2,bus=virtio \\ \n"
-        printf "      --disk ${CI_ISO},device=cdrom \\ \n"
-        printf "      --network ${NETWORK_PARAMS} \\ \n"
-        printf "      --os-type=linux \\ \n"
-        printf "      --os-variant=${OS_VARIANT} \\ \n"
-        printf "      --graphics ${GRAPHICS},port=${PORT},listen=localhost \\ \n"
-        printf "      --noautoconsole  \n"
-    else
-        outputn "Installing the domain"
-    fi
-
     # Call virt-install to import the cloud image and create a new VM
-    (virt-install --import \
-        --name ${VMNAME} \
-        --memory ${MEMORY} \
-        --vcpus ${CPUS} \
-        --cpu ${FEATURE} \
-        --disk ${DISK},format=qcow2,bus=virtio \
-        --disk ${CI_ISO},device=cdrom \
-        --network ${NETWORK_PARAMS} \
+    run "Installing the domain" \
+        virt-install --import \
+        --name=${VMNAME} \
+        --memory=${MEMORY} \
+        --vcpus=${CPUS} \
+        --cpu=${FEATURE} \
+        --disk=${DISK},format=qcow2,bus=virtio \
+        --disk=${CI_ISO},device=cdrom \
+        --network=${NETWORK_PARAMS} \
         --os-type=linux \
         --os-variant=${OS_VARIANT} \
-        --graphics ${GRAPHICS},port=${PORT},listen=localhost \
-        --noautoconsole &>> ${VMNAME}.log && ok ) \
+        --graphics=${GRAPHICS},port=${PORT},listen=localhost \
+        --noautoconsole \
         || die "Could not create domain with virt-install."
 
     virsh dominfo ${VMNAME} &>> ${VMNAME}.log
