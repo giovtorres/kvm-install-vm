@@ -51,5 +51,15 @@
 # User
 #ADDITIONAL_USER=${USER}
 
+# Path to custom USERDATA
+#CUSTOM_USER_DATA=
+
+# Set user password (boolean)
+#PASSWORD=false
+
+# List of plugins. Set the path to the plugin.
+#PLUGIN=("~/plugin1", "~/plugin2", ..)
+
 # Verbosity
 #VERBOSE=0
+

@@ -209,7 +209,7 @@ function delete_vm ()
     else
         output "Domain ${VMNAME} does not exist"
     fi
-    
+
     [[ -d ${VMDIR}/${VMNAME} ]] && DISKDIR=${VMDIR}/${VMNAME} || DISKDIR=${IMAGEDIR}/${VMNAME}
     [ -d $DISKDIR ] \
         && outputn "Deleting ${VMNAME} files" \
@@ -418,6 +418,15 @@ function check_delete_known_host ()
 
 function create_vm ()
 {
+    # Source plugin
+    if [ -n "${PLUGIN}" ]
+    then
+        for x in "${PLUGIN[@]}"
+        do
+            source "$x"
+        done
+    fi
+
     # Create image directory if it doesn't already exist
     mkdir -p ${VMDIR}
 
@@ -432,9 +441,33 @@ function create_vm ()
     # Create log file
     touch ${VMNAME}.log
 
+    # Create password hash
+    if $PASSWORD
+    then
+        PASSWD_HASH=$(python3 -c "from getpass import getpass; from crypt import *; \
+        p=getpass(); print(crypt(p, METHOD_SHA512).replace('$', '\$')) \
+        if p==getpass('Please repeat: ') else print('\nFailed repeating.')")
+    fi
     # cloud-init config: set hostname, remove cloud-init package,
-    # and add ssh-key
-    cat > $USER_DATA << _EOF_
+    # and add ssh-key; use custom user data if configured.
+    if [ -n "${CUSTOM_USER_DATA}" ]
+    then
+        export \
+            ADDITIONAL_USER \
+            CLOUDINITDISABLE \
+            DNSDOMAIN \
+            KEY \
+            NETRESTART \
+            PASSWD_HASH \
+            SUDOGROUP \
+            TIMEZONE \
+            VMNAME
+        _CUSTOM_USER_DATA=$(envsubst < "${CUSTOM_USER_DATA}")
+        cat > $USER_DATA << _EOF_
+${_CUSTOM_USER_DATA}
+_EOF_
+    else
+        cat > $USER_DATA << _EOF_
 Content-Type: multipart/mixed; boundary="==BOUNDARY=="
 MIME-Version: 1.0
 --==BOUNDARY==
@@ -476,7 +509,7 @@ runcmd:
   - ${NETRESTART}
   - ${CLOUDINITDISABLE}
 _EOF_
-
+    fi
     if [ ! -z "${SCRIPTNAME+x}" ]
     then
         SCRIPT=$(< $SCRIPTNAME)
@@ -695,10 +728,12 @@ function set_defaults ()
     DNSDOMAIN=example.local         # DNS domain
     GRAPHICS=spice                  # Graphics type
     RESIZE_DISK=false               # Resize disk (boolean)
+    PASSWORD=false                  # Resize disk (boolean)
     IMAGEDIR=${HOME}/virt/images    # Directory to store images
     VMDIR=${HOME}/virt/vms          # Directory to store virtual machines
     BRIDGE=virbr0                   # Hypervisor bridge
     PUBKEY=""                       # SSH public key
+    PLUGIN=()                       # List of plugins. Set the path to plugin.
     DISTRO=centos7                  # Distribution
     MACADDRESS=""                   # MAC Address
     PORT=-1                         # Console port
@@ -724,7 +759,7 @@ function set_custom_defaults ()
 function create ()
 {
     # Parse command line arguments
-    while getopts ":b:c:d:D:f:g:i:k:l:L:m:M:p:s:t:T:u:ahynv" opt
+    while getopts ":b:c:d:D:f:g:i:k:l:L:m:M:p:s:t:T:u:U:ahynPv" opt
     do
         case "$opt" in
             a ) AUTOSTART=${OPTARG} ;;
@@ -741,10 +776,12 @@ function create ()
             m ) MEMORY="${OPTARG}" ;;
             M ) MACADDRESS="${OPTARG}" ;;
             p ) PORT="${OPTARG}" ;;
+            P ) PASSWORD="true" ;;
             s ) SCRIPTNAME="${OPTARG}" ;;
             t ) DISTRO="${OPTARG}" ;;
             T ) TIMEZONE="${OPTARG}" ;;
             u ) ADDITIONAL_USER="${OPTARG}" ;;
+            U ) CUSTOM_USER_DATA="${OPTARG}" ;;
             y ) ASSUME_YES=1 ;;
             n ) ASSUME_NO=1 ;;
             v ) VERBOSE=1 ;;
