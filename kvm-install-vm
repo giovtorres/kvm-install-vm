@@ -169,6 +169,58 @@ ok() { green "${@:-OK}" ; }
 pushd() { command pushd "$@" >/dev/null ; }
 popd() { command popd "$@" >/dev/null ; }
 
+# Join zero or more strings into a delimited string.
+function join ()
+{
+    local sep="$1"
+    if [ $# -eq 0 ]; then
+        return
+    fi
+    shift
+    while [ $# -gt 1 ]; do
+        printf "%s%s" "$1" "$sep"
+        shift
+    done
+    printf "%s\n" "$1"
+}
+
+# Print an optional name=value[,value,..] parameter.
+# Prints nothing if no values are given.
+function param ()
+{
+    if [ $# -lt 2 ]; then
+        return # skip empty value
+    fi
+    local name="$1"
+    shift
+    local values="$(join ',' "$@")"
+    printf "%s=%s\n" $name $values
+}
+
+# Output a command, one argument per line.
+function output_command ()
+{
+    local line_cont=$'  \\ \n     '
+    local command_lines=$(join "$line_cont" "$@")
+    printf "    %s\n" "$command_lines"
+}
+
+# Command wrapper to output the command to be run in verbose
+# mode and redirect stdout and stderr to the vm log file.
+function run ()
+{
+    local msg="$1"
+    shift
+    if [ "${VERBOSE}" -eq 1 ]
+    then
+        output "$msg with the following command"
+        output_command "$@"
+    else
+        outputn "$msg"
+    fi
+    ( "$@" &>> ${VMNAME}.log && ok )
+}
+
 # Detect OS and set wget parameters
 function set_wget ()
 {
@@ -235,69 +287,91 @@ function fetch_images ()
     case "$DISTRO" in
         amazon2)
             QCOW=amzn2-kvm-2.0.20190313-x86_64.xfs.gpt.qcow2
+            OS_TYPE="linux"
             OS_VARIANT="auto"
             IMAGE_URL=https://cdn.amazonlinux.com/os-images/2.0.20190313/kvm
+            DISK_FORMAT=qcow2
             LOGIN_USER=ec2-user
             ;;
         centos7)
             QCOW=CentOS-7-x86_64-GenericCloud.qcow2
+            OS_TYPE="linux"
             OS_VARIANT="centos7.0"
             IMAGE_URL=https://cloud.centos.org/centos/7/images
+            DISK_FORMAT=qcow2
             LOGIN_USER=centos
             ;;
         centos7-atomic)
             QCOW=CentOS-Atomic-Host-7-GenericCloud.qcow2
+            OS_TYPE="linux"
             OS_VARIANT="centos7.0"
             IMAGE_URL=http://cloud.centos.org/centos/7/atomic/images
+            DISK_FORMAT=qcow2
             LOGIN_USER=centos
             ;;
         centos6)
             QCOW=CentOS-6-x86_64-GenericCloud.qcow2
+            OS_TYPE="linux"
             OS_VARIANT="centos6.9"
             IMAGE_URL=https://cloud.centos.org/centos/6/images
+            DISK_FORMAT=qcow2
             LOGIN_USER=centos
             ;;
         debian8)
             # FIXME: Not yet working.
             QCOW=debian-8-openstack-amd64.qcow2
+            OS_TYPE="linux"
             OS_VARIANT="debian8"
             IMAGE_URL=https://cdimage.debian.org/cdimage/openstack/current-8
+            DISK_FORMAT=qcow2
             LOGIN_USER=debian
             ;;
         debian9)
             QCOW=debian-9-openstack-amd64.qcow2
+            OS_TYPE="linux"
             OS_VARIANT="debian9"
             IMAGE_URL=https://cdimage.debian.org/cdimage/openstack/current-9
+            DISK_FORMAT=qcow2
             LOGIN_USER=debian
             ;;
         fedora29)
           QCOW=Fedora-Cloud-Base-29-1.2.x86_64.qcow2
+          OS_TYPE="linux"
           OS_VARIANT="fedora29"
           IMAGE_URL=https://download.fedoraproject.org/pub/fedora/linux/releases/29/Cloud/x86_64/images
+          DISK_FORMAT=qcow2
           LOGIN_USER=fedora
           ;;
         fedora29-atomic)
           QCOW=Fedora-AtomicHost-29-20190611.0.x86_64.qcow2
+          OS_TYPE="linux"
           OS_VARIANT="fedora29"
           IMAGE_URL=https://download.fedoraproject.org/pub/alt/atomic/stable/Fedora-29-updates-20190611.0/AtomicHost/x86_64/images/
+          DISK_FORMAT=qcow2
           LOGIN_USER=fedora
           ;;
         fedora30)
           QCOW=Fedora-Cloud-Base-30-1.2.x86_64.qcow2
+          OS_TYPE="linux"
           OS_VARIANT="fedora29"
           IMAGE_URL=https://download.fedoraproject.org/pub/fedora/linux/releases/30/Cloud/x86_64/images
+          DISK_FORMAT=qcow2
           LOGIN_USER=fedora
           ;;
         ubuntu1604)
             QCOW=ubuntu-16.04-server-cloudimg-amd64-disk1.img
+            OS_TYPE="linux"
             OS_VARIANT="ubuntu16.04"
             IMAGE_URL=https://cloud-images.ubuntu.com/releases/16.04/release
+            DISK_FORMAT=qcow2
             LOGIN_USER=ubuntu
             ;;
         ubuntu1804)
             QCOW=ubuntu-18.04-server-cloudimg-amd64.img
+            OS_TYPE="linux"
             OS_VARIANT="ubuntu18.04"
             IMAGE_URL=https://cloud-images.ubuntu.com/releases/18.04/release
+            DISK_FORMAT=qcow2
             LOGIN_USER=ubuntu
             ;;
         *)
@@ -535,65 +609,67 @@ _EOF_
             || die "Could not generate ISO."
     fi
 
-    if [ "${VERBOSE}" -eq 1 ]
-    then
-        output "Creating storage pool with the following command"
-        printf "    virsh pool-create-as \\ \n"
-        printf "      --name ${VMNAME} \\ \n"
-        printf "      --type dir \\ \n"
-        printf "      --target ${VMDIR}/${VMNAME} \n"
-    else
-        outputn "Creating storage pool"
-    fi
-
     # Create new storage pool for new VM
-    (virsh pool-create-as \
-        --name ${VMNAME} \
-        --type dir \
-        --target ${VMDIR}/${VMNAME} &>> ${VMNAME}.log && ok) \
+    run "Creating storage pool" \
+        virsh pool-create-as \
+        --name=${VMNAME} \
+        --type=dir \
+        --target=${VMDIR}/${VMNAME} \
         || die "Could not create storage pool."
 
     # Add custom MAC Address if specified
-    if [ -z "${MACADDRESS}" ]
+    NETWORK_PARAMS="$(join ',' \
+        $(param bridge ${BRIDGE}) \
+        $(param model ${NETWORK_MODEL}) \
+        $(param mac ${MACADDRESS}) \
+        ${NETWORK_EXTRA})"
+
+    # Assemble disk parameters.
+    DISK_PARAMS="$(join ',' \
+        ${DISK} \
+        $(param format ${DISK_FORMAT}) \
+        $(param bus ${DISK_BUS}) \
+        ${DISK_EXTRA})"
+
+    # Assemble CI ISO disk parameters.
+    CI_ISO_PARAMS="$(join ',' \
+        ${CI_ISO} \
+        $(param device ${CI_ISO_DEVICE}) \
+        ${CI_ISO_EXTRA})"
+
+    # Omit the --graphics option to auto-detect.
+    if [ "${GRAPHICS}" = 'auto' ]
     then
-        NETWORK_PARAMS="bridge=${BRIDGE},model=virtio"
+        GRAPHICS_PARAMS=""
     else
-        NETWORK_PARAMS="bridge=${BRIDGE},model=virtio,mac=${MACADDRESS}"
+        GRAPHICS_PARAMS="$(join ',' \
+            ${GRAPHICS} \
+            $(param port ${PORT}) \
+            $(param listen ${GRAPHICS_LISTEN}) \
+            ${GRAPHICS_EXTRA})"
     fi
 
-    if [ "${VERBOSE}" -eq 1 ]
-    then
-        output "Installing the domain with the following command"
-        printf "    virt-install \\ \n"
-        printf "      --import \\ \n"
-        printf "      --name ${VMNAME} \\ \n"
-        printf "      --memory ${MEMORY} \\ \n"
-        printf "      --vcpus ${CPUS} \\ \n"
-        printf "      --cpu ${FEATURE} \\ \n"
-        printf "      --disk ${DISK},format=qcow2,bus=virtio \\ \n"
-        printf "      --disk ${CI_ISO},device=cdrom \\ \n"
-        printf "      --network ${NETWORK_PARAMS} \\ \n"
-        printf "      --os-type=linux \\ \n"
-        printf "      --os-variant=${OS_VARIANT} \\ \n"
-        printf "      --graphics ${GRAPHICS},port=${PORT},listen=localhost \\ \n"
-        printf "      --noautoconsole  \n"
-    else
-        outputn "Installing the domain"
-    fi
+    # Assemble virt-install options.
+    NETWORK_OPTION="$(param --network ${NETWORK_PARAMS})"
+    DISK_OPTION="$(param --disk ${DISK_PARAMS})"
+    CI_ISO_OPTION="$(param --disk ${CI_ISO_PARAMS})"
+    GRAPHICS_OPTION="$(param --graphics ${GRAPHICS_PARAMS})"
 
     # Call virt-install to import the cloud image and create a new VM
-    (virt-install --import \
-        --name ${VMNAME} \
-        --memory ${MEMORY} \
-        --vcpus ${CPUS} \
-        --cpu ${FEATURE} \
-        --disk ${DISK},format=qcow2,bus=virtio \
-        --disk ${CI_ISO},device=cdrom \
-        --network ${NETWORK_PARAMS} \
-        --os-type=linux \
+    run "Installing the domain" \
+        virt-install --import \
+        --name=${VMNAME} \
+        --memory=${MEMORY} \
+        --vcpus=${CPUS} \
+        --cpu=${FEATURE} \
+        ${DISK_OPTION} \
+        ${CI_ISO_OPTION} \
+        ${NETWORK_OPTION} \
+        --os-type=${OS_TYPE} \
         --os-variant=${OS_VARIANT} \
-        --graphics ${GRAPHICS},port=${PORT},listen=localhost \
-        --noautoconsole &>> ${VMNAME}.log && ok ) \
+        --noautoconsole \
+        ${GRAPHICS_OPTION} \
+        ${VIRT_INSTALL_EXTRA} \
         || die "Could not create domain with virt-install."
 
     virsh dominfo ${VMNAME} &>> ${VMNAME}.log
@@ -693,7 +769,7 @@ function set_defaults ()
     MEMORY=1024                     # Amount of RAM in MB
     DISK_SIZE=""                    # Disk Size in GB
     DNSDOMAIN=example.local         # DNS domain
-    GRAPHICS=spice                  # Graphics type
+    GRAPHICS=spice                  # Graphics type or "auto"
     RESIZE_DISK=false               # Resize disk (boolean)
     IMAGEDIR=${HOME}/virt/images    # Directory to store images
     VMDIR=${HOME}/virt/vms          # Directory to store virtual machines
@@ -710,6 +786,17 @@ function set_defaults ()
 
     # Reset OPTIND
     OPTIND=1
+
+    # Advanced hypervisor options. Override in ~/.kivrc if needed.
+    NETWORK_MODEL=virtio
+    NETWORK_EXTRA=""
+    DISK_BUS=virtio
+    DISK_EXTRA=""
+    CI_ISO_DEVICE=cdrom
+    CI_ISO_EXTRA=""
+    GRAPHICS_LISTEN=localhost
+    GRAPHICS_EXTRA=""
+    VIRT_INSTALL_EXTRA=""
 }
 
 function set_custom_defaults ()
