@@ -59,6 +59,7 @@ function usage_subcommand ()
             printf "    -L          Location of VMs       (default: $HOME/virt/vms)\n"
             printf "    -m          Memory Size (MB)      (default: 1024)\n"
             printf "    -M          Mac address           (default: auto-assigned)\n"
+            printf "    -n          Network name\n"
             printf "    -p          Console port          (default: auto)\n"
             printf "    -s          Custom shell script\n"
             printf "    -t          Linux Distribution    (default: centos8)\n"
@@ -683,11 +684,14 @@ _EOF_
         || die "Could not create storage pool."
 
     # Add custom MAC Address if specified
-    NETWORK_PARAMS="$(join ',' \
-        $(param bridge ${BRIDGE}) \
-        $(param model ${NETWORK_MODEL}) \
-        $(param mac ${MACADDRESS}) \
-        ${NETWORK_EXTRA})"
+    NETWORK_PARAMS=$(param network ${NETWORK_NAME})
+    if [ -z "${NETWORK_PARAMS}" ]; then
+        NETWORK_PARAMS="$(join ',' \
+            $(param bridge ${BRIDGE}) \
+            $(param model ${NETWORK_MODEL}) \
+            $(param mac ${MACADDRESS}) \
+            ${NETWORK_EXTRA})"
+    fi
 
     # Assemble disk parameters.
     DISK_PARAMS="$(join ',' \
@@ -757,6 +761,10 @@ _EOF_
 
     MAC=$(virsh dumpxml ${VMNAME} | awk -F\' '/mac address/ {print $2}')
     output "MAC address: ${MAC}"
+    
+    if [ ! -z "${NETWORK_NAME}" ]; then
+        BRIDGE=$(virsh net-dumpxml "${NETWORK_NAME}" | awk -F\' '/bridge/ {print $2}')
+    fi
 
     if [ -f "/var/lib/libvirt/dnsmasq/${BRIDGE}.status" ]
     then
@@ -876,7 +884,7 @@ function set_custom_defaults ()
 function create ()
 {
     # Parse command line arguments
-    while getopts ":b:c:d:D:f:g:i:k:l:L:m:M:p:s:t:T:u:ahynv" opt
+    while getopts ":b:c:d:D:f:g:i:k:l:L:m:M:n:p:s:t:T:u:ahynv" opt
     do
         case "$opt" in
             a ) AUTOSTART=${OPTARG} ;;
@@ -892,6 +900,7 @@ function create ()
             L ) VMDIR="${OPTARG}" ;;
             m ) MEMORY="${OPTARG}" ;;
             M ) MACADDRESS="${OPTARG}" ;;
+            n ) NETWORK_NAME="${OPTARG}" ;;
             p ) PORT="${OPTARG}" ;;
             s ) SCRIPTNAME="${OPTARG}" ;;
             t ) DISTRO="${OPTARG}" ;;
