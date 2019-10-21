@@ -100,6 +100,7 @@ OPTIONS
     -L          Location of VMs       (default: $HOME/virt/vms)
     -m          Memory Size (MB)      (default: 1024)
     -M          Mac address           (default: auto-assigned)
+    -n          Network name          (default: none)
     -p          Console port          (default: auto)
     -s          Custom shell script
     -t          Linux Distribution    (default: centos8)
