@@ -683,15 +683,22 @@ _EOF_
         --target=${VMDIR}/${VMNAME} \
         || die "Could not create storage pool."
 
-    # Add custom MAC Address if specified
-    NETWORK_PARAMS=$(param network ${NETWORK_NAME})
-    if [ -z "${NETWORK_PARAMS}" ]; then
-        NETWORK_PARAMS="$(join ',' \
-            $(param bridge ${BRIDGE}) \
-            $(param model ${NETWORK_MODEL}) \
-            $(param mac ${MACADDRESS}) \
-            ${NETWORK_EXTRA})"
+    if [ -n "${NETWORK_NAME}" ]
+    then
+        NETWORK_PARAMS="$(param network ${NETWORK_NAME})"
+    elif [ -n "${BRIDGE}" ]
+    then
+        NETWORK_PARAMS="$(param bridge ${BRIDGE})"
+    else
+        NETWORK_PARAMS="none"
     fi
+    
+    # Add custom MAC Address if specified
+    NETWORK_PARAMS="$(join ',' \
+        ${NETWORK_PARAMS} \
+        $(param model ${NETWORK_MODEL}) \
+        $(param mac ${MACADDRESS}) \
+        ${NETWORK_EXTRA})"
 
     # Assemble disk parameters.
     DISK_PARAMS="$(join ',' \
@@ -762,7 +769,7 @@ _EOF_
     MAC=$(virsh dumpxml ${VMNAME} | awk -F\' '/mac address/ {print $2}')
     output "MAC address: ${MAC}"
     
-    if [ ! -z "${NETWORK_NAME}" ]; then
+    if [ -n "${NETWORK_NAME}" ]; then
         BRIDGE=$(virsh net-dumpxml "${NETWORK_NAME}" | awk -F\' '/bridge/ {print $2}')
     fi
 
