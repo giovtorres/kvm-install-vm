@@ -56,6 +56,14 @@ function remove_test_vm ()
     remove_test_vm fedora28
 }
 
+@test "Install VM (Fedora 31) - $VMNAME-fedora31" {
+    create_test_vm fedora31
+}
+
+@test "Delete VM (Fedora 31) - $VMNAME-fedora31" {
+    remove_test_vm fedora31
+}
+
 @test "Install VM (Ubuntu 16.04) - $VMNAME-ubuntu1604" {
     create_test_vm ubuntu1604
 }

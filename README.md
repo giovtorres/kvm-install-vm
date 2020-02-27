@@ -98,6 +98,7 @@ DISTRIBUTIONS
     fedora27-atomic Fedora 27 Atomic Host               fedora
     fedora28        Fedora 28                           fedora
     fedora28-atomic Fedora 28 Atomic Host               fedora
+    fedora31        Fedora 31                           fedora
     ubuntu1604      Ubuntu 16.04 LTS (Xenial Xerus)     ubuntu
     ubuntu1804      Ubuntu 18.04 LTS (Bionic Beaver)    ubuntu
 
