@@ -71,6 +71,7 @@ function usage_subcommand ()
             printf "DISTRIBUTIONS\n"
             printf "    NAME            DESCRIPTION                         LOGIN\n"
             printf "    amazon2         Amazon Linux 2                      ec2-user\n"
+            printf "    centos8         CentOS 8                            centos\n"
             printf "    centos7         CentOS 7                            centos\n"
             printf "    centos7-atomic  CentOS 7 Atomic Host                centos\n"
             printf "    centos6         CentOS 6                            centos\n"
@@ -293,6 +294,14 @@ function fetch_images ()
             DISK_FORMAT=qcow2
             LOGIN_USER=ec2-user
             ;;
+        centos8)
+            QCOW=CentOS-8-GenericCloud-8.1.1911-20200113.3.x86_64.qcow2
+            OS_TYPE="linux"
+            OS_VARIANT="centos8"
+            IMAGE_URL=https://cloud.centos.org/centos/8/x86_64/images
+            DISK_FORMAT=qcow2
+            LOGIN_USER=centos
+            ;;
         centos7)
             QCOW=CentOS-7-x86_64-GenericCloud.qcow2
             OS_TYPE="linux"
@@ -463,7 +472,7 @@ function set_cloud_init_remove ()
         centos6 )
             CLOUDINITDISABLE="chkconfig cloud-init off"
             ;;
-        centos7|amazon?|fedora??|ubuntu*|debian? )
+        centos8|centos7|amazon?|fedora??|ubuntu*|debian? )
             CLOUDINITDISABLE="systemctl disable cloud-init.service"
             ;;
         *-atomic)

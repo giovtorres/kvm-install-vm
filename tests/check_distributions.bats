@@ -32,6 +32,14 @@ function remove_test_vm ()
     remove_test_vm centos7-atomic
 }
 
+@test "Install VM (CentOS 8) - $VMNAME-centos8" {
+    create_test_vm centos8
+}
+
+@test "Delete VM (CentOS 8) - $VMNAME-centos8" {
+    remove_test_vm centos8
+}
+
 @test "Install VM (Fedora 29) - $VMNAME-fedora29" {
     create_test_vm fedora27
 }
