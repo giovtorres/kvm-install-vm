@@ -61,7 +61,7 @@ function usage_subcommand ()
             printf "    -M          Mac address           (default: auto-assigned)\n"
             printf "    -p          Console port          (default: auto)\n"
             printf "    -s          Custom shell script\n"
-            printf "    -t          Linux Distribution    (default: centos7)\n"
+            printf "    -t          Linux Distribution    (default: centos8)\n"
             printf "    -T          Timezone              (default: US/Eastern)\n"
             printf "    -u          Custom user           (default: $USER)\n"
             printf "    -y          Assume yes to prompts (default: false)\n"
@@ -84,7 +84,7 @@ function usage_subcommand ()
             printf "\n"
             printf "EXAMPLES\n"
             printf "    $prog create foo\n"
-            printf "        Create VM with the default parameters: CentOS 7, 1 vCPU, 1GB RAM, 10GB\n"
+            printf "        Create VM with the default parameters: CentOS 8, 1 vCPU, 1GB RAM, 10GB\n"
             printf "        disk capacity.\n"
             printf "\n"
             printf "    $prog create -c 2 -m 2048 -d 20 foo\n"
@@ -784,7 +784,7 @@ function set_defaults ()
     VMDIR=${HOME}/virt/vms          # Directory to store virtual machines
     BRIDGE=virbr0                   # Hypervisor bridge
     PUBKEY=""                       # SSH public key
-    DISTRO=centos7                  # Distribution
+    DISTRO=centos8                  # Distribution
     MACADDRESS=""                   # MAC Address
     PORT=-1                         # Console port
     TIMEZONE=US/Eastern             # Timezone

@@ -82,7 +82,7 @@ OPTIONS
     -M          Mac address         (default: auto-assigned)
     -p          Console port        (default: auto)
     -s          Custom shell script
-    -t          Linux Distribution  (default: centos7)
+    -t          Linux Distribution  (default: centos8)
     -T          Timezone            (default: US/Eastern)
     -u          Custom user         (defualt: $USER)
     -v          Be verbose
