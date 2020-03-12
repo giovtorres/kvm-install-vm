@@ -23,7 +23,7 @@ load vmname
     [[ "${lines[0]}" =~ "NAME" ]]
 }
 
-@test "Install VM (CentOS7) - $VMNAME" {
+@test "Install VM (CentOS8) - $VMNAME" {
     run kvm-install-vm create $VMNAME
     [ "$status" -eq 0 ]
 }

@@ -82,7 +82,7 @@ OPTIONS
     -M          Mac address         (default: auto-assigned)
     -p          Console port        (default: auto)
     -s          Custom shell script
-    -t          Linux Distribution  (default: centos7)
+    -t          Linux Distribution  (default: centos8)
     -T          Timezone            (default: US/Eastern)
     -u          Custom user         (defualt: $USER)
     -v          Be verbose
@@ -93,6 +93,7 @@ DISTRIBUTIONS
     centos7         CentOS 7                            centos
     centos7-atomic  CentOS 7 Atomic Host                centos
     centos6         CentOS 6                            centos
+    centos8         CentOS 8                            centos
     debian9         Debian 9 (Stretch)                  debian
     fedora27        Fedora 27                           fedora
     fedora27-atomic Fedora 27 Atomic Host               fedora
