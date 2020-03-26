@@ -100,6 +100,7 @@ DISTRIBUTIONS
     fedora28        Fedora 28                           fedora
     fedora28-atomic Fedora 28 Atomic Host               fedora
     fedora31        Fedora 31                           fedora
+    opensuse15      OpenSUSE Leap 15.2                  opensuse
     ubuntu1604      Ubuntu 16.04 LTS (Xenial Xerus)     ubuntu
     ubuntu1804      Ubuntu 18.04 LTS (Bionic Beaver)    ubuntu
 
