@@ -80,6 +80,7 @@ function usage_subcommand ()
             printf "    fedora29-atomic Fedora 29 Atomic Host               fedora\n"
             printf "    fedora30        Fedora 30                           fedora\n"
             printf "    fedora31        Fedora 31                           fedora\n"
+            printf "    opensuse15      OpenSUSE Leap 15.2                  opensuse\n"
             printf "    ubuntu1604      Ubuntu 16.04 LTS (Xenial Xerus)     ubuntu\n"
             printf "    ubuntu1804      Ubuntu 18.04 LTS (Bionic Beaver)    ubuntu\n"
             printf "\n"
@@ -392,6 +393,14 @@ function fetch_images ()
             DISK_FORMAT=qcow2
             LOGIN_USER=ubuntu
             ;;
+        opensuse15)
+            QCOW=openSUSE-Leap-15.2-OpenStack.x86_64.qcow2
+            OS_TYPE="linux"
+            OS_VARIANT="auto"
+            IMAGE_URL=https://download.opensuse.org/repositories/Cloud:/Images:/Leap_15.2/images
+            DISK_FORMAT=qcow2
+            LOGIN_USER=opensuse
+            ;;
         *)
             die "${DISTRO} not a supported OS.  Run 'kvm-install-vm create help'."
             ;;
@@ -463,7 +472,7 @@ function storpool_exists ()
 function set_sudo_group ()
 {
     case "${DISTRO}" in
-        centos?|fedora??|*-atomic|amazon? )
+        centos?|fedora??|*-atomic|amazon?|opensuse* )
             SUDOGROUP="wheel"
             ;;
         ubuntu*|debian? )
@@ -481,7 +490,7 @@ function set_cloud_init_remove ()
         centos6 )
             CLOUDINITDISABLE="chkconfig cloud-init off"
             ;;
-        centos8|centos7|amazon?|fedora??|ubuntu*|debian? )
+        centos8|centos7|amazon?|fedora??|ubuntu*|debian?|opensuse* )
             CLOUDINITDISABLE="systemctl disable cloud-init.service"
             ;;
         *-atomic)

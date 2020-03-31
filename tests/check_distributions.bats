@@ -95,3 +95,11 @@ function remove_test_vm ()
 @test "Delete VM (Debian 9) - $VMNAME-debian9" {
     remove_test_vm debian9
 }
+
+@test "Install VM (openSUSE Leap 15) - $VMNAME-opensuse15" {
+    create_test_vm opensuse15
+}
+
+@test "Delete VM (openSUSE Leap 15) - $VMNAME-opensuse15" {
+    remove_test_vm opensuse15
+}
