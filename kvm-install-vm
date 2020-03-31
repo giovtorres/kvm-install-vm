@@ -76,6 +76,7 @@ function usage_subcommand ()
             printf "    centos7-atomic  CentOS 7 Atomic Host                centos\n"
             printf "    centos6         CentOS 6                            centos\n"
             printf "    debian9         Debian 9 (Stretch)                  debian\n"
+            printf "    debian10        Debian 10 (Buster)                  debian\n"
             printf "    fedora29        Fedora 29                           fedora\n"
             printf "    fedora29-atomic Fedora 29 Atomic Host               fedora\n"
             printf "    fedora30        Fedora 30                           fedora\n"
@@ -345,6 +346,14 @@ function fetch_images ()
             DISK_FORMAT=qcow2
             LOGIN_USER=debian
             ;;
+        debian10)
+            QCOW=debian-10-openstack-amd64.qcow2
+            OS_TYPE="linux"
+            OS_VARIANT="debian10"
+            IMAGE_URL=https://cdimage.debian.org/cdimage/openstack/current-10
+            DISK_FORMAT=qcow2
+            LOGIN_USER=debian
+            ;;
         fedora29)
           QCOW=Fedora-Cloud-Base-29-1.2.x86_64.qcow2
           OS_TYPE="linux"
@@ -475,7 +484,7 @@ function set_sudo_group ()
         centos?|fedora??|*-atomic|amazon?|opensuse* )
             SUDOGROUP="wheel"
             ;;
-        ubuntu*|debian? )
+        ubuntu*|debian* )
             SUDOGROUP="sudo"
             ;;
         *)
@@ -490,7 +499,7 @@ function set_cloud_init_remove ()
         centos6 )
             CLOUDINITDISABLE="chkconfig cloud-init off"
             ;;
-        centos8|centos7|amazon?|fedora??|ubuntu*|debian?|opensuse* )
+        centos8|centos7|amazon?|fedora??|ubuntu*|debian*|opensuse* )
             CLOUDINITDISABLE="systemctl disable cloud-init.service"
             ;;
         *-atomic)
@@ -503,7 +512,7 @@ function set_network_restart_cmd ()
 {
     case "${DISTRO}" in
         centos6 )           NETRESTART="service network stop && service network start" ;;
-        ubuntu*|debian?)    NETRESTART="systemctl stop networking && systemctl start networking" ;;
+        ubuntu*|debian*)    NETRESTART="systemctl stop networking && systemctl start networking" ;;
         *)                  NETRESTART="systemctl stop network && systemctl start network" ;;
     esac
 }
