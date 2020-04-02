@@ -192,6 +192,20 @@ Options are evaluated in the following order:
    same host and its hostname will likely not resolve until the old lease
    expires.
 
+3. The Operating System information database (osinfo-db) provides Operating
+   System specific information needed to create guests for the various systems
+   supported by `kvm-install-vm`.  The database files provided by your package
+   manager may be out of date and not provide definitions for recent Operating
+   System versions. If you encounter the following error message, you may need
+   to update the database files:
+   `ERR: Unknown OS variant '<name>'. Please update your osinfo-db.`
+   If you have already updated your system, and the osinfo-db is still to old,
+   then you can use the `osinfo-db-import` tool with the `--local` option, to
+   install an up-to-date database in your home directory which will not
+   conflict with your package manager files. The `osinfo-db-import` tool is
+   provided by the rpm/deb packages `osinfo-db-tools`.
+   See https://libosinfo.org/download for more information.
+
 ### Testing
 
 Tests are written using [Bats](https://github.com/sstephenson/bats).  To

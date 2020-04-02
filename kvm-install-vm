@@ -455,6 +455,15 @@ function check_ssh_key ()
     fi
 }
 
+function check_os_variant ()
+{
+    if [[ ${OS_VARIANT} != auto ]]; then
+        osinfo-query os short-id=${OS_VARIANT} >/dev/null \
+            || die "Unknown OS variant '${OS_VARIANT}'. Please update your osinfo-db. "\
+                   "See https://libosinfo.org/download for more information."
+    fi
+}
+
 function domain_exists ()
 {
     virsh dominfo "${1}" > /dev/null 2>&1 \
@@ -909,6 +918,9 @@ function create ()
     else
         fetch_images
     fi
+
+    # Verify the osinfo-db is up to date.
+    check_os_variant
 
     # Check if domain already exists
     domain_exists "${VMNAME}"
