@@ -396,7 +396,7 @@ function fetch_images ()
         opensuse15)
             QCOW=openSUSE-Leap-15.2-OpenStack.x86_64.qcow2
             OS_TYPE="linux"
-            OS_VARIANT="auto"
+            OS_VARIANT="opensuse15.0"
             IMAGE_URL=https://download.opensuse.org/repositories/Cloud:/Images:/Leap_15.2/images
             DISK_FORMAT=qcow2
             LOGIN_USER=opensuse
