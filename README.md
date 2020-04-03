@@ -95,6 +95,7 @@ DISTRIBUTIONS
     centos6         CentOS 6                            centos
     centos8         CentOS 8                            centos
     debian9         Debian 9 (Stretch)                  debian
+    debian10        Debian 10 (Buster)                  debian
     fedora27        Fedora 27                           fedora
     fedora27-atomic Fedora 27 Atomic Host               fedora
     fedora28        Fedora 28                           fedora
