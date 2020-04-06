@@ -265,7 +265,7 @@ function delete_vm ()
     else
         output "Domain ${VMNAME} does not exist"
     fi
-    
+
     [[ -d ${VMDIR}/${VMNAME} ]] && DISKDIR=${VMDIR}/${VMNAME} || DISKDIR=${IMAGEDIR}/${VMNAME}
     [ -d $DISKDIR ] \
         && outputn "Deleting ${VMNAME} files" \
@@ -281,139 +281,182 @@ function delete_vm ()
     fi
 }
 
-function fetch_images ()
-{
-    # Create image directory if it doesn't already exist
-    mkdir -p ${IMAGEDIR}
+function distro_from_json() {
+    local distro_name=$1
+    local distros_file=$2
 
+    # Distros file doesn't exist. Just go back and try default distros
+    if [[ ! -f $distros_file ]]; then
+        return
+    fi
+
+    jq_escaped_key="["\""${distro_name}"\""]"
+
+    # Syntax problem in JSON file
+    cat $distros_file | jq > /dev/null || die "Could not parse file .kiv-distros.json"
+
+    # if $distro_name not defined in json
+    if ! cat $distros_file | jq -e ".${jq_escaped_key}" > /dev/null; then
+        return
+    fi
+
+    # Convert the JSON keys for a given distribution into environment
+    #   var assignments that will be sourced afterwards.
+    #
+    # For example:
+    # QCOW="CentOS-7-x86_64-GenericCloud-1907.qcow2"
+    # OS_VARIANT="centos7.0"
+    jq_cmd=$(echo ".${jq_escaped_key} |" \
+                  "with_entries( .key |= ascii_upcase ) |" \
+                  "to_entries |" \
+                  ".[] |" \
+                  '.key + "=\"" + .value + "\""')
+
+    source <(cat $distros_file | jq -e -r "$jq_cmd")
+}
+
+function distro_from_default () {
     # Set variables based on $DISTRO
     # Use the command "osinfo-query os" to get the list of the accepted OS variants.
     case "$DISTRO" in
         amazon2)
             QCOW=amzn2-kvm-2.0.20190313-x86_64.xfs.gpt.qcow2
-            OS_TYPE="linux"
             OS_VARIANT="auto"
             IMAGE_URL=https://cdn.amazonlinux.com/os-images/2.0.20190313/kvm
-            DISK_FORMAT=qcow2
             LOGIN_USER=ec2-user
+
+            # Since OS_VARIANT is auto the SUDOGROUP needs to be set
+            SUDOGROUP="wheel"
             ;;
         centos8)
             QCOW=CentOS-8-GenericCloud-8.1.1911-20200113.3.x86_64.qcow2
-            OS_TYPE="linux"
             OS_VARIANT="centos8"
             IMAGE_URL=https://cloud.centos.org/centos/8/x86_64/images
-            DISK_FORMAT=qcow2
             LOGIN_USER=centos
             ;;
         centos7)
             QCOW=CentOS-7-x86_64-GenericCloud.qcow2
-            OS_TYPE="linux"
             OS_VARIANT="centos7.0"
             IMAGE_URL=https://cloud.centos.org/centos/7/images
-            DISK_FORMAT=qcow2
             LOGIN_USER=centos
             ;;
         centos7-atomic)
             QCOW=CentOS-Atomic-Host-7-GenericCloud.qcow2
-            OS_TYPE="linux"
             OS_VARIANT="centos7.0"
             IMAGE_URL=http://cloud.centos.org/centos/7/atomic/images
-            DISK_FORMAT=qcow2
             LOGIN_USER=centos
+
+            # Don't remove cloud-init on atomic hosts
+            CLOUDINITDISABLE="/usr/bin/true"
             ;;
         centos6)
             QCOW=CentOS-6-x86_64-GenericCloud.qcow2
-            OS_TYPE="linux"
             OS_VARIANT="centos6.9"
             IMAGE_URL=https://cloud.centos.org/centos/6/images
-            DISK_FORMAT=qcow2
             LOGIN_USER=centos
             ;;
         debian8)
             # FIXME: Not yet working.
             QCOW=debian-8-openstack-amd64.qcow2
-            OS_TYPE="linux"
             OS_VARIANT="debian8"
             IMAGE_URL=https://cdimage.debian.org/cdimage/openstack/current-8
-            DISK_FORMAT=qcow2
             LOGIN_USER=debian
             ;;
         debian9)
             QCOW=debian-9-openstack-amd64.qcow2
-            OS_TYPE="linux"
             OS_VARIANT="debian9"
             IMAGE_URL=https://cdimage.debian.org/cdimage/openstack/current-9
-            DISK_FORMAT=qcow2
             LOGIN_USER=debian
             ;;
         debian10)
             QCOW=debian-10-openstack-amd64.qcow2
-            OS_TYPE="linux"
             OS_VARIANT="debian10"
             IMAGE_URL=https://cdimage.debian.org/cdimage/openstack/current-10
-            DISK_FORMAT=qcow2
             LOGIN_USER=debian
             ;;
         fedora29)
-          QCOW=Fedora-Cloud-Base-29-1.2.x86_64.qcow2
-          OS_TYPE="linux"
-          OS_VARIANT="fedora29"
-          IMAGE_URL=https://download.fedoraproject.org/pub/fedora/linux/releases/29/Cloud/x86_64/images
-          DISK_FORMAT=qcow2
-          LOGIN_USER=fedora
-          ;;
+            QCOW=Fedora-Cloud-Base-29-1.2.x86_64.qcow2
+            OS_VARIANT="fedora29"
+            IMAGE_URL=https://download.fedoraproject.org/pub/fedora/linux/releases/29/Cloud/x86_64/images
+            LOGIN_USER=fedora
+            ;;
         fedora29-atomic)
-          QCOW=Fedora-AtomicHost-29-20190611.0.x86_64.qcow2
-          OS_TYPE="linux"
-          OS_VARIANT="fedora29"
-          IMAGE_URL=https://download.fedoraproject.org/pub/alt/atomic/stable/Fedora-29-updates-20190611.0/AtomicHost/x86_64/images/
-          DISK_FORMAT=qcow2
-          LOGIN_USER=fedora
-          ;;
+            QCOW=Fedora-AtomicHost-29-20190611.0.x86_64.qcow2
+            OS_VARIANT="fedora29"
+            IMAGE_URL=https://download.fedoraproject.org/pub/alt/atomic/stable/Fedora-29-updates-20190611.0/AtomicHost/x86_64/images/
+            LOGIN_USER=fedora
+
+            # Don't remove cloud-init on atomic hosts
+            CLOUDINITDISABLE="/usr/bin/true"
+            ;;
         fedora30)
-          QCOW=Fedora-Cloud-Base-30-1.2.x86_64.qcow2
-          OS_TYPE="linux"
-          OS_VARIANT="fedora29"
-          IMAGE_URL=https://download.fedoraproject.org/pub/fedora/linux/releases/30/Cloud/x86_64/images
-          DISK_FORMAT=qcow2
-          LOGIN_USER=fedora
-          ;;
+            QCOW=Fedora-Cloud-Base-30-1.2.x86_64.qcow2
+            OS_VARIANT="fedora29"
+            IMAGE_URL=https://download.fedoraproject.org/pub/fedora/linux/releases/30/Cloud/x86_64/images
+            LOGIN_USER=fedora
+            ;;
         fedora31)
-          QCOW=Fedora-Cloud-Base-31-1.9.x86_64.qcow2
-          OS_TYPE="linux"
-          OS_VARIANT="fedora31"
-          IMAGE_URL=https://download.fedoraproject.org/pub/fedora/linux/releases/31/Cloud/x86_64/images
-          DISK_FORMAT=qcow2
-          LOGIN_USER=fedora
-          ;;
+            QCOW=Fedora-Cloud-Base-31-1.9.x86_64.qcow2
+            OS_VARIANT="fedora31"
+            IMAGE_URL=https://download.fedoraproject.org/pub/fedora/linux/releases/31/Cloud/x86_64/images
+            LOGIN_USER=fedora
+            ;;
         ubuntu1604)
             QCOW=ubuntu-16.04-server-cloudimg-amd64-disk1.img
-            OS_TYPE="linux"
             OS_VARIANT="ubuntu16.04"
             IMAGE_URL=https://cloud-images.ubuntu.com/releases/16.04/release
-            DISK_FORMAT=qcow2
             LOGIN_USER=ubuntu
             ;;
         ubuntu1804)
             QCOW=ubuntu-18.04-server-cloudimg-amd64.img
-            OS_TYPE="linux"
             OS_VARIANT="ubuntu18.04"
             IMAGE_URL=https://cloud-images.ubuntu.com/releases/18.04/release
-            DISK_FORMAT=qcow2
             LOGIN_USER=ubuntu
             ;;
         opensuse15)
             QCOW=openSUSE-Leap-15.2-OpenStack.x86_64.qcow2
-            OS_TYPE="linux"
             OS_VARIANT="opensuse15.0"
             IMAGE_URL=https://download.opensuse.org/repositories/Cloud:/Images:/Leap_15.2/images
-            DISK_FORMAT=qcow2
             LOGIN_USER=opensuse
             ;;
         *)
             die "${DISTRO} not a supported OS.  Run 'kvm-install-vm create help'."
             ;;
     esac
+}
+
+function validate_distro_env_vars() {
+    local check_vars="QCOW OS_VARIANT IMAGE_URL LOGIN_USER"
+    for var in $check_vars; do
+        if [[ -z "${!var}" ]]; then
+            die "Distribution $DISTRO is misconfigured. Variable $var is not set. Please check your .kiv-distros.json file."
+        fi
+    done
+}
+
+function read_distros_env_vars () {
+    QCOW=
+    OS_VARIANT=
+    IMAGE_URL=
+    LOGIN_USER=
+    OS_TYPE=linux
+    DISK_FORMAT=qcow2
+
+    distro_from_json $DISTRO "$PWD/.kiv-distros.json"
+
+    if [[ "$QCOW" == "" ]]; then
+        distro_from_default $DISTRO
+    fi
+
+    validate_distro_env_vars
+}
+
+function fetch_images ()
+{
+    # Create image directory if it doesn't already exist
+    mkdir -p ${IMAGEDIR}
+
+    read_distros_env_vars
 
     IMAGE=${IMAGEDIR}/${QCOW}
 
@@ -489,38 +532,48 @@ function storpool_exists ()
 
 function set_sudo_group ()
 {
-    case "${DISTRO}" in
-        centos?|fedora??|*-atomic|amazon?|opensuse* )
+    if [[ -z "$SUDOGROUP" ]]; then
+        return
+    fi
+
+    case "${OS_VARIANT}" in
+        centos*|fedora*|opensuse* )
             SUDOGROUP="wheel"
             ;;
         ubuntu*|debian* )
             SUDOGROUP="sudo"
             ;;
         *)
-            die "OS not supported."
+            die "Please set the sudogroup SUDOGROUP variable."
             ;;
     esac
 }
 
+
 function set_cloud_init_remove ()
 {
-    case "${DISTRO}" in
-        centos6 )
+    if [[ -z "$CLOUDINITDISABLE" ]]; then
+        return
+    fi
+
+    case "${OS_VARIANT}" in
+        centos6* )
             CLOUDINITDISABLE="chkconfig cloud-init off"
             ;;
-        centos8|centos7|amazon?|fedora??|ubuntu*|debian*|opensuse* )
+        * )
             CLOUDINITDISABLE="systemctl disable cloud-init.service"
-            ;;
-        *-atomic)
-            CLOUDINITDISABLE="/usr/bin/true"
             ;;
     esac
 }
 
 function set_network_restart_cmd ()
 {
-    case "${DISTRO}" in
-        centos6 )           NETRESTART="service network stop && service network start" ;;
+    if [[ -n "$NETRESTART" ]]; then
+        return
+    fi
+
+    case "${OS_VARIANT}" in
+        centos6* )          NETRESTART="service network stop && service network start" ;;
         ubuntu*|debian*)    NETRESTART="systemctl stop networking && systemctl start networking" ;;
         *)                  NETRESTART="systemctl stop network && systemctl start network" ;;
     esac
@@ -960,9 +1013,6 @@ function create ()
 
     # Set cloud init remove command
     set_cloud_init_remove
-
-    # Set package manager
-    set_sudo_group
 
     # Finally, create requested VM
     create_vm

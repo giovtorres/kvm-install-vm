@@ -16,17 +16,33 @@ You need to have the KVM hypervisor installed, along with a few other packages:
 - qemu-img
 - libvirt-client
 
-To install the dependencies, run:
+**To install the dependencies, run:**
+
+* RPM-based:
+```
+sudo dnf -y install genisoimage virt-install libguestfs-tools-c qemu-img libvirt-client wget jq
+```
+
+* Debian-based:
 
 ```
-sudo dnf -y install genisoimage virt-install libguestfs-tools-c qemu-img libvirt-client wget
+sudo apt install libvirt0 virtinst libvirt-daemon libvirt-clients wget jq
 ```
 
-If you want to resolve guests by their hostnames, install the `libvirt-nss` package:
+**If you want to resolve guests by their hostnames, install the `libvirt-nss` package:**
+
+* RPM-based:
 
 ```
 sudo dnf -y install libvirt-nss
 ```
+
+* Debian-based:
+
+```
+sudo apt install libnss-libvirt
+```
+
 
 Then, add `libvirt` and `libvirt_guest` to list of **hosts** databases in
 `/etc/nsswitch.conf`.  See [here](https://libvirt.org/nss.html) for more
@@ -181,6 +197,40 @@ Options are evaluated in the following order:
 - Default options set in the script
 - Custom options set in `.kivrc`
 - Option flags set on the command line
+
+
+### Setting Custom Image Aliases
+
+You can also configure your own list of custom image aliases by adding a file `.kiv-distros.json` in the directory that the script will run.
+
+For example:
+
+```yaml
+{
+    "centos7.3": {
+        "qcow": "CentOS-7-x86_64-GenericCloud-1611.qcow2",
+        "os_variant": "centos7.0",
+        "image_url": "https://cloud.centos.org/centos/7/images/",
+        "login_user": "centos"
+    },
+    "centos8.1": {
+        "qcow": "CentOS-8-GenericCloud-8.1.1911-20200113.3.x86_64.qcow2",
+        "os_variant": "centos8",
+        "image_url": "https://cloud.centos.org/centos/8/x86_64/images/",
+        "login_user": "centos"
+    }
+}
+```
+
+With that file in the directory you will be able to run:
+
+```
+kvm-install-vm create -t centos7.3 my-vm-name
+kvm-install-vm create -t centos8.1 my-other-vm-name
+```
+
+The default image aliseses provided will keep working as well.
+
 
 ### Notes
 
