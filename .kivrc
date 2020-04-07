@@ -51,6 +51,12 @@
 # User
 #ADDITIONAL_USER=${USER}
 
+# Path to custom USERDATA
+#CUSTOM_USER_DATA=
+
+# Enable user password (boolean)
+#PASSWORD=false
+
 # Verbosity
 #VERBOSE=0
 

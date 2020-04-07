@@ -15,6 +15,7 @@ You need to have the KVM hypervisor installed, along with a few other packages:
 - libguestfs-tools-c
 - qemu-img
 - libvirt-client
+- python3
 
 To install the dependencies, run:
 
@@ -66,25 +67,28 @@ DESCRIPTION
     Create a new guest domain.
 
 OPTIONS
-    -a          Autostart           (default: false)
-    -b          Bridge              (default: virbr0)
-    -c          Number of vCPUs     (default: 1)
-    -d          Disk Size (GB)      (default: 10)
-    -D          DNS Domain          (default: example.local)
-    -f          CPU Model / Feature (default: host)
-    -g          Graphics type       (default: spice)
+    -a          Autostart            (default: false)
+    -b          Bridge               (default: virbr0)
+    -c          Number of vCPUs      (default: 1)
+    -d          Disk Size (GB)       (default: 10)
+    -D          DNS Domain           (default: example.local)
+    -f          CPU Model / Feature  (default: host)
+    -g          Graphics type        (default: spice)
     -h          Display help
     -i          Custom QCOW2 Image
-    -k          SSH Public Key      (default: $HOME/.ssh/id_rsa.pub)
-    -l          Location of Images  (default: $HOME/virt/images)
-    -L          Location of VMs     (default: $HOME/virt/vms)
-    -m          Memory Size (MB)    (default: 1024)
-    -M          Mac address         (default: auto-assigned)
-    -p          Console port        (default: auto)
+    -k          SSH Public Key       (default: $HOME/.ssh/id_rsa.pub)
+    -l          Location of Images   (default: $HOME/virt/images)
+    -L          Location of VMs      (default: $HOME/virt/vms)
+    -m          Memory Size (MB)     (default: 1024)
+    -M          Mac address          (default: auto-assigned)
+    -p          Console port         (default: auto)
+    -P          Enable User password (default: false)
     -s          Custom shell script
-    -t          Linux Distribution  (default: centos8)
-    -T          Timezone            (default: US/Eastern)
-    -u          Custom user         (defualt: $USER)
+    -t          Linux Distribution   (default: centos8)
+    -T          Timezone             (default: US/Eastern)
+    -u          Custom user          (defualt: $USER)
+    -u          Custom user          (default: $USER)
+    -U          Custom User Data
     -v          Be verbose
 
 DISTRIBUTIONS
