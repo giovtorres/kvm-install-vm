@@ -81,10 +81,13 @@ OPTIONS
     -m          Memory Size (MB)    (default: 1024)
     -M          Mac address         (default: auto-assigned)
     -p          Console port        (default: auto)
+    -P          User password       (default: false)
     -s          Custom shell script
     -t          Linux Distribution  (default: centos8)
     -T          Timezone            (default: US/Eastern)
     -u          Custom user         (defualt: $USER)
+    -u          Custom user         (default: $USER)
+    -U          Custom User Data
     -v          Be verbose
 
 DISTRIBUTIONS
