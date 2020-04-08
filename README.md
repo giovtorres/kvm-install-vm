@@ -76,6 +76,7 @@ OPTIONS
     -g          Graphics type        (default: spice)
     -h          Display help
     -i          Custom QCOW2 Image
+
     -k          SSH Public Key       (default: $HOME/.ssh/id_rsa.pub)
     -l          Location of Images   (default: $HOME/virt/images)
     -L          Location of VMs      (default: $HOME/virt/vms)
@@ -86,7 +87,6 @@ OPTIONS
     -s          Custom shell script
     -t          Linux Distribution   (default: centos8)
     -T          Timezone             (default: US/Eastern)
-    -u          Custom user          (defualt: $USER)
     -u          Custom user          (default: $USER)
     -U          Custom User Data
     -v          Be verbose
