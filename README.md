@@ -104,6 +104,7 @@ DISTRIBUTIONS
     opensuse15      OpenSUSE Leap 15.2                  opensuse
     ubuntu1604      Ubuntu 16.04 LTS (Xenial Xerus)     ubuntu
     ubuntu1804      Ubuntu 18.04 LTS (Bionic Beaver)    ubuntu
+    ubuntu2004      Ubuntu 20.04 LTS (Focal Fossa)      ubuntu
 
 EXAMPLES
     kvm-install-vm create foo

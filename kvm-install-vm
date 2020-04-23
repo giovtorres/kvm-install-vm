@@ -84,6 +84,7 @@ function usage_subcommand ()
             printf "    opensuse15      OpenSUSE Leap 15.2                  opensuse\n"
             printf "    ubuntu1604      Ubuntu 16.04 LTS (Xenial Xerus)     ubuntu\n"
             printf "    ubuntu1804      Ubuntu 18.04 LTS (Bionic Beaver)    ubuntu\n"
+            printf "    ubuntu2004      Ubuntu 20.04 LTS (Focal Fossa)      ubuntu\n"
             printf "\n"
             printf "EXAMPLES\n"
             printf "    $prog create foo\n"
@@ -399,6 +400,14 @@ function fetch_images ()
             OS_TYPE="linux"
             OS_VARIANT="ubuntu18.04"
             IMAGE_URL=https://cloud-images.ubuntu.com/releases/18.04/release
+            DISK_FORMAT=qcow2
+            LOGIN_USER=ubuntu
+            ;;
+        ubuntu2004)
+            QCOW=ubuntu-20.04-server-cloudimg-amd64.img
+            OS_TYPE="linux"
+            OS_VARIANT="ubuntu20.04"
+            IMAGE_URL=https://cloud-images.ubuntu.com/releases/20.04/release
             DISK_FORMAT=qcow2
             LOGIN_USER=ubuntu
             ;;
