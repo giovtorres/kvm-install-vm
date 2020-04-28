@@ -679,7 +679,6 @@ _EOF_
     # Assemble CI ISO disk parameters.
     CI_ISO_PARAMS="$(join ',' \
         ${CI_ISO} \
-        $(param device ${CI_ISO_DEVICE}) \
         ${CI_ISO_EXTRA})"
 
     # Omit the --graphics option to auto-detect.
@@ -730,7 +729,7 @@ _EOF_
     fi
 
     # Eject cdrom
-    virsh change-media ${VMNAME} --path ${VMDIR}/${VMNAME}/${CI_ISO} --eject --config &>> ${VMNAME}.log
+    virsh detach-disk --domain ${VMNAME} ${VMDIR}/${VMNAME}/${CI_ISO} --config &>> ${VMNAME}.log
 
     # Remove the unnecessary cloud init files
     outputn "Cleaning up cloud-init files"
@@ -839,7 +838,6 @@ function set_defaults ()
     NETWORK_EXTRA=""
     DISK_BUS=virtio
     DISK_EXTRA=""
-    CI_ISO_DEVICE=cdrom
     CI_ISO_EXTRA=""
     GRAPHICS_LISTEN=localhost
     GRAPHICS_EXTRA=""
