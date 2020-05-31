@@ -8,24 +8,41 @@ Tested on the latest Fedora.
 
 ### Prerequisites
 
-You need to have the KVM hypervisor installed, along with a few other packages:
+You need to have the KVM hypervisor installed, along with a few other packages (naming of packages can differ on other distributions):
 
 - genisoimage or mkisofs
 - virt-install
 - libguestfs-tools-c
 - qemu-img
 - libvirt-client
+- libosinfo
 
 To install the dependencies, run:
 
+- Fedora example:
+
 ```
-sudo dnf -y install genisoimage virt-install libguestfs-tools-c qemu-img libvirt-client wget
+sudo dnf -y install genisoimage virt-install libguestfs-tools-c qemu-img libvirt-client wget libosinfo
+```
+
+- Ubuntu example:
+
+```
+sudo apt install genisoimage virtinst libguestfs-tools qemu-utils libvirt-clients wget libosinfo-bin
 ```
 
 If you want to resolve guests by their hostnames, install the `libvirt-nss` package:
 
+- Fedora example:
+
 ```
 sudo dnf -y install libvirt-nss
+```
+
+- Ubuntu example:
+
+```
+sudo apt install libnss-libvirt
 ```
 
 Then, add `libvirt` and `libvirt_guest` to list of **hosts** databases in
@@ -227,3 +244,19 @@ things like:
 - anything else you would do with a VM
 
 ...then this wrapper could be useful for you.
+
+### Troubleshooting
+
+If you will encounter something similar:
+
+```
+ERR: Unknown OS variant 'fedora31'. Please update your osinfo-db.  See https://libosinfo.org/download for more information.
+```
+
+Then you need to update the DB in libosinfo.
+Check the url and select the latest date ( https://releases.pagure.org/libosinfo/ )
+
+```
+wget -O "/tmp/osinfo-db.tar.xz" https://releases.pagure.org/libosinfo/osinfo-db-20200515.tar.xz
+sudo osinfo-db-import --local "/tmp/osinfo-db.tar.xz"
+```
