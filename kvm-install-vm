@@ -627,7 +627,7 @@ _EOF_
 
     outputn "Copying cloud image ($(basename ${IMAGE}))"
     DISK=${VMNAME}.qcow2
-    qemu-img create -q -f qcow2 -F qcow2 -b $IMAGE $DISK 10G && ok
+    qemu-img create -q -f qcow2 -F qcow2 -b $IMAGE $DISK && ok
     if $RESIZE_DISK
     then
         outputn "Resizing the disk to $DISK_SIZE"
