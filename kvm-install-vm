@@ -84,6 +84,7 @@ function usage_subcommand ()
             printf "    opensuse15      OpenSUSE Leap 15.2                  opensuse\n"
             printf "    ubuntu1604      Ubuntu 16.04 LTS (Xenial Xerus)     ubuntu\n"
             printf "    ubuntu1804      Ubuntu 18.04 LTS (Bionic Beaver)    ubuntu\n"
+            printf "    ubuntu2004      Ubuntu 20.04 LTS (Focal Fossa)      ubuntu\n"
             printf "\n"
             printf "EXAMPLES\n"
             printf "    $prog create foo\n"
@@ -402,6 +403,14 @@ function fetch_images ()
             DISK_FORMAT=qcow2
             LOGIN_USER=ubuntu
             ;;
+        ubuntu2004)
+            QCOW=ubuntu-20.04-server-cloudimg-amd64.img
+            OS_TYPE="linux"
+            OS_VARIANT="ubuntu20.04"
+            IMAGE_URL=https://cloud-images.ubuntu.com/releases/20.04/release
+            DISK_FORMAT=qcow2
+            LOGIN_USER=ubuntu
+            ;;
         opensuse15)
             QCOW=openSUSE-Leap-15.2-OpenStack.x86_64.qcow2
             OS_TYPE="linux"
@@ -659,18 +668,20 @@ _EOF_
         # Workaround to prevent virt-resize from renumbering partitions and breaking grub
         # See https://bugzilla.redhat.com/show_bug.cgi?id=1472039
         # Ubuntu will automatically grow the partition to the new size on its first boot
-        if [[ "$DISTRO" = "ubuntu1804" ]] || [[ "$DISTRO" = "amazon2" ]]
-        then
+        case "$DISTRO" in
+        ubuntu*|amazon2)
             qemu-img resize $DISK $DISK_SIZE &>> ${VMNAME}.log \
                 && ok \
                 || die "Could not resize disk."
-        else
+            ;;
+        *)
             qemu-img create -f qcow2 \
                 -o preallocation=metadata $DISK.new $DISK_SIZE &>> ${VMNAME}.log \
                 && virt-resize --quiet --expand /dev/sda1 $DISK $DISK.new &>> ${VMNAME}.log \
                 && (mv $DISK.new $DISK && ok) \
                 || die "Could not resize disk."
-        fi
+            ;;
+        esac
     fi
 
     # Create CD-ROM ISO with cloud-init config
@@ -713,7 +724,6 @@ _EOF_
     # Assemble CI ISO disk parameters.
     CI_ISO_PARAMS="$(join ',' \
         ${CI_ISO} \
-        $(param device ${CI_ISO_DEVICE}) \
         ${CI_ISO_EXTRA})"
 
     # Omit the --graphics option to auto-detect.
@@ -764,7 +774,7 @@ _EOF_
     fi
 
     # Eject cdrom
-    virsh change-media ${VMNAME} --path ${VMDIR}/${VMNAME}/${CI_ISO} --eject --config &>> ${VMNAME}.log
+    virsh detach-disk --domain ${VMNAME} ${VMDIR}/${VMNAME}/${CI_ISO} --config &>> ${VMNAME}.log
 
     # Remove the unnecessary cloud init files
     outputn "Cleaning up cloud-init files"
@@ -875,7 +885,6 @@ function set_defaults ()
     NETWORK_EXTRA=""
     DISK_BUS=virtio
     DISK_EXTRA=""
-    CI_ISO_DEVICE=cdrom
     CI_ISO_EXTRA=""
     GRAPHICS_LISTEN=localhost
     GRAPHICS_EXTRA=""
