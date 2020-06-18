@@ -569,11 +569,14 @@ function create_vm ()
     # Create log file
     touch ${VMNAME}.log
 
-    if $PASSWORD
+    if $PASSWORD && command -v python3 >/dev/null
     then
         PASSWD_HASH=$(python3 -c "from getpass import getpass; from crypt import *; \
         p=getpass(); print(crypt(p, METHOD_SHA512).replace('$', '\$')) \
         if p==getpass('Please repeat: ') else print('\nFailed repeating.')")
+    elif $PASSWORD
+    then
+        echo "Failed to generate a password, because python3 is not installed."
     fi
 
     # cloud-init config: set hostname, remove cloud-init package,
