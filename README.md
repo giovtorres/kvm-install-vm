@@ -77,47 +77,52 @@ COMMANDS
 ```
 $ kvm-install-vm help create
 NAME
-    kvm-install-vm create [OPTIONS] VMNAME
+    kvm-install-vm create [COMMANDS] [OPTIONS] VMNAME
 
 DESCRIPTION
     Create a new guest domain.
 
+COMMANDS
+    help - show this help
+
 OPTIONS
-    -a          Autostart           (default: false)
-    -b          Bridge              (default: virbr0)
-    -c          Number of vCPUs     (default: 1)
-    -d          Disk Size (GB)      (default: 10)
-    -D          DNS Domain          (default: example.local)
-    -f          CPU Model / Feature (default: host)
-    -g          Graphics type       (default: spice)
+    -a          Autostart             (default: false)
+    -b          Bridge                (default: virbr0)
+    -c          Number of vCPUs       (default: 1)
+    -d          Disk Size (GB)        (default: 10)
+    -D          DNS Domain            (default: example.local)
+    -f          CPU Model / Feature   (default: host)
+    -g          Graphics type         (default: spice)
     -h          Display help
     -i          Custom QCOW2 Image
-    -k          SSH Public Key      (default: $HOME/.ssh/id_rsa.pub)
-    -l          Location of Images  (default: $HOME/virt/images)
-    -L          Location of VMs     (default: $HOME/virt/vms)
-    -m          Memory Size (MB)    (default: 1024)
-    -M          Mac address         (default: auto-assigned)
-    -p          Console port        (default: auto)
+    -k          SSH Public Key        (default: $HOME/.ssh/id_rsa.pub)
+    -l          Location of Images    (default: $HOME/virt/images)
+    -L          Location of VMs       (default: $HOME/virt/vms)
+    -m          Memory Size (MB)      (default: 1024)
+    -M          Mac address           (default: auto-assigned)
+    -p          Console port          (default: auto)
     -s          Custom shell script
-    -t          Linux Distribution  (default: centos8)
-    -T          Timezone            (default: US/Eastern)
-    -u          Custom user         (defualt: $USER)
+    -t          Linux Distribution    (default: centos8)
+    -T          Timezone              (default: US/Eastern)
+    -u          Custom user           (default: $USER)
+    -y          Assume yes to prompts (default: false)
+    -n          Assume no to prompts  (default: false)
     -v          Be verbose
 
 DISTRIBUTIONS
     NAME            DESCRIPTION                         LOGIN
     amazon2         Amazon Linux 2                      ec2-user
+    centos8         CentOS 8                            centos
     centos7         CentOS 7                            centos
     centos7-atomic  CentOS 7 Atomic Host                centos
     centos6         CentOS 6                            centos
-    centos8         CentOS 8                            centos
     debian9         Debian 9 (Stretch)                  debian
     debian10        Debian 10 (Buster)                  debian
-    fedora27        Fedora 27                           fedora
-    fedora27-atomic Fedora 27 Atomic Host               fedora
-    fedora28        Fedora 28                           fedora
-    fedora28-atomic Fedora 28 Atomic Host               fedora
+    fedora29        Fedora 29                           fedora
+    fedora29-atomic Fedora 29 Atomic Host               fedora
+    fedora30        Fedora 30                           fedora
     fedora31        Fedora 31                           fedora
+    fedora32        Fedora 32                           fedora
     opensuse15      OpenSUSE Leap 15.2                  opensuse
     ubuntu1604      Ubuntu 16.04 LTS (Xenial Xerus)     ubuntu
     ubuntu1804      Ubuntu 18.04 LTS (Bionic Beaver)    ubuntu
@@ -125,7 +130,7 @@ DISTRIBUTIONS
 
 EXAMPLES
     kvm-install-vm create foo
-        Create VM with the default parameters: CentOS 7, 1 vCPU, 1GB RAM, 10GB
+        Create VM with the default parameters: CentOS 8, 1 vCPU, 1GB RAM, 10GB
         disk capacity.
 
     kvm-install-vm create -c 2 -m 2048 -d 20 foo
@@ -137,10 +142,6 @@ EXAMPLES
 
     kvm-install-vm create -T UTC foo
         Create a default VM with UTC timezone.
-
-    kvm-install-vm create -s ~/script.sh -g vnc -u bar foo
-        Create a VM with a custom script included in user-data, a graphical
-        console accessible over VNC, and a user named 'bar'.
 ```
 
 #### Deleting a Guest Domain
