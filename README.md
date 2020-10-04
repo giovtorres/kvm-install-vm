@@ -28,7 +28,7 @@ sudo dnf -y install genisoimage virt-install libguestfs-tools-c qemu-img libvirt
 - Ubuntu example:
 
 ```
-sudo apt install genisoimage virtinst libguestfs-tools qemu-utils libvirt-clients wget libosinfo-bin
+sudo apt install -y genisoimage virtinst libguestfs-tools qemu-utils libvirt-clients wget libosinfo-bin
 ```
 
 If you want to resolve guests by their hostnames, install the `libvirt-nss` package:
@@ -42,7 +42,7 @@ sudo dnf -y install libvirt-nss
 - Ubuntu example:
 
 ```
-sudo apt install libnss-libvirt
+sudo apt install -y libnss-libvirt
 ```
 
 Then, add `libvirt` and `libvirt_guest` to list of **hosts** databases in
