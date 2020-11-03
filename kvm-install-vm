@@ -59,7 +59,7 @@ function usage_subcommand ()
             printf "    -L          Location of VMs       (default: $HOME/virt/vms)\n"
             printf "    -m          Memory Size (MB)      (default: 1024)\n"
             printf "    -M          Mac address           (default: auto-assigned)\n"
-            printf "    -n          Network name\n"
+            printf "    -n          Network name          (default: none, overrides -b parameter)\n"
             printf "    -p          Console port          (default: auto)\n"
             printf "    -s          Custom shell script\n"
             printf "    -t          Linux Distribution    (default: centos8)\n"
