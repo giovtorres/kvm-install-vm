@@ -770,7 +770,7 @@ _EOF_
     output "MAC address: ${MAC}"
     
     if [ -n "${NETWORK_NAME}" ]; then
-        BRIDGE=$(virsh net-dumpxml "${NETWORK_NAME}" | awk -F\' '/bridge/ {print $2}')
+        BRIDGE=$(virsh net-info "${NETWORK_NAME}" | awk -F':' '/Bridge/ {print $2}' | tr -d ' ')
     fi
 
     if [ -f "/var/lib/libvirt/dnsmasq/${BRIDGE}.status" ]
