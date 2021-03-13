@@ -82,6 +82,7 @@ function usage_subcommand ()
             printf "    fedora30        Fedora 30                           fedora\n"
             printf "    fedora31        Fedora 31                           fedora\n"
             printf "    fedora32        Fedora 32                           fedora\n"
+            printf "    fedora33        Fedora 33                           fedora\n"
             printf "    opensuse15      OpenSUSE Leap 15.2                  opensuse\n"
             printf "    ubuntu1604      Ubuntu 16.04 LTS (Xenial Xerus)     ubuntu\n"
             printf "    ubuntu1804      Ubuntu 18.04 LTS (Bionic Beaver)    ubuntu\n"
@@ -396,6 +397,14 @@ function fetch_images ()
           DISK_FORMAT=qcow2
           LOGIN_USER=fedora
           ;;
+        fedora33)
+            QCOW=Fedora-Cloud-Base-33-1.2.x86_64.qcow2
+            OS_TYPE="linux"
+            OS_VARIANT="fedora33"
+            IMAGE_URL=https://download.fedoraproject.org/pub/fedora/linux/releases/33/Cloud/x86_64/images
+            DISK_FORMAT=qcow2
+            LOGIN_USER=fedora
+            ;;
         ubuntu1604)
             QCOW=ubuntu-16.04-server-cloudimg-amd64-disk1.img
             OS_TYPE="linux"
