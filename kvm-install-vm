@@ -83,6 +83,7 @@ function usage_subcommand ()
             printf "    fedora31        Fedora 31                           fedora\n"
             printf "    fedora32        Fedora 32                           fedora\n"
             printf "    fedora33        Fedora 33                           fedora\n"
+            printf "    fedora34        Fedora 34                           fedora\n"
             printf "    opensuse15      OpenSUSE Leap 15.2                  opensuse\n"
             printf "    ubuntu1604      Ubuntu 16.04 LTS (Xenial Xerus)     ubuntu\n"
             printf "    ubuntu1804      Ubuntu 18.04 LTS (Bionic Beaver)    ubuntu\n"
@@ -268,7 +269,7 @@ function delete_vm ()
     else
         output "Domain ${VMNAME} does not exist"
     fi
-    
+
     [[ -d ${VMDIR}/${VMNAME} ]] && DISKDIR=${VMDIR}/${VMNAME} || DISKDIR=${IMAGEDIR}/${VMNAME}
     [ -d $DISKDIR ] \
         && outputn "Deleting ${VMNAME} files" \
@@ -402,6 +403,14 @@ function fetch_images ()
             OS_TYPE="linux"
             OS_VARIANT="fedora33"
             IMAGE_URL=https://download.fedoraproject.org/pub/fedora/linux/releases/33/Cloud/x86_64/images
+            DISK_FORMAT=qcow2
+            LOGIN_USER=fedora
+            ;;
+        fedora34)
+            QCOW=Fedora-Cloud-Base-34-1.2.x86_64.qcow2
+            OS_TYPE="linux"
+            OS_VARIANT="fedora34"
+            IMAGE_URL=https://download.fedoraproject.org/pub/fedora/linux/releases/34/Cloud/x86_64/images
             DISK_FORMAT=qcow2
             LOGIN_USER=fedora
             ;;
