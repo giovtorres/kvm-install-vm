@@ -84,6 +84,7 @@ function usage_subcommand ()
             printf "    fedora32        Fedora 32                           fedora\n"
             printf "    fedora33        Fedora 33                           fedora\n"
             printf "    fedora34        Fedora 34                           fedora\n"
+            printf "    fedora35        Fedora 35                           fedora\n"
             printf "    opensuse15      OpenSUSE Leap 15.2                  opensuse\n"
             printf "    ubuntu1604      Ubuntu 16.04 LTS (Xenial Xerus)     ubuntu\n"
             printf "    ubuntu1804      Ubuntu 18.04 LTS (Bionic Beaver)    ubuntu\n"
@@ -374,7 +375,7 @@ function fetch_images ()
           DISK_FORMAT=qcow2
           LOGIN_USER=fedora
           ;;
-        fedora30)
+       fedora30)
           QCOW=Fedora-Cloud-Base-30-1.2.x86_64.qcow2
           OS_TYPE="linux"
           OS_VARIANT="fedora29"
@@ -382,7 +383,7 @@ function fetch_images ()
           DISK_FORMAT=qcow2
           LOGIN_USER=fedora
           ;;
-        fedora31)
+       fedora31)
           QCOW=Fedora-Cloud-Base-31-1.9.x86_64.qcow2
           OS_TYPE="linux"
           OS_VARIANT="fedora31"
@@ -398,7 +399,7 @@ function fetch_images ()
           DISK_FORMAT=qcow2
           LOGIN_USER=fedora
           ;;
-        fedora33)
+       fedora33)
             QCOW=Fedora-Cloud-Base-33-1.2.x86_64.qcow2
             OS_TYPE="linux"
             OS_VARIANT="fedora33"
@@ -411,6 +412,14 @@ function fetch_images ()
             OS_TYPE="linux"
             OS_VARIANT="fedora33"
             IMAGE_URL=https://download.fedoraproject.org/pub/fedora/linux/releases/34/Cloud/x86_64/images
+            DISK_FORMAT=qcow2
+            LOGIN_USER=fedora
+            ;;
+        fedora35)
+            QCOW=Fedora-Cloud-Base-35-1.2.x86_64.qcow2
+            OS_TYPE="linux"
+            OS_VARIANT="fedora33"
+            IMAGE_URL=https://download.fedoraproject.org/pub/fedora/linux/releases/35/Cloud/x86_64/images
             DISK_FORMAT=qcow2
             LOGIN_USER=fedora
             ;;
