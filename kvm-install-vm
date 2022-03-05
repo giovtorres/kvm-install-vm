@@ -308,7 +308,8 @@ function fetch_images ()
             QCOW=AlmaLinux-8-GenericCloud-latest.x86_64.qcow2
             OS_TYPE="linux"
             OS_VARIANT="almalinux8"
-            IMAGE_URL=http://mirror.netglobalis.net/almalinux/8.5/cloud/x86_64/images/
+            # IMAGE_URL=http://mirror.netglobalis.net/almalinux/8.5/cloud/x86_64/images/
+            IMAGE_URL=http://mirrors.nju.edu.cn/almalinux/8.5/cloud/x86_64/images/
             DISK_FORMAT=qcow2
             LOGIN_USER=centos
             ;;
