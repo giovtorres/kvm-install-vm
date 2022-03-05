@@ -71,6 +71,8 @@ function usage_subcommand ()
             printf "DISTRIBUTIONS\n"
             printf "    NAME            DESCRIPTION                         LOGIN\n"
             printf "    amazon2         Amazon Linux 2                      ec2-user\n"
+            printf "    almalinux       almalinux                           almalinux 8\n"
+            printf "    centos9         CentOS 9                            centos\n"
             printf "    centos8         CentOS 8                            centos\n"
             printf "    centos7         CentOS 7                            centos\n"
             printf "    centos7-atomic  CentOS 7 Atomic Host                centos\n"
@@ -302,7 +304,23 @@ function fetch_images ()
             DISK_FORMAT=qcow2
             LOGIN_USER=ec2-user
             ;;
-        centos8)
+        almalinux8)
+            QCOW=AlmaLinux-8-GenericCloud-latest.x86_64.qcow2
+            OS_TYPE="linux"
+            OS_VARIANT="almalinux8"
+            IMAGE_URL=http://mirror.netglobalis.net/almalinux/8.5/cloud/x86_64/images/
+            DISK_FORMAT=qcow2
+            LOGIN_USER=centos
+            ;;
+         centos9)
+            QCOW=CentOS-Stream-GenericCloud-9-20210830.0.x86_64.qcow2
+            OS_TYPE="linux"
+            OS_VARIANT="centos9"
+            IMAGE_URL=https://cloud.centos.org/centos/9-stream/x86_64/images/
+            DISK_FORMAT=qcow2
+            LOGIN_USER=centos
+            ;;
+         centos8)
             QCOW=CentOS-8-GenericCloud-8.1.1911-20200113.3.x86_64.qcow2
             OS_TYPE="linux"
             OS_VARIANT="centos8"
@@ -410,7 +428,7 @@ function fetch_images ()
         fedora34)
             QCOW=Fedora-Cloud-Base-34-1.2.x86_64.qcow2
             OS_TYPE="linux"
-            OS_VARIANT="fedora33"
+            OS_VARIANT="fedora34"
             IMAGE_URL=https://download.fedoraproject.org/pub/fedora/linux/releases/34/Cloud/x86_64/images
             DISK_FORMAT=qcow2
             LOGIN_USER=fedora
@@ -418,7 +436,7 @@ function fetch_images ()
         fedora35)
             QCOW=Fedora-Cloud-Base-35-1.2.x86_64.qcow2
             OS_TYPE="linux"
-            OS_VARIANT="fedora33"
+            OS_VARIANT="fedora35"
             IMAGE_URL=https://download.fedoraproject.org/pub/fedora/linux/releases/35/Cloud/x86_64/images
             DISK_FORMAT=qcow2
             LOGIN_USER=fedora
@@ -553,7 +571,7 @@ function set_cloud_init_remove ()
         centos6 )
             CLOUDINITDISABLE="chkconfig cloud-init off"
             ;;
-        centos8|centos7|amazon?|fedora??|ubuntu*|debian*|opensuse* )
+        centos9|centos8|centos7|amazon?|fedora??|ubuntu*|debian*|opensuse* )
             CLOUDINITDISABLE="systemctl disable cloud-init.service"
             ;;
         *-atomic)
