@@ -1,6 +1,9 @@
 # tips
 nmcli device
 
+## fedora 35
+./kvm-install-vm create -c 4 -m 5120 -d 60 -T "Asia/Shanghai" -t fedora35 -D fedora35.my -v fedora35.my
+
 ## fedora 34
 ./kvm-install-vm create -c 4 -m 5120 -d 80 -T "Asia/Shanghai" -t fedora34 -D fedora34.my -v fedora34.my
 ./kvm-install-vm create -c 4 -m 6144 -d 80 -T "Asia/Shanghai" -t fedora34 -D fedora34.my -v fedora34.my
