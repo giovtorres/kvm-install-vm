@@ -3,6 +3,7 @@ nmcli device
 
 ## fedora 35
 ./kvm-install-vm create -c 4 -m 5120 -d 60 -T "Asia/Shanghai" -t fedora35 -D fedora35.my -v fedora35.my
+./kvm-install-vm create -c 4 -m 5120 -d 50 -T "Asia/Shanghai" -t fedora35 -D fedora35.my -v fedora35.my
 
 ## fedora 34
 ./kvm-install-vm create -c 4 -m 5120 -d 80 -T "Asia/Shanghai" -t fedora34 -D fedora34.my -v fedora34.my
@@ -28,4 +29,5 @@ sudo systemctl status sshd
 #### 无密码 ssh 密钥
 ssh-copy-id -i ~/.ssh/id_rsa.pub fedora@fedora34
 
-
+### 删除vps
+./kvm-install-vm remove fedora35.my

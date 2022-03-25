@@ -695,6 +695,13 @@ _EOF_
                 && ok \
                 || die "Could not resize disk."
             ;;
+        fedora35|fedora36)
+            qemu-img create -f qcow2 \
+                -o preallocation=metadata $DISK.new $DISK_SIZE &>> ${VMNAME}.log \
+                && virt-resize --align-first auto --expand /dev/sda5 $DISK $DISK.new &>> ${VMNAME}.log \
+                && (mv $DISK.new $DISK && ok) \
+                || die "Could not resize disk."
+            ;;
         *)
             qemu-img create -f qcow2 \
                 -o preallocation=metadata $DISK.new $DISK_SIZE &>> ${VMNAME}.log \
