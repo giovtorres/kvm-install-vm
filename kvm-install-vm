@@ -88,7 +88,8 @@ function usage_subcommand ()
             printf "    ubuntu1604      Ubuntu 16.04 LTS (Xenial Xerus)     ubuntu\n"
             printf "    ubuntu1804      Ubuntu 18.04 LTS (Bionic Beaver)    ubuntu\n"
             printf "    ubuntu2004      Ubuntu 20.04 LTS (Focal Fossa)      ubuntu\n"
-            printf "\n"
+            printf "    rocky8.5         Rocky Linux                         rocky\n"
+	    printf "\n"
             printf "EXAMPLES\n"
             printf "    $prog create foo\n"
             printf "        Create VM with the default parameters: CentOS 8, 1 vCPU, 1GB RAM, 10GB\n"
@@ -446,6 +447,14 @@ function fetch_images ()
             DISK_FORMAT=qcow2
             LOGIN_USER=opensuse
             ;;
+	 rocky85)
+            QCOW=Rocky-8-GenericCloud-8.5-20211114.2.x86_64.qcow2
+            OS_TYPE="linux"
+            OS_VARIANT="rocky8.5"
+            IMAGE_URL=https://dl.rockylinux.org/pub/rocky/8.5/images
+            DISK_FORMAT=qcow2
+            LOGIN_USER=rocky
+            ;;
         *)
             die "${DISTRO} not a supported OS.  Run 'kvm-install-vm create help'."
             ;;
@@ -526,7 +535,7 @@ function storpool_exists ()
 function set_sudo_group ()
 {
     case "${DISTRO}" in
-        centos?|fedora??|*-atomic|amazon?|opensuse* )
+        centos*|fedora*|rocky*|*-atomic|amazon*|opensuse* )
             SUDOGROUP="wheel"
             ;;
         ubuntu*|debian* )
@@ -544,7 +553,7 @@ function set_cloud_init_remove ()
         centos6 )
             CLOUDINITDISABLE="chkconfig cloud-init off"
             ;;
-        centos8|centos7|amazon?|fedora??|ubuntu*|debian*|opensuse* )
+        centos8|centos7|amazon*|fedora*|rocky*|ubuntu*|debian*|opensuse* )
             CLOUDINITDISABLE="systemctl disable cloud-init.service"
             ;;
         *-atomic)
