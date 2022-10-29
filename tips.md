@@ -18,7 +18,7 @@ sudo localectl set-locale LANG=zh_CN.UTF-8
 sudo dnf install -y cinnamon-desktop
 sudo dnf -y groupinstall "Development Tools"
 
-### 启用sshd
+### activate sshd(启用sshd)
 sudo rpm -qa | grep openssh-server
 sudo systemctl status sshd
 sudo systemctl enable sshd.service
@@ -26,8 +26,8 @@ sudo systemctl start sshd
 sudo systemctl status sshd
 
 ---
-#### 无密码 ssh 密钥
+#### no password login ( 无密码 ssh 密钥)
 ssh-copy-id -i ~/.ssh/id_rsa.pub fedora@fedora34
 
-### 删除vps
+### delete vps(删除vps)
 ./kvm-install-vm remove fedora35.my
