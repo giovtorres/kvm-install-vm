@@ -1056,7 +1056,14 @@ function attach-disk ()
         VMNAME=$1
         # Directory to create attached disk (Checks both images an vms directories for backward compatibility!)
         [[ -d ${VMDIR}/${VMNAME} ]] && DISKDIR=${VMDIR}/${VMNAME} || DISKDIR=${IMAGEDIR}/${VMNAME}
-        DISKNAME=${VMNAME}-${TARGET}-${DISKSIZE}.${FORMAT}
+
+        if [ -n ${SOURCE} ]
+        then
+          echo "- Using custom disk name ${SOURCE}"
+          DISKNAME=${SOURCE}
+        else
+          DISKNAME=${VMNAME}-${TARGET}-${DISKSIZE}.${FORMAT}
+        fi
 
         if [ ! -f "${DISKDIR}/${DISKNAME}" ]
         then
