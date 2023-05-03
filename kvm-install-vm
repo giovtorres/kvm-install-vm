@@ -83,11 +83,14 @@ function usage_subcommand ()
             printf "    fedora31        Fedora 31                           fedora\n"
             printf "    fedora32        Fedora 32                           fedora\n"
             printf "    fedora33        Fedora 33                           fedora\n"
+            printf "    fedora34        Fedora 34                           fedora\n"
             printf "    opensuse15      OpenSUSE Leap 15.2                  opensuse\n"
             printf "    ubuntu1604      Ubuntu 16.04 LTS (Xenial Xerus)     ubuntu\n"
             printf "    ubuntu1804      Ubuntu 18.04 LTS (Bionic Beaver)    ubuntu\n"
             printf "    ubuntu2004      Ubuntu 20.04 LTS (Focal Fossa)      ubuntu\n"
-            printf "\n"
+            printf "    ubuntu2204      Ubuntu 22.04 LTS (Jammy Jellyfish)  ubuntu\n"
+            printf "    rocky8.5         Rocky Linux                         rocky\n"
+	    printf "\n"
             printf "EXAMPLES\n"
             printf "    $prog create foo\n"
             printf "        Create VM with the default parameters: CentOS 8, 1 vCPU, 1GB RAM, 10GB\n"
@@ -405,6 +408,14 @@ function fetch_images ()
             DISK_FORMAT=qcow2
             LOGIN_USER=fedora
             ;;
+        fedora34)
+            QCOW=Fedora-Cloud-Base-34-1.2.x86_64.qcow2
+            OS_TYPE="linux"
+            OS_VARIANT="fedora34"
+            IMAGE_URL=https://download.fedoraproject.org/pub/fedora/linux/releases/34/Cloud/x86_64/images
+            DISK_FORMAT=qcow2
+            LOGIN_USER=fedora
+            ;;
         ubuntu1604)
             QCOW=ubuntu-16.04-server-cloudimg-amd64-disk1.img
             OS_TYPE="linux"
@@ -429,6 +440,14 @@ function fetch_images ()
             DISK_FORMAT=qcow2
             LOGIN_USER=ubuntu
             ;;
+        ubuntu2204)
+            QCOW=ubuntu-22.04-server-cloudimg-amd64.img
+            OS_TYPE="linux"
+            OS_VARIANT="ubuntu22.04"
+            IMAGE_URL=https://cloud-images.ubuntu.com/releases/22.04/release
+            DISK_FORMAT=qcow2
+            LOGIN_USER=ubuntu
+            ;;
         opensuse15)
             QCOW=openSUSE-Leap-15.2-OpenStack.x86_64.qcow2
             OS_TYPE="linux"
@@ -436,6 +455,14 @@ function fetch_images ()
             IMAGE_URL=https://download.opensuse.org/repositories/Cloud:/Images:/Leap_15.2/images
             DISK_FORMAT=qcow2
             LOGIN_USER=opensuse
+            ;;
+	 rocky85)
+            QCOW=Rocky-8-GenericCloud-8.5-20211114.2.x86_64.qcow2
+            OS_TYPE="linux"
+            OS_VARIANT="rocky8.5"
+            IMAGE_URL=https://dl.rockylinux.org/pub/rocky/8.5/images
+            DISK_FORMAT=qcow2
+            LOGIN_USER=rocky
             ;;
         *)
             die "${DISTRO} not a supported OS.  Run 'kvm-install-vm create help'."
@@ -517,7 +544,7 @@ function storpool_exists ()
 function set_sudo_group ()
 {
     case "${DISTRO}" in
-        centos?|fedora??|*-atomic|amazon?|opensuse* )
+        centos*|fedora*|rocky*|*-atomic|amazon*|opensuse* )
             SUDOGROUP="wheel"
             ;;
         ubuntu*|debian* )
@@ -535,7 +562,7 @@ function set_cloud_init_remove ()
         centos6 )
             CLOUDINITDISABLE="chkconfig cloud-init off"
             ;;
-        centos8|centos7|amazon?|fedora??|ubuntu*|debian*|opensuse* )
+        centos8|centos7|amazon*|fedora*|rocky*|ubuntu*|debian*|opensuse* )
             CLOUDINITDISABLE="systemctl disable cloud-init.service"
             ;;
         *-atomic)
