@@ -77,6 +77,7 @@ function usage_subcommand ()
             printf "    centos6         CentOS 6                            centos\n"
             printf "    debian9         Debian 9 (Stretch)                  debian\n"
             printf "    debian10        Debian 10 (Buster)                  debian\n"
+            printf "    debian11        Debian 11 (Bullseye)                debian\n"
             printf "    fedora29        Fedora 29                           fedora\n"
             printf "    fedora29-atomic Fedora 29 Atomic Host               fedora\n"
             printf "    fedora30        Fedora 30                           fedora\n"
@@ -357,6 +358,14 @@ function fetch_images ()
             OS_TYPE="linux"
             OS_VARIANT="debian10"
             IMAGE_URL=https://cdimage.debian.org/cdimage/openstack/current-10
+            DISK_FORMAT=qcow2
+            LOGIN_USER=debian
+            ;;
+        debian11)
+            QCOW=debian-11-genericcloud-amd64-daily.qcow2
+            OS_TYPE="linux"
+            OS_VARIANT="debian11"
+            IMAGE_URL=https://cloud.debian.org/images/cloud/bullseye/daily/latest
             DISK_FORMAT=qcow2
             LOGIN_USER=debian
             ;;
@@ -680,7 +689,7 @@ _EOF_
         # See https://bugzilla.redhat.com/show_bug.cgi?id=1472039
         # Ubuntu will automatically grow the partition to the new size on its first boot
         case "$DISTRO" in
-        ubuntu*|amazon2)
+        ubuntu*|amazon2|debian11)
             qemu-img resize $DISK $DISK_SIZE &>> ${VMNAME}.log \
                 && ok \
                 || die "Could not resize disk."
