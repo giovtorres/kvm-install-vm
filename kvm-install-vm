@@ -86,12 +86,13 @@ function usage_subcommand ()
             printf "    fedora32        Fedora 32                           fedora\n"
             printf "    fedora33        Fedora 33                           fedora\n"
             printf "    fedora34        Fedora 34                           fedora\n"
-            printf "    fedora35        Fedora 35                           fedora\n"
+            printf "    fedora35        Fedora 35 workstaion                fedora\n"
+            printf "    fedora36        Fedora 36 workstation               fedora\n"
             printf "    opensuse15      OpenSUSE Leap 15.2                  opensuse\n"
             printf "    ubuntu1604      Ubuntu 16.04 LTS (Xenial Xerus)     ubuntu\n"
             printf "    ubuntu1804      Ubuntu 18.04 LTS (Bionic Beaver)    ubuntu\n"
             printf "    ubuntu2004      Ubuntu 20.04 LTS (Focal Fossa)      ubuntu\n"
-            printf "    rocky8.5         Rocky Linux                         rocky\n"
+            printf "    rocky8.5        Rocky Linux                         rocky\n"
             printf "\n"
             printf "EXAMPLES\n"
             printf "    $prog create foo\n"
@@ -440,6 +441,14 @@ function fetch_images ()
             OS_TYPE="linux"
             OS_VARIANT="fedora35"
             IMAGE_URL=https://download.fedoraproject.org/pub/fedora/linux/releases/35/Cloud/x86_64/images
+            DISK_FORMAT=qcow2
+            LOGIN_USER=fedora
+            ;;
+        fedora36)
+            QCOW=Fedora-Cloud-Base-36-1.5.x86_64.qcow2
+            OS_TYPE="linux"
+            OS_VARIANT="fedora36"
+            IMAGE_URL=https://download.fedoraproject.org/pub/fedora/linux/releases/36/Cloud/x86_64/images
             DISK_FORMAT=qcow2
             LOGIN_USER=fedora
             ;;

@@ -1,5 +1,12 @@
 # tips
 nmcli device
+systemctl start libvirtd
+systemctl stop libvirtd
+systemctl status libvirtd
+
+## fedora 36
+./kvm-install-vm create -c 4 -m 5120 -d 30 -T "Asia/Shanghai" -t fedora36 -D fedora36.my -v fedora36.my
+./kvm-install-vm create -c 4 -m 1024 -d 25 -T "Asia/Shanghai" -t fedora36 -D fedora36_proxy.my -v fedora36_proxy.my
 
 ## fedora 35
 ./kvm-install-vm create -c 4 -m 5120 -d 60 -T "Asia/Shanghai" -t fedora35 -D fedora35.my -v fedora35.my

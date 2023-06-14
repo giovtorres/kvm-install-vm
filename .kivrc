@@ -46,8 +46,8 @@
 #MACADDRESS=
 
 # Timezone
-TIMEZONE=US/Eastern
-# TIMEZONE=Asia/Singapore
+# TIMEZONE=US/Eastern
+TIMEZONE=Asia/Singapore
 
 # User
 #ADDITIONAL_USER=${USER}
