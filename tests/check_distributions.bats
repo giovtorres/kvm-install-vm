@@ -120,6 +120,14 @@ function remove_test_vm ()
     remove_test_vm ubuntu2004
 }
 
+@test "Install VM (Ubuntu 24.04) - $VMNAME-ubuntu2404" {
+    create_test_vm ubuntu2404
+}
+
+@test "Delete VM (Ubuntu 24.04) - $VMNAME-ubuntu2404" {
+    remove_test_vm ubuntu2404
+}
+
 @test "Install VM (Debian 9) - $VMNAME-debian9" {
     create_test_vm debian9
 }

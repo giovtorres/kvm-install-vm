@@ -89,6 +89,7 @@ function usage_subcommand ()
             printf "    ubuntu1804      Ubuntu 18.04 LTS (Bionic Beaver)    ubuntu\n"
             printf "    ubuntu2004      Ubuntu 20.04 LTS (Focal Fossa)      ubuntu\n"
             printf "    ubuntu2204      Ubuntu 22.04 LTS (Jammy Jellyfish)  ubuntu\n"
+            printf "    ubuntu2404      Ubuntu 24.04 LTS (Noble Numbat)     ubuntu\n"
             printf "    rocky8.5         Rocky Linux                         rocky\n"
 	    printf "\n"
             printf "EXAMPLES\n"
@@ -445,6 +446,14 @@ function fetch_images ()
             OS_TYPE="linux"
             OS_VARIANT="ubuntu22.04"
             IMAGE_URL=https://cloud-images.ubuntu.com/releases/22.04/release
+            DISK_FORMAT=qcow2
+            LOGIN_USER=ubuntu
+            ;;
+        ubuntu2404)
+            QCOW=ubuntu-24.04-server-cloudimg-amd64.img
+            OS_TYPE="linux"
+            OS_VARIANT="ubuntu24.04"
+            IMAGE_URL=https://cloud-images.ubuntu.com/releases/24.04/release
             DISK_FORMAT=qcow2
             LOGIN_USER=ubuntu
             ;;
