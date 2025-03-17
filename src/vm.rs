@@ -27,8 +27,8 @@ impl VirtualMachine {
     }
 
     pub fn connect(&mut self, uri: Option<&str>) -> Result<()> {
-        // Connect to libvirt daemon, default to "qemu:///system" if no URI provided
-        let uri = uri.or(Some("qemu:///system"));
+        // Connect to libvirt daemon, default to "qemu:///session" if no URI provided
+        let uri = uri.or(Some("qemu:///session"));
         self.connection = Some(Connect::open(uri).context("Failed to connect to libvirt")?);
         Ok(())
     }
@@ -68,7 +68,7 @@ impl VirtualMachine {
 
     fn generate_domain_xml(&self) -> Result<String> {
         // Generate domain XML
-        let xml = format!( r#"
+        let xml = format!(r#"
         <domain type='kvm'>
           <name>{}</name>
           <memory unit='MiB'>{}</memory>

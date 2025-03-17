@@ -11,13 +11,8 @@ repository = "https://github.com/giovtorres/kvm-install-vm"
 anyhow = "1.0"
 clap = { version = "4.4", features = ["derive"] }
 env_logger = "0.10"
-futures-util = "0.3"
-indicatif = "0.17"
-ipnetwork = "0.20"
 log = "0.4"
-reqwest = { version = "0.11", features = ["json", "stream"] }
-serde = { version = "1.0", features = ["derive"] }
-serde_yaml = "0.9"
-tempfile = "3.8"
-tokio = { version = "1", features = ["full"] }
 virt = "0.3.1"
+
+[build-dependencies]
+pkg-config = "0.3"
