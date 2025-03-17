@@ -16,8 +16,8 @@ async fn main() -> Result<()> {
 
     println!("Configuration:");
     println!("  vCPUs: {}", cli.vcpus);
-    println!("  Memory: {} MB", cli.memory);
-    println!("  Disk Size: {} GB", cli.disk);
+    println!("  Memory: {} MB", cli.memory_mb);
+    println!("  Disk Size: {} GB", cli.disk_size_gb);
 
     if cli.dry_run {
         println!("Dry run mode - no VM will be created");

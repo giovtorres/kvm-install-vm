@@ -13,10 +13,10 @@ pub struct Cli {
     pub vcpus: u32,
 
     #[arg(short = 'm', long, default_value_t = 1024)]
-    pub memory: u32,
+    pub memory_mb: u32,
 
     #[arg(short = 'd', long, default_value_t = 10)]
-    pub disk: u32,
+    pub disk_size_gb: u32,
 
     #[arg(long)]
     pub graphics: bool,

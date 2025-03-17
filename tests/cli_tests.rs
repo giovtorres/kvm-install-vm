@@ -17,8 +17,8 @@ fn test_cli_defaults() {
     assert_eq!(cli.name, "test-vm");
     assert_eq!(cli.distro, "centos8");
     assert_eq!(cli.vcpus, 1);
-    assert_eq!(cli.disk, 10);
-    assert_eq!(cli.memory, 1024);
+    assert_eq!(cli.disk_size_gb, 10);
+    assert_eq!(cli.memory_mb, 1024);
     assert_eq!(cli.graphics, false);
     assert_eq!(cli.dry_run, false);
 }
@@ -32,9 +32,9 @@ fn test_cli_custom_values() {
         "ubuntu2004",
         "--vcpus",
         "4",
-        "--memory",
+        "--memory-mb",
         "4096",
-        "--disk",
+        "--disk-size-gb",
         "50",
         "--graphics",
         "--dry-run",
@@ -45,8 +45,8 @@ fn test_cli_custom_values() {
     assert_eq!(cli.name, "custom-vm");
     assert_eq!(cli.distro, "ubuntu2004");
     assert_eq!(cli.vcpus, 4);
-    assert_eq!(cli.disk, 50);
-    assert_eq!(cli.memory, 4096);
+    assert_eq!(cli.disk_size_gb, 50);
+    assert_eq!(cli.memory_mb, 4096);
     assert_eq!(cli.graphics, true);
     assert_eq!(cli.dry_run, true);
 }
