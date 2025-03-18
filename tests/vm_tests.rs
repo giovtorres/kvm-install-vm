@@ -6,6 +6,62 @@ mod tests {
     use std::process::Command;
     use virt::domain::Domain;
 
+    // Test fixture struct that implements Drop for guaranteed cleanup
+    struct VMTestFixture {
+        name: String,
+        disk_path: String,
+    }
+
+    impl VMTestFixture {
+        fn new(name: &str) -> Self {
+            let temp_dir = std::env::temp_dir();
+            let disk_path = temp_dir
+                .join(format!("{}.qcow2", name))
+                .to_string_lossy()
+                .to_string();
+
+            // Perform initial cleanup to ensure we start with a clean state
+            Self::cleanup_vm(name, &disk_path);
+
+            VMTestFixture {
+                name: name.to_string(),
+                disk_path,
+            }
+        }
+
+        // Static method to clean up VM and disk
+        fn cleanup_vm(name: &str, disk_path: &str) {
+            println!("Cleaning up VM: {}", name);
+
+            // Force destroy the domain if it's running
+            let _ = Command::new("virsh").args(["destroy", name]).output();
+
+            // Undefine the domain with all related resources
+            let _ = Command::new("virsh")
+                .args([
+                    "undefine",
+                    name,
+                    "--managed-save",
+                    "--snapshots-metadata",
+                    "--nvram",
+                ])
+                .output();
+
+            // Remove disk if it exists
+            if std::path::Path::new(disk_path).exists() {
+                let _ = fs::remove_file(disk_path);
+                println!("Removed disk: {}", disk_path);
+            }
+        }
+    }
+
+    // Drop implementation ensures cleanup happens even if tests panic or fail
+    impl Drop for VMTestFixture {
+        fn drop(&mut self) {
+            Self::cleanup_vm(&self.name, &self.disk_path);
+        }
+    }
+
     // Helper function to check if a VM with a given name exists
     fn domain_exists(name: &str) -> bool {
         let output = Command::new("virsh")
@@ -74,36 +130,21 @@ mod tests {
     }
 
     // Helper function to create a test VM for later destruction tests
-    fn create_test_vm(name: &str) -> Result<()> {
+    fn create_test_vm(name: &str, fixture: &VMTestFixture) -> Result<()> {
         // Skip if domain already exists
         if domain_exists(name) {
             return Ok(());
         }
 
-        let temp_dir = std::env::temp_dir();
-        let disk_path = temp_dir.join(format!("{}.qcow2", name));
-
         // Create a minimal VM for testing
-        let mut vm = VirtualMachine::new(
-            name.to_string(),
-            1,
-            512,
-            1,
-            disk_path.to_string_lossy().to_string(),
-        );
+        let mut vm = VirtualMachine::new(name.to_string(), 1, 512, 1, fixture.disk_path.clone());
 
         vm.connect(None)?;
 
         // Create disk if it doesn't exist
-        if !disk_path.exists() {
+        if !std::path::Path::new(&fixture.disk_path).exists() {
             Command::new("qemu-img")
-                .args([
-                    "create",
-                    "-f",
-                    "qcow2",
-                    disk_path.to_string_lossy().as_ref(),
-                    "1G",
-                ])
+                .args(["create", "-f", "qcow2", &fixture.disk_path, "1G"])
                 .output()
                 .expect("Failed to create test disk image");
         }
@@ -114,29 +155,6 @@ mod tests {
         Domain::define_xml(conn, &xml)?;
 
         Ok(())
-    }
-
-    // Helper to clean up any leftover test resources
-    fn cleanup_test_resources(name: &str) {
-        if domain_exists(name) {
-            let _ = Command::new("virsh").args(["destroy", name]).output();
-
-            let _ = Command::new("virsh")
-                .args([
-                    "undefine",
-                    name,
-                    "--managed-save",
-                    "--snapshots-metadata",
-                    "--nvram",
-                ])
-                .output();
-        }
-
-        let temp_dir = std::env::temp_dir();
-        let disk_path = temp_dir.join(format!("{}.qcow2", name));
-        if disk_path.exists() {
-            let _ = fs::remove_file(disk_path);
-        }
     }
 
     #[test]
@@ -189,12 +207,15 @@ mod tests {
     #[test]
     #[ignore]
     fn test_connect_to_libvirt() -> Result<()> {
+        // Create fixture first to ensure cleanup
+        let fixture = VMTestFixture::new("test-connect-vm");
+
         let mut vm = VirtualMachine::new(
             "test-connect-vm".to_string(),
             1,
             512,
             1,
-            "/tmp/test-connect-vm.qcow2".to_string(),
+            fixture.disk_path.clone(),
         );
 
         vm.connect(None)?;
@@ -209,33 +230,19 @@ mod tests {
     #[ignore]
     fn test_create_and_destroy_vm() -> Result<()> {
         let test_name = "test-create-destroy-vm";
-        let temp_dir = std::env::temp_dir();
-        let disk_path = temp_dir.join(format!("{}.qcow2", test_name));
-
-        // Clean up any previous test resources
-        cleanup_test_resources(test_name);
+        // Create fixture first to ensure cleanup happens automatically
+        let fixture = VMTestFixture::new(test_name);
 
         // Create a new VM
-        let mut vm = VirtualMachine::new(
-            test_name.to_string(),
-            1,
-            512,
-            1,
-            disk_path.to_string_lossy().to_string(),
-        );
+        let mut vm =
+            VirtualMachine::new(test_name.to_string(), 1, 512, 1, fixture.disk_path.clone());
 
         vm.connect(None)?;
 
         // Create disk if it doesn't exist
-        if !disk_path.exists() {
+        if !std::path::Path::new(&fixture.disk_path).exists() {
             Command::new("qemu-img")
-                .args([
-                    "create",
-                    "-f",
-                    "qcow2",
-                    disk_path.to_string_lossy().as_ref(),
-                    "1G",
-                ])
+                .args(["create", "-f", "qcow2", &fixture.disk_path, "1G"])
                 .output()
                 .expect("Failed to create test disk image");
         }
@@ -256,10 +263,10 @@ mod tests {
         assert!(!domain_exists(test_name));
 
         // Disk should still exist since we used remove_disk=false
-        assert!(disk_path.exists());
+        assert!(std::path::Path::new(&fixture.disk_path).exists());
 
-        // Clean up disk
-        let _ = fs::remove_file(disk_path);
+        // Note: We don't need manual cleanup here,
+        // the fixture's Drop implementation will handle it
 
         Ok(())
     }
@@ -269,9 +276,11 @@ mod tests {
     #[ignore]
     fn test_destroy_static_method() -> Result<()> {
         let test_name = "test-static-destroy-vm";
+        // Create fixture first to ensure cleanup happens automatically
+        let fixture = VMTestFixture::new(test_name);
 
         // Create a test VM first
-        create_test_vm(test_name)?;
+        create_test_vm(test_name, &fixture)?;
 
         // Verify it exists
         assert!(domain_exists(test_name));
@@ -283,9 +292,7 @@ mod tests {
         assert!(!domain_exists(test_name));
 
         // Disk should be gone since we used remove_disk=true
-        let temp_dir = std::env::temp_dir();
-        let disk_path = temp_dir.join(format!("{}.qcow2", test_name));
-        assert!(!disk_path.exists());
+        assert!(!std::path::Path::new(&fixture.disk_path).exists());
 
         Ok(())
     }
@@ -293,7 +300,10 @@ mod tests {
     // Test destroying a non-existent VM (should return error)
     #[test]
     fn test_destroy_nonexistent_vm() {
-        let result = VirtualMachine::destroy("definitely-nonexistent-vm", None, false);
+        // Still create a fixture to ensure any leftovers are cleaned up
+        let fixture = VMTestFixture::new("definitely-nonexistent-vm");
+
+        let result = VirtualMachine::destroy(&fixture.name, None, false);
         assert!(result.is_err());
     }
 }
