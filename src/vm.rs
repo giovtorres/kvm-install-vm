@@ -136,8 +136,7 @@ impl VirtualMachine {
               <source file='{}'/>
               <target dev='vda' bus='virtio'/>
             </disk>
-            <interface type='network'>
-              <source network='default'/>
+            <interface type='user'>
               <model type='virtio'/>
             </interface>
             <console type='pty'/>
