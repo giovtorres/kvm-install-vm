@@ -15,14 +15,14 @@ fn test_cli_create_defaults() {
     let cli = Cli::parse_from(args);
 
     match cli.command {
-        Commands::Create { 
-            name, 
-            distro, 
-            vcpus, 
-            memory_mb, 
-            disk_size_gb, 
-            graphics, 
-            dry_run 
+        Commands::Create {
+            name,
+            distro,
+            vcpus,
+            memory_mb,
+            disk_size_gb,
+            graphics,
+            dry_run,
         } => {
             assert_eq!(name, "test-vm");
             assert_eq!(distro, "centos8");
@@ -31,7 +31,7 @@ fn test_cli_create_defaults() {
             assert_eq!(memory_mb, 1024);
             assert_eq!(graphics, false);
             assert_eq!(dry_run, false);
-        },
+        }
         _ => panic!("Expected Create command"),
     }
 }
@@ -40,11 +40,16 @@ fn test_cli_create_defaults() {
 fn test_cli_create_custom_values() {
     let args = get_args(&[
         "create",
-        "--name", "custom-vm",
-        "--distro", "ubuntu2004",
-        "--vcpus", "4",
-        "--memory-mb", "4096",
-        "--disk-size-gb", "50",
+        "--name",
+        "custom-vm",
+        "--distro",
+        "ubuntu2004",
+        "--vcpus",
+        "4",
+        "--memory-mb",
+        "4096",
+        "--disk-size-gb",
+        "50",
         "--graphics",
         "--dry-run",
     ]);
@@ -52,14 +57,14 @@ fn test_cli_create_custom_values() {
     let cli = Cli::parse_from(args);
 
     match cli.command {
-        Commands::Create { 
-            name, 
-            distro, 
-            vcpus, 
-            memory_mb, 
-            disk_size_gb, 
-            graphics, 
-            dry_run 
+        Commands::Create {
+            name,
+            distro,
+            vcpus,
+            memory_mb,
+            disk_size_gb,
+            graphics,
+            dry_run,
         } => {
             assert_eq!(name, "custom-vm");
             assert_eq!(distro, "ubuntu2004");
@@ -68,7 +73,7 @@ fn test_cli_create_custom_values() {
             assert_eq!(memory_mb, 4096);
             assert_eq!(graphics, true);
             assert_eq!(dry_run, true);
-        },
+        }
         _ => panic!("Expected Create command"),
     }
 }
@@ -82,7 +87,7 @@ fn test_cli_destroy_defaults() {
         Commands::Destroy { name, remove_disk } => {
             assert_eq!(name, "test-vm");
             assert_eq!(remove_disk, false);
-        },
+        }
         _ => panic!("Expected Destroy command"),
     }
 }
@@ -96,7 +101,7 @@ fn test_cli_destroy_with_disk_removal() {
         Commands::Destroy { name, remove_disk } => {
             assert_eq!(name, "test-vm");
             assert_eq!(remove_disk, true);
-        },
+        }
         _ => panic!("Expected Destroy command"),
     }
 }

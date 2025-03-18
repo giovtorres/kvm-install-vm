@@ -1,9 +1,9 @@
 #[cfg(test)]
 mod tests {
+    use anyhow::Result;
     use kvm_install_vm::vm::VirtualMachine;
     use std::fs;
     use std::process::Command;
-    use anyhow::Result;
     use virt::domain::Domain;
 
     // Helper function to check if a VM with a given name exists
@@ -12,14 +12,15 @@ mod tests {
             .args(["list", "--all", "--name"])
             .output()
             .expect("Failed to execute virsh command");
-        
+
         let output_str = String::from_utf8_lossy(&output.stdout);
         output_str.lines().any(|line| line.trim() == name)
     }
 
     // Custom function to generate domain XML for testing
     fn generate_test_domain_xml(vm: &VirtualMachine) -> String {
-        format!(r#"
+        format!(
+            r#"
         <domain type='kvm'>
           <name>{}</name>
           <memory unit='MiB'>{}</memory>
@@ -46,7 +47,9 @@ mod tests {
             <graphics type='vnc' port='-1'/>
           </devices>
         </domain>
-        "#, vm.name, vm.memory_mb, vm.vcpus, vm.disk_path)
+        "#,
+            vm.name, vm.memory_mb, vm.vcpus, vm.disk_path
+        )
     }
 
     // Extract disk paths function for testing
@@ -79,7 +82,7 @@ mod tests {
 
         let temp_dir = std::env::temp_dir();
         let disk_path = temp_dir.join(format!("{}.qcow2", name));
-        
+
         // Create a minimal VM for testing
         let mut vm = VirtualMachine::new(
             name.to_string(),
@@ -90,15 +93,16 @@ mod tests {
         );
 
         vm.connect(None)?;
-        
+
         // Create disk if it doesn't exist
         if !disk_path.exists() {
             Command::new("qemu-img")
                 .args([
-                    "create", 
-                    "-f", "qcow2", 
-                    disk_path.to_string_lossy().as_ref(), 
-                    "1G"
+                    "create",
+                    "-f",
+                    "qcow2",
+                    disk_path.to_string_lossy().as_ref(),
+                    "1G",
                 ])
                 .output()
                 .expect("Failed to create test disk image");
@@ -115,12 +119,16 @@ mod tests {
     // Helper to clean up any leftover test resources
     fn cleanup_test_resources(name: &str) {
         if domain_exists(name) {
+            let _ = Command::new("virsh").args(["destroy", name]).output();
+
             let _ = Command::new("virsh")
-                .args(["destroy", name])
-                .output();
-            
-            let _ = Command::new("virsh")
-                .args(["undefine", name, "--managed-save", "--snapshots-metadata", "--nvram"])
+                .args([
+                    "undefine",
+                    name,
+                    "--managed-save",
+                    "--snapshots-metadata",
+                    "--nvram",
+                ])
                 .output();
         }
 
@@ -170,7 +178,7 @@ mod tests {
         "#;
 
         let disk_paths = extract_disk_paths_from_xml(xml);
-        
+
         assert_eq!(disk_paths.len(), 2);
         assert!(disk_paths.contains(&"/path/to/disk1.qcow2".to_string()));
         assert!(disk_paths.contains(&"/path/to/disk2.qcow2".to_string()));
@@ -191,7 +199,7 @@ mod tests {
 
         vm.connect(None)?;
         assert!(vm.connection.is_some());
-        
+
         Ok(())
     }
 
@@ -203,10 +211,10 @@ mod tests {
         let test_name = "test-create-destroy-vm";
         let temp_dir = std::env::temp_dir();
         let disk_path = temp_dir.join(format!("{}.qcow2", test_name));
-        
+
         // Clean up any previous test resources
         cleanup_test_resources(test_name);
-        
+
         // Create a new VM
         let mut vm = VirtualMachine::new(
             test_name.to_string(),
@@ -217,41 +225,42 @@ mod tests {
         );
 
         vm.connect(None)?;
-        
+
         // Create disk if it doesn't exist
         if !disk_path.exists() {
             Command::new("qemu-img")
                 .args([
-                    "create", 
-                    "-f", "qcow2", 
-                    disk_path.to_string_lossy().as_ref(), 
-                    "1G"
+                    "create",
+                    "-f",
+                    "qcow2",
+                    disk_path.to_string_lossy().as_ref(),
+                    "1G",
                 ])
                 .output()
                 .expect("Failed to create test disk image");
         }
-        
+
         // Create the VM via helper function since we can't call the private method
         let conn = vm.connection.as_ref().unwrap();
         let xml = generate_test_domain_xml(&vm);
         let domain = Domain::define_xml(conn, &xml)?;
         domain.create()?;
-        
+
         // Verify it exists
         assert!(domain_exists(test_name));
-        
+
         // Now destroy it
         vm.destroy_instance(false)?;
-        
+
         // Verify it no longer exists
         assert!(!domain_exists(test_name));
-        
+
         // Disk should still exist since we used remove_disk=false
         assert!(disk_path.exists());
-        
+
         // Clean up disk
         let _ = fs::remove_file(disk_path);
-        
+
         Ok(())
     }
 
@@ -260,24 +269,24 @@ mod tests {
     #[ignore]
     fn test_destroy_static_method() -> Result<()> {
         let test_name = "test-static-destroy-vm";
-        
+
         // Create a test VM first
         create_test_vm(test_name)?;
-        
+
         // Verify it exists
         assert!(domain_exists(test_name));
-        
+
         // Destroy it with the static method
         VirtualMachine::destroy(test_name, None, true)?;
-        
+
         // Verify it no longer exists
         assert!(!domain_exists(test_name));
-        
+
         // Disk should be gone since we used remove_disk=true
         let temp_dir = std::env::temp_dir();
         let disk_path = temp_dir.join(format!("{}.qcow2", test_name));
         assert!(!disk_path.exists());
-        
+
         Ok(())
     }
 

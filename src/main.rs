@@ -68,41 +68,47 @@ fn main() {
                 }
             }
         }
-        
-        Commands::List { all, running, inactive } => {
+
+        Commands::List {
+            all,
+            running,
+            inactive,
+        } => {
             println!("Listing virtual machines...");
-            
+
             // Determine which types of domains to list
             let filters = (*all, *running, *inactive);
-            
+
             // If no specific flags are provided, default to showing all domains
             let show_all = filters == (false, false, false) || *all;
-            
+
             match VirtualMachine::list_domains(None) {
                 Ok(domains) => {
                     // Filter domains based on flags
-                    let filtered_domains: Vec<_> = domains.into_iter()
+                    let filtered_domains: Vec<_> = domains
+                        .into_iter()
                         .filter(|domain| {
                             if show_all {
                                 return true;
                             }
-                            
-                            if *running && domain.state == kvm_install_vm::vm::DomainState::Running {
+
+                            if *running && domain.state == kvm_install_vm::vm::DomainState::Running
+                            {
                                 return true;
                             }
-                            
+
                             if *inactive && domain.id.is_none() {
                                 return true;
                             }
-                            
+
                             false
                         })
                         .collect();
-                    
+
                     // Print header
                     println!("{:<5} {:<30} {:<10}", "ID", "Name", "State");
                     println!("{:-<5} {:-<30} {:-<10}", "", "", "");
-                    
+
                     // Print domains
                     if filtered_domains.is_empty() {
                         println!("No domains found matching the specified criteria");
@@ -112,7 +118,7 @@ fn main() {
                                 Some(id) => id.to_string(),
                                 None => "-".to_string(),
                             };
-                            
+
                             println!("{:<5} {:<30} {:<10}", id_str, domain.name, domain.state);
                         }
                     }

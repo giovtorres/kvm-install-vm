@@ -1,10 +1,9 @@
 use anyhow::{Context, Result};
-use std::path::Path;
 use std::fmt;
+use std::path::Path;
 use virt::connect::Connect;
 use virt::domain::Domain;
 use virt::sys;
-
 
 pub struct VirtualMachine {
     pub name: String,
@@ -18,7 +17,7 @@ pub struct VirtualMachine {
 
 #[derive(Debug)]
 pub struct DomainInfo {
-    pub id: Option<u32>,      // None if domain is inactive
+    pub id: Option<u32>, // None if domain is inactive
     pub name: String,
     pub state: DomainState,
 }
@@ -226,88 +225,84 @@ impl VirtualMachine {
     }
 
     pub fn list_domains(uri: Option<&str>) -> Result<Vec<DomainInfo>> {
-      let uri = uri.or(Some("qemu:///session"));
-      let conn = Connect::open(uri).context("Failed to connect to libvirt")?;
+        let uri = uri.or(Some("qemu:///session"));
+        let conn = Connect::open(uri).context("Failed to connect to libvirt")?;
 
-      let mut domain_infos = Vec::new();
+        let mut domain_infos = Vec::new();
 
-      // Get active domains
-      let active_domains = conn.list_all_domains(sys::VIR_CONNECT_LIST_DOMAINS_ACTIVE)
-          .context("Failed to list active domains")?;
+        // Get active domains
+        let active_domains = conn
+            .list_all_domains(sys::VIR_CONNECT_LIST_DOMAINS_ACTIVE)
+            .context("Failed to list active domains")?;
 
-      // Get inactive domains
-      let inactive_domains = conn.list_all_domains(sys::VIR_CONNECT_LIST_DOMAINS_INACTIVE)
-          .context("Failed to list inactive domains")?;
+        // Get inactive domains
+        let inactive_domains = conn
+            .list_all_domains(sys::VIR_CONNECT_LIST_DOMAINS_INACTIVE)
+            .context("Failed to list inactive domains")?;
 
-      // Process active domains
-      for domain in active_domains {
-          let name = domain.get_name().context("Failed to get domain name")?;
-          let id = domain.get_id();
+        // Process active domains
+        for domain in active_domains {
+            let name = domain.get_name().context("Failed to get domain name")?;
+            let id = domain.get_id();
 
-          // Get domain state
-          let state = match domain.get_state() {
-              Ok((state, _reason)) => {
-                  match state {
-                      sys::VIR_DOMAIN_RUNNING => DomainState::Running,
-                      sys::VIR_DOMAIN_PAUSED => DomainState::Paused,
-                      sys::VIR_DOMAIN_SHUTDOWN => DomainState::Shutdown,
-                      sys::VIR_DOMAIN_SHUTOFF => DomainState::Shutoff,
-                      sys::VIR_DOMAIN_CRASHED => DomainState::Crashed,
-                      _ => DomainState::Unknown,
-                  }
-              },
-              Err(_) => DomainState::Unknown,
-          };
+            // Get domain state
+            let state = match domain.get_state() {
+                Ok((state, _reason)) => match state {
+                    sys::VIR_DOMAIN_RUNNING => DomainState::Running,
+                    sys::VIR_DOMAIN_PAUSED => DomainState::Paused,
+                    sys::VIR_DOMAIN_SHUTDOWN => DomainState::Shutdown,
+                    sys::VIR_DOMAIN_SHUTOFF => DomainState::Shutoff,
+                    sys::VIR_DOMAIN_CRASHED => DomainState::Crashed,
+                    _ => DomainState::Unknown,
+                },
+                Err(_) => DomainState::Unknown,
+            };
 
-          domain_infos.push(DomainInfo {
-              id,
-              name,
-              state,
-          });
-      }
+            domain_infos.push(DomainInfo { id, name, state });
+        }
 
-      // Process inactive domains
-      for domain in inactive_domains {
-          let name = domain.get_name().context("Failed to get domain name")?;
-          
-          domain_infos.push(DomainInfo {
-              id: None,
-              name,
-              state: DomainState::Shutoff,
-          });
-      }
+        // Process inactive domains
+        for domain in inactive_domains {
+            let name = domain.get_name().context("Failed to get domain name")?;
 
-      // Sort domains by name for consistent output
-      domain_infos.sort_by(|a, b| a.name.cmp(&b.name));
+            domain_infos.push(DomainInfo {
+                id: None,
+                name,
+                state: DomainState::Shutoff,
+            });
+        }
 
-      Ok(domain_infos)
-  }
+        // Sort domains by name for consistent output
+        domain_infos.sort_by(|a, b| a.name.cmp(&b.name));
 
-  /// Pretty print the list of domains
-  pub fn print_domain_list(uri: Option<&str>) -> Result<()> {
-      let domains = Self::list_domains(uri)?;
-      
-      if domains.is_empty() {
-          println!("No domains found");
-          return Ok(());
-      }
+        Ok(domain_infos)
+    }
 
-      // Print header
-      println!("{:<5} {:<30} {:<10}", "ID", "Name", "State");
-      println!("{:-<5} {:-<30} {:-<10}", "", "", "");
-      
-      // Print domains
-      for domain in domains {
-          let id_str = match domain.id {
-              Some(id) => id.to_string(),
-              None => "-".to_string(),
-          };
-          
-          println!("{:<5} {:<30} {:<10}", id_str, domain.name, domain.state);
-      }
+    /// Pretty print the list of domains
+    pub fn print_domain_list(uri: Option<&str>) -> Result<()> {
+        let domains = Self::list_domains(uri)?;
 
-      Ok(())
-  }    
+        if domains.is_empty() {
+            println!("No domains found");
+            return Ok(());
+        }
+
+        // Print header
+        println!("{:<5} {:<30} {:<10}", "ID", "Name", "State");
+        println!("{:-<5} {:-<30} {:-<10}", "", "", "");
+
+        // Print domains
+        for domain in domains {
+            let id_str = match domain.id {
+                Some(id) => id.to_string(),
+                None => "-".to_string(),
+            };
+
+            println!("{:<5} {:<30} {:<10}", id_str, domain.name, domain.state);
+        }
+
+        Ok(())
+    }
 }
 
 fn extract_disk_paths_from_xml(xml: &str) -> Vec<String> {
