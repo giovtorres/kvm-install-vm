@@ -1,5 +1,5 @@
 use clap::Parser;
-use kvm_install_vm::{Cli, vm::VirtualMachine};
+use kvm_install_vm::{Cli, cli::Commands, vm::VirtualMachine};
 use std::process;
 
 fn main() {
@@ -7,42 +7,68 @@ fn main() {
     env_logger::init();
 
     // Parse command line arguments
-    let args = Cli::parse();
+    let cli = Cli::parse();
 
-    println!("Starting kvm-install-vm Rust implementation...");
-    println!("VM Name: {}", args.name);
-    println!("Distribution: {}", args.distro);
+    match &cli.command {
+        Commands::Create {
+            name,
+            distro,
+            vcpus,
+            memory_mb,
+            disk_size_gb,
+            graphics,
+            dry_run,
+        } => {
+            println!("Starting kvm-install-vm Rust implementation...");
+            println!("VM Name: {}", name);
+            println!("Distribution: {}", distro);
 
-    println!("Configuration:");
-    println!("  vCPUs: {}", args.vcpus);
-    println!("  Memory: {} MB", args.memory_mb);
-    println!("  Disk Size: {} GB", args.disk_size_gb);
+            println!("Configuration:");
+            println!("  vCPUs: {}", vcpus);
+            println!("  Memory: {} MB", memory_mb);
+            println!("  Disk Size: {} GB", disk_size_gb);
+            println!("  Graphics: {}", graphics);
 
-    let disk_path = format!("/home/giovanni/virt/images/{}.qcow2", args.name);
-    let vm_name = args.name.clone();
+            if *dry_run {
+                println!("Dry run mode - not creating VM");
+                return;
+            }
 
-    let mut vm = VirtualMachine::new(
-        args.name,
-        args.vcpus,
-        args.memory_mb,
-        args.disk_size_gb,
-        disk_path,
-        // args.distro,
-    );
+            let disk_path = format!("/home/giovanni/virt/images/{}.qcow2", name);
+            let vm_name = name.clone();
 
-    if let Err(e) = vm.connect(None) {
-        eprintln!("Failed to connect to libvirt: {}", e);
-        process::exit(1);
-    }
+            let mut vm =
+                VirtualMachine::new(name.clone(), *vcpus, *memory_mb, *disk_size_gb, disk_path);
 
-    match vm.create() {
-        Ok(domain) => {
-            println!("Successfully created VM: {}", vm_name);
-            println!("Domain ID: {}", domain.get_id().unwrap_or(0));
-        },
-        Err(e) => {
-            eprintln!("Failed to create VM: {}", e);
-            process::exit(1);
+            if let Err(e) = vm.connect(None) {
+                eprintln!("Failed to connect to libvirt: {}", e);
+                process::exit(1);
+            }
+
+            match vm.create() {
+                Ok(domain) => {
+                    println!("Successfully created VM: {}", vm_name);
+                    println!("Domain ID: {}", domain.get_id().unwrap_or(0));
+                }
+                Err(e) => {
+                    eprintln!("Failed to create VM: {}", e);
+                    process::exit(1);
+                }
+            }
+        }
+
+        Commands::Destroy { name, remove_disk } => {
+            println!("Destroying VM: {}", name);
+
+            match VirtualMachine::destroy(name, None, *remove_disk) {
+                Ok(()) => {
+                    println!("VM '{}' destroy operation completed successfully", name);
+                }
+                Err(e) => {
+                    eprintln!("Failed to destroy VM '{}': {}", name, e);
+                    process::exit(1);
+                }
+            }
         }
     }
 }

@@ -1,20 +1,26 @@
-use anyhow::{Result, Context};
+use anyhow::{Context, Result};
 use std::path::Path;
 use virt::connect::Connect;
 use virt::domain::Domain;
 
 pub struct VirtualMachine {
-    name: String,
-    vcpus: u32,
-    memory_mb: u32,
-    disk_size_gb: u32,
-    disk_path: String,
+    pub name: String,
+    pub vcpus: u32,
+    pub memory_mb: u32,
+    pub disk_size_gb: u32,
+    pub disk_path: String,
     // distro: String,
-    connection: Option<Connect>,
+    pub connection: Option<Connect>,
 }
 
 impl VirtualMachine {
-    pub fn new(name: String, vcpus: u32, memory_mb: u32, disk_size_gb: u32, disk_path: String) -> Self {
+    pub fn new(
+        name: String,
+        vcpus: u32,
+        memory_mb: u32,
+        disk_size_gb: u32,
+        disk_path: String,
+    ) -> Self {
         VirtualMachine {
             name,
             vcpus,
@@ -55,12 +61,21 @@ impl VirtualMachine {
     fn create_disk_image(&self) -> Result<()> {
         // Create disk image using qemu-img
         let output = std::process::Command::new("qemu-img")
-            .args(&["create", "-f", "qcow2", &self.disk_path, &format!("{}G", self.disk_size_gb)])
+            .args(&[
+                "create",
+                "-f",
+                "qcow2",
+                &self.disk_path,
+                &format!("{}G", self.disk_size_gb),
+            ])
             .output()
             .context("Failed to execute qemu-img command")?;
 
         if !output.status.success() {
-            return Err(anyhow::anyhow!("Failed to create disk image: {:?}", output.stderr));
+            return Err(anyhow::anyhow!(
+                "Failed to create disk image: {:?}",
+                output.stderr
+            ));
         }
 
         Ok(())
@@ -68,7 +83,8 @@ impl VirtualMachine {
 
     fn generate_domain_xml(&self) -> Result<String> {
         // Generate domain XML
-        let xml = format!(r#"
+        let xml = format!(
+            r#"
         <domain type='kvm'>
           <name>{}</name>
           <memory unit='MiB'>{}</memory>
@@ -95,8 +111,106 @@ impl VirtualMachine {
             <graphics type='vnc' port='-1'/>
           </devices>
         </domain>
-        "#, self.name, self.memory_mb, self.vcpus, self.disk_path);
+        "#,
+            self.name, self.memory_mb, self.vcpus, self.disk_path
+        );
 
         Ok(xml)
     }
+
+    // Destroy method for instance
+    pub fn destroy_instance(&mut self, remove_disk: bool) -> Result<()> {
+        // Ensure connection is established
+        if self.connection.is_none() {
+            return Err(anyhow::anyhow!("Connection not established"));
+        }
+
+        Self::destroy(&self.name, Some("qemu:///session"), remove_disk)
+    }
+
+    // Static destroy method
+    pub fn destroy(name: &str, uri: Option<&str>, remove_disk: bool) -> Result<()> {
+        let uri = uri.or(Some("qemu:///session"));
+        let conn = Connect::open(uri).context("Failed to connect to libvirt")?;
+
+        let domain = match Domain::lookup_by_name(&conn, name) {
+            Ok(dom) => dom,
+            Err(e) => {
+                return Err(anyhow::anyhow!("Failed to find domain {}: {}", name, e));
+            }
+        };
+
+        // Extract disk paths before destroying the domain
+        let xml = domain.get_xml_desc(0).context("Failed to get domain XML")?;
+        let disk_paths = extract_disk_paths_from_xml(&xml);
+
+        // Check domain state first
+        if domain.is_active().context("Failed to check domain state")? {
+            println!("Stopping running domain '{}'...", name);
+            match domain.destroy() {
+                Ok(_) => println!("Domain stopped successfully"),
+                Err(e) => println!(
+                    "Warning: Failed to stop domain cleanly: {}. Continuing with undefine...",
+                    e
+                ),
+            }
+        } else {
+            println!("Domain '{}' is already stopped", name);
+        }
+
+        // Undefine the domain with flags
+        use virt::sys;
+
+        let flags = sys::VIR_DOMAIN_UNDEFINE_MANAGED_SAVE
+            | sys::VIR_DOMAIN_UNDEFINE_SNAPSHOTS_METADATA
+            | sys::VIR_DOMAIN_UNDEFINE_NVRAM;
+
+        unsafe {
+            let result = sys::virDomainUndefineFlags(domain.as_ptr(), flags);
+            if result < 0 {
+                return Err(anyhow::anyhow!("Failed to undefine domain"));
+            }
+        }
+
+        println!("Domain {} successfully undefined", name);
+
+        // Handle disk removal if requested
+        if remove_disk && !disk_paths.is_empty() {
+            println!("Removing disk images...");
+            for path in &disk_paths {
+                match std::fs::remove_file(path) {
+                    Ok(_) => println!("Successfully removed disk: {}", path),
+                    Err(e) => println!("Warning: Failed to remove disk {}: {}", path, e),
+                }
+            }
+        } else if !disk_paths.is_empty() {
+            println!("Note: The following disk images were not deleted:");
+            for path in &disk_paths {
+                println!("  - {}", path);
+            }
+        }
+
+        println!("Domain {} completely destroyed", name);
+        Ok(())
+    }
+}
+
+fn extract_disk_paths_from_xml(xml: &str) -> Vec<String> {
+    let mut disk_paths = Vec::new();
+
+    for line in xml.lines() {
+        if line.contains("<source file=") {
+            if let Some(start) = line.find("file='") {
+                if let Some(end) = line[start + 6..].find('\'') {
+                    disk_paths.push(line[start + 6..start + 6 + end].to_string());
+                }
+            } else if let Some(start) = line.find("file=\"") {
+                if let Some(end) = line[start + 6..].find('\"') {
+                    disk_paths.push(line[start + 6..start + 6 + end].to_string());
+                }
+            }
+        }
+    }
+
+    disk_paths
 }

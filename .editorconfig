@@ -5,25 +5,25 @@
 root = true
 
 [*]
-end_of_line = lf
 insert_final_newline = true
-charset = utf-8
 trim_trailing_whitespace = true
-indent_style = space
-indent_size = 4
+charset = utf-8
+
+[*.md]
+max_line_length = 78
+trim_trailing_whitespace = false
 
 [*.rs]
-indent_size = 4
+indent_style = space
+indent_size  = 4
 max_line_length = 100
 
 [*.toml]
 indent_size = 2
 
 [*.{yml,yaml}]
-indent_size = 2
-
-[*.md]
-trim_trailing_whitespace = false
+indent_style = space
+indent_size  = 2
 
 [Makefile]
 indent_style = tab

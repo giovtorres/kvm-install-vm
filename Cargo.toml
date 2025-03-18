@@ -9,10 +9,10 @@ repository = "https://github.com/giovtorres/kvm-install-vm"
 
 [dependencies]
 anyhow = "1.0"
-clap = { version = "4.4", features = ["derive"] }
-env_logger = "0.10"
+clap = { version = "4.5", features = ["derive"] }
+env_logger = "0.11"
 log = "0.4"
-virt = "0.3.1"
+virt = "0.4"
 
 [build-dependencies]
 pkg-config = "0.3"

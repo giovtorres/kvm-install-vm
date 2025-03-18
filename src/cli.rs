@@ -1,26 +1,40 @@
-use clap::Parser;
+use clap::{Parser, Subcommand};
 
 #[derive(Parser, Debug)]
-#[command(author, version, about)]
 pub struct Cli {
-    #[arg(short = 'n', long)]
-    pub name: String,
+    #[command(subcommand)]
+    pub command: Commands,
+}
 
-    #[arg(short = 't', long, default_value = "centos8")]
-    pub distro: String,
+#[derive(Subcommand, Debug)]
+pub enum Commands {
+    Create {
+        #[arg(short = 'n', long)]
+        name: String,
 
-    #[arg(short = 'c', long, default_value_t = 1)]
-    pub vcpus: u32,
+        #[arg(short = 't', long, default_value = "centos8")]
+        distro: String,
 
-    #[arg(short = 'm', long, default_value_t = 1024)]
-    pub memory_mb: u32,
+        #[arg(short = 'c', long, default_value_t = 1)]
+        vcpus: u32,
 
-    #[arg(short = 'd', long, default_value_t = 10)]
-    pub disk_size_gb: u32,
+        #[arg(short = 'm', long, default_value_t = 1024)]
+        memory_mb: u32,
 
-    #[arg(long)]
-    pub graphics: bool,
+        #[arg(short = 'd', long, default_value_t = 10)]
+        disk_size_gb: u32,
 
-    #[arg(long)]
-    pub dry_run: bool,
+        #[arg(long)]
+        graphics: bool,
+
+        #[arg(long)]
+        dry_run: bool,
+    },
+    Destroy {
+        #[arg(short = 'n', long)]
+        name: String,
+
+        #[arg(short = 'r', long)]
+        remove_disk: bool,
+    },
 }
