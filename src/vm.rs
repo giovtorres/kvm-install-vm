@@ -191,9 +191,9 @@ impl VirtualMachine {
             println!("Domain '{}' is already stopped", name);
         }
 
-        let flags = sys::VIR_DOMAIN_UNDEFINE_MANAGED_SAVE
-            | sys::VIR_DOMAIN_UNDEFINE_SNAPSHOTS_METADATA
-            | sys::VIR_DOMAIN_UNDEFINE_NVRAM;
+        let flags = virt::sys::VIR_DOMAIN_UNDEFINE_MANAGED_SAVE
+            | virt::sys::VIR_DOMAIN_UNDEFINE_SNAPSHOTS_METADATA
+            | virt::sys::VIR_DOMAIN_UNDEFINE_NVRAM;
 
         unsafe {
             let result = sys::virDomainUndefineFlags(domain.as_ptr(), flags);
@@ -232,27 +232,28 @@ impl VirtualMachine {
 
         // Get active domains
         let active_domains = conn
-            .list_all_domains(sys::VIR_CONNECT_LIST_DOMAINS_ACTIVE)
+            .list_all_domains(virt::sys::VIR_CONNECT_LIST_DOMAINS_ACTIVE)
             .context("Failed to list active domains")?;
 
         // Get inactive domains
         let inactive_domains = conn
-            .list_all_domains(sys::VIR_CONNECT_LIST_DOMAINS_INACTIVE)
+            .list_all_domains(virt::sys::VIR_CONNECT_LIST_DOMAINS_INACTIVE)
             .context("Failed to list inactive domains")?;
 
         // Process active domains
         for domain in active_domains {
             let name = domain.get_name().context("Failed to get domain name")?;
+            // domain.get_id() already returns an Option<u32>, so we don't need .ok()
             let id = domain.get_id();
 
             // Get domain state
             let state = match domain.get_state() {
                 Ok((state, _reason)) => match state {
-                    sys::VIR_DOMAIN_RUNNING => DomainState::Running,
-                    sys::VIR_DOMAIN_PAUSED => DomainState::Paused,
-                    sys::VIR_DOMAIN_SHUTDOWN => DomainState::Shutdown,
-                    sys::VIR_DOMAIN_SHUTOFF => DomainState::Shutoff,
-                    sys::VIR_DOMAIN_CRASHED => DomainState::Crashed,
+                    virt::sys::VIR_DOMAIN_RUNNING => DomainState::Running,
+                    virt::sys::VIR_DOMAIN_PAUSED => DomainState::Paused,
+                    virt::sys::VIR_DOMAIN_SHUTDOWN => DomainState::Shutdown,
+                    virt::sys::VIR_DOMAIN_SHUTOFF => DomainState::Shutoff,
+                    virt::sys::VIR_DOMAIN_CRASHED => DomainState::Crashed,
                     _ => DomainState::Unknown,
                 },
                 Err(_) => DomainState::Unknown,
@@ -278,12 +279,38 @@ impl VirtualMachine {
         Ok(domain_infos)
     }
 
-    /// Pretty print the list of domains
-    pub fn print_domain_list(uri: Option<&str>) -> Result<()> {
+    /// Pretty print the list of domains with filtering options
+    pub fn print_domain_list(
+        uri: Option<&str>,
+        show_all: bool,
+        show_running: bool,
+        show_inactive: bool,
+    ) -> Result<()> {
         let domains = Self::list_domains(uri)?;
 
         if domains.is_empty() {
             println!("No domains found");
+            return Ok(());
+        }
+
+        // Determine filtering logic
+        let use_filters = !show_all && (show_running || show_inactive);
+
+        // Filter domains based on flags if needed
+        let filtered_domains: Vec<_> = if use_filters {
+            domains
+                .into_iter()
+                .filter(|domain| {
+                    (show_running && domain.state == DomainState::Running)
+                        || (show_inactive && domain.id.is_none())
+                })
+                .collect()
+        } else {
+            domains
+        };
+
+        if filtered_domains.is_empty() {
+            println!("No domains found matching the specified criteria");
             return Ok(());
         }
 
@@ -292,7 +319,7 @@ impl VirtualMachine {
         println!("{:-<5} {:-<30} {:-<10}", "", "", "");
 
         // Print domains
-        for domain in domains {
+        for domain in filtered_domains {
             let id_str = match domain.id {
                 Some(id) => id.to_string(),
                 None => "-".to_string(),
