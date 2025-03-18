@@ -1,7 +1,10 @@
 use anyhow::{Context, Result};
 use std::path::Path;
+use std::fmt;
 use virt::connect::Connect;
 use virt::domain::Domain;
+use virt::sys;
+
 
 pub struct VirtualMachine {
     pub name: String,
@@ -11,6 +14,37 @@ pub struct VirtualMachine {
     pub disk_path: String,
     // distro: String,
     pub connection: Option<Connect>,
+}
+
+#[derive(Debug)]
+pub struct DomainInfo {
+    pub id: Option<u32>,      // None if domain is inactive
+    pub name: String,
+    pub state: DomainState,
+}
+
+#[derive(Debug, PartialEq)]
+pub enum DomainState {
+    Running,
+    Paused,
+    Shutdown,
+    Shutoff,
+    Crashed,
+    Unknown,
+}
+
+// Implement Display for DomainState for nice formatting
+impl fmt::Display for DomainState {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            DomainState::Running => write!(f, "running"),
+            DomainState::Paused => write!(f, "paused"),
+            DomainState::Shutdown => write!(f, "shutdown"),
+            DomainState::Shutoff => write!(f, "shut off"),
+            DomainState::Crashed => write!(f, "crashed"),
+            DomainState::Unknown => write!(f, "unknown"),
+        }
+    }
 }
 
 impl VirtualMachine {
@@ -158,9 +192,6 @@ impl VirtualMachine {
             println!("Domain '{}' is already stopped", name);
         }
 
-        // Undefine the domain with flags
-        use virt::sys;
-
         let flags = sys::VIR_DOMAIN_UNDEFINE_MANAGED_SAVE
             | sys::VIR_DOMAIN_UNDEFINE_SNAPSHOTS_METADATA
             | sys::VIR_DOMAIN_UNDEFINE_NVRAM;
@@ -193,6 +224,90 @@ impl VirtualMachine {
         println!("Domain {} completely destroyed", name);
         Ok(())
     }
+
+    pub fn list_domains(uri: Option<&str>) -> Result<Vec<DomainInfo>> {
+      let uri = uri.or(Some("qemu:///session"));
+      let conn = Connect::open(uri).context("Failed to connect to libvirt")?;
+
+      let mut domain_infos = Vec::new();
+
+      // Get active domains
+      let active_domains = conn.list_all_domains(sys::VIR_CONNECT_LIST_DOMAINS_ACTIVE)
+          .context("Failed to list active domains")?;
+
+      // Get inactive domains
+      let inactive_domains = conn.list_all_domains(sys::VIR_CONNECT_LIST_DOMAINS_INACTIVE)
+          .context("Failed to list inactive domains")?;
+
+      // Process active domains
+      for domain in active_domains {
+          let name = domain.get_name().context("Failed to get domain name")?;
+          let id = domain.get_id();
+
+          // Get domain state
+          let state = match domain.get_state() {
+              Ok((state, _reason)) => {
+                  match state {
+                      sys::VIR_DOMAIN_RUNNING => DomainState::Running,
+                      sys::VIR_DOMAIN_PAUSED => DomainState::Paused,
+                      sys::VIR_DOMAIN_SHUTDOWN => DomainState::Shutdown,
+                      sys::VIR_DOMAIN_SHUTOFF => DomainState::Shutoff,
+                      sys::VIR_DOMAIN_CRASHED => DomainState::Crashed,
+                      _ => DomainState::Unknown,
+                  }
+              },
+              Err(_) => DomainState::Unknown,
+          };
+
+          domain_infos.push(DomainInfo {
+              id,
+              name,
+              state,
+          });
+      }
+
+      // Process inactive domains
+      for domain in inactive_domains {
+          let name = domain.get_name().context("Failed to get domain name")?;
+          
+          domain_infos.push(DomainInfo {
+              id: None,
+              name,
+              state: DomainState::Shutoff,
+          });
+      }
+
+      // Sort domains by name for consistent output
+      domain_infos.sort_by(|a, b| a.name.cmp(&b.name));
+
+      Ok(domain_infos)
+  }
+
+  /// Pretty print the list of domains
+  pub fn print_domain_list(uri: Option<&str>) -> Result<()> {
+      let domains = Self::list_domains(uri)?;
+      
+      if domains.is_empty() {
+          println!("No domains found");
+          return Ok(());
+      }
+
+      // Print header
+      println!("{:<5} {:<30} {:<10}", "ID", "Name", "State");
+      println!("{:-<5} {:-<30} {:-<10}", "", "", "");
+      
+      // Print domains
+      for domain in domains {
+          let id_str = match domain.id {
+              Some(id) => id.to_string(),
+              None => "-".to_string(),
+          };
+          
+          println!("{:<5} {:<30} {:<10}", id_str, domain.name, domain.state);
+      }
+
+      Ok(())
+  }    
 }
 
 fn extract_disk_paths_from_xml(xml: &str) -> Vec<String> {

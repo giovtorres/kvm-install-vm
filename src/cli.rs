@@ -37,4 +37,14 @@ pub enum Commands {
         #[arg(short = 'r', long)]
         remove_disk: bool,
     },
+    List {
+        #[arg(short = 'a', long, help = "Show all domains (including inactive ones)")]
+        all: bool,
+        
+        #[arg(short = 's', long, help = "Show only running domains")]
+        running: bool,
+        
+        #[arg(short = 'i', long, help = "Show only inactive domains")]
+        inactive: bool,
+    },
 }

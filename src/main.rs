@@ -3,10 +3,8 @@ use kvm_install_vm::{Cli, cli::Commands, vm::VirtualMachine};
 use std::process;
 
 fn main() {
-    // Initialize logger
     env_logger::init();
 
-    // Parse command line arguments
     let cli = Cli::parse();
 
     match &cli.command {
@@ -66,6 +64,61 @@ fn main() {
                 }
                 Err(e) => {
                     eprintln!("Failed to destroy VM '{}': {}", name, e);
+                    process::exit(1);
+                }
+            }
+        }
+        
+        Commands::List { all, running, inactive } => {
+            println!("Listing virtual machines...");
+            
+            // Determine which types of domains to list
+            let filters = (*all, *running, *inactive);
+            
+            // If no specific flags are provided, default to showing all domains
+            let show_all = filters == (false, false, false) || *all;
+            
+            match VirtualMachine::list_domains(None) {
+                Ok(domains) => {
+                    // Filter domains based on flags
+                    let filtered_domains: Vec<_> = domains.into_iter()
+                        .filter(|domain| {
+                            if show_all {
+                                return true;
+                            }
+                            
+                            if *running && domain.state == kvm_install_vm::vm::DomainState::Running {
+                                return true;
+                            }
+                            
+                            if *inactive && domain.id.is_none() {
+                                return true;
+                            }
+                            
+                            false
+                        })
+                        .collect();
+                    
+                    // Print header
+                    println!("{:<5} {:<30} {:<10}", "ID", "Name", "State");
+                    println!("{:-<5} {:-<30} {:-<10}", "", "", "");
+                    
+                    // Print domains
+                    if filtered_domains.is_empty() {
+                        println!("No domains found matching the specified criteria");
+                    } else {
+                        for domain in filtered_domains {
+                            let id_str = match domain.id {
+                                Some(id) => id.to_string(),
+                                None => "-".to_string(),
+                            };
+                            
+                            println!("{:<5} {:<30} {:<10}", id_str, domain.name, domain.state);
+                        }
+                    }
+                }
+                Err(e) => {
+                    eprintln!("Failed to list domains: {}", e);
                     process::exit(1);
                 }
             }
