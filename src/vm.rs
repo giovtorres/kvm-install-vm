@@ -1,6 +1,14 @@
 use anyhow::{Context, Result};
+use futures_util::StreamExt;
+use indicatif::{ProgressBar, ProgressStyle};
+use reqwest;
+use serde::{Deserialize, Serialize};
 use std::fmt;
-use std::path::Path;
+use std::fs;
+use std::path::{Path, PathBuf};
+use std::process::Command;
+use tokio::fs::File;
+use tokio::io::AsyncWriteExt;
 use virt::connect::Connect;
 use virt::domain::Domain;
 use virt::sys;
@@ -13,6 +21,20 @@ pub struct VirtualMachine {
     pub disk_path: String,
     // distro: String,
     pub connection: Option<Connect>,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct DistroInfo {
+    pub qcow_filename: String,
+    pub os_variant: String,
+    pub image_url: String,
+    pub login_user: String,
+    pub sudo_group: String,
+    pub cloud_init_disable: String,
+}
+
+pub struct ImageManager {
+    image_dir: PathBuf,
 }
 
 #[derive(Debug)]
@@ -43,6 +65,154 @@ impl fmt::Display for DomainState {
             DomainState::Crashed => write!(f, "crashed"),
             DomainState::Unknown => write!(f, "unknown"),
         }
+    }
+}
+
+impl ImageManager {
+    /// Create a new ImageManager with the specified image directory
+    pub fn new<P: AsRef<Path>>(image_dir: P) -> Self {
+        ImageManager {
+            image_dir: image_dir.as_ref().to_path_buf(),
+        }
+    }
+
+    /// Check if a cloud image exists locally
+    pub fn image_exists(&self, distro_info: &DistroInfo) -> bool {
+        let image_path = self.image_dir.join(&distro_info.qcow_filename);
+        image_path.exists()
+    }
+
+    /// Get the full path to a cloud image (whether it exists or not)
+    pub fn get_image_path(&self, distro_info: &DistroInfo) -> PathBuf {
+        self.image_dir.join(&distro_info.qcow_filename)
+    }
+
+    /// Download a cloud image if it doesn't already exist locally
+    pub async fn ensure_image(&self, distro_info: &DistroInfo) -> Result<PathBuf> {
+        let image_path = self.get_image_path(distro_info);
+        
+        if image_path.exists() {
+            println!("Cloud image already exists: {}", image_path.display());
+            return Ok(image_path);
+        }
+        
+        // Create image directory if it doesn't exist
+        if !self.image_dir.exists() {
+            fs::create_dir_all(&self.image_dir)
+                .context("Failed to create image directory")?;
+        }
+        
+        println!("Downloading cloud image: {}", distro_info.qcow_filename);
+        
+        // Construct download URL
+        let url = format!("{}/{}", 
+            distro_info.image_url.trim_end_matches('/'), 
+            distro_info.qcow_filename);
+        
+        println!("From URL: {}", url);
+        
+        // Download the file with progress indication
+        self.download_file(&url, &image_path).await
+            .context("Failed to download cloud image")?;
+        
+        Ok(image_path)
+    }
+    
+    /// Download a file with progress indication
+    async fn download_file(&self, url: &str, dest: &Path) -> Result<()> {
+        // Create a temporary file for downloading
+        let temp_path = dest.with_extension("part");
+        
+        // Create parent directory if needed
+        if let Some(parent) = temp_path.parent() {
+            fs::create_dir_all(parent)?;
+        }
+        
+        // Begin the download
+        let res = reqwest::get(url).await?;
+        let total_size = res.content_length().unwrap_or(0);
+        
+        // Setup progress bar
+        let pb = ProgressBar::new(total_size);
+        pb.set_style(ProgressStyle::default_bar()
+            .template("{spinner:.green} [{elapsed_precise}] [{wide_bar:.cyan/blue}] {bytes}/{total_bytes} ({eta})")
+            .unwrap()
+            .progress_chars("#>-"));
+        
+        // Download the file in chunks, writing each chunk to disk
+        let mut file = File::create(&temp_path).await?;
+        let mut downloaded: u64 = 0;
+        let mut stream = res.bytes_stream();
+        
+        while let Some(item) = stream.next().await {
+            let chunk = item?;
+            file.write_all(&chunk).await?;
+            downloaded += chunk.len() as u64;
+            pb.set_position(downloaded);
+        }
+        
+        // Ensure everything is written to disk
+        file.flush().await?;
+        
+        // Finalize the download by renaming the temp file
+        tokio::fs::rename(&temp_path, &dest).await?;
+        
+        pb.finish_with_message(format!("Downloaded {}", dest.display()));
+        
+        Ok(())
+    }
+
+    /// Prepare a VM disk from a cloud image
+    pub fn prepare_vm_disk(
+        &self,
+        base_image: &Path,
+        vm_dir: &Path,
+        vm_name: &str,
+        disk_size_gb: u32
+    ) -> Result<PathBuf> {
+        let disk_path = vm_dir.join(format!("{}.qcow2", vm_name));
+        
+        // Create VM directory if it doesn't exist
+        fs::create_dir_all(vm_dir)
+            .context("Failed to create VM directory")?;
+        
+        // Create base disk by copying from the cloud image
+        println!("Creating disk from cloud image: {}", disk_path.display());
+        
+        let status = Command::new("qemu-img")
+            .args(&[
+                "create",
+                "-f", "qcow2",
+                "-F", "qcow2",
+                "-b", &base_image.to_string_lossy(),
+                &disk_path.to_string_lossy(),
+            ])
+            .status()
+            .context("Failed to execute qemu-img create command")?;
+        
+        if !status.success() {
+            return Err(anyhow::anyhow!("qemu-img create failed with status: {}", status));
+        }
+        
+        // Resize disk if requested
+        if disk_size_gb > 0 {
+            println!("Resizing disk to {}GB", disk_size_gb);
+            
+            let status = Command::new("qemu-img")
+                .args(&[
+                    "resize",
+                    &disk_path.to_string_lossy(),
+                    &format!("{}G", disk_size_gb),
+                ])
+                .status()
+                .context("Failed to execute qemu-img resize command")?;
+            
+            if !status.success() {
+                return Err(anyhow::anyhow!("qemu-img resize failed with status: {}", status));
+            }
+        }
+        
+        Ok(disk_path)
     }
 }
 
