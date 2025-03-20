@@ -2,6 +2,9 @@ use clap::{Parser, Subcommand};
 
 #[derive(Parser, Debug)]
 pub struct Cli {
+    #[arg(short = 'v', long, global = true)]
+    pub verbose: bool,
+
     #[command(subcommand)]
     pub command: Commands,
 }

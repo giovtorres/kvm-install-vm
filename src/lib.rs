@@ -1,6 +1,6 @@
 pub mod cli;
-pub mod vm;
-pub mod config;
 pub mod cloudinit;
+pub mod config;
+pub mod vm;
 
 pub use cli::Cli;

@@ -9,9 +9,19 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use tokio::fs::File;
 use tokio::io::AsyncWriteExt;
+use tracing::{debug, error, info, instrument, trace, warn};
 use virt::connect::Connect;
 use virt::domain::Domain;
 use virt::sys;
+
+// Create a simple macro for logging commands
+#[macro_export]
+macro_rules! log_cmd {
+    ($cmd:expr) => {{
+        debug!("Executing command: {:?}", $cmd);
+        $cmd
+    }};
+}
 
 pub struct VirtualMachine {
     pub name: String,
@@ -19,7 +29,6 @@ pub struct VirtualMachine {
     pub memory_mb: u32,
     pub disk_size_gb: u32,
     pub disk_path: String,
-    // distro: String,
     pub connection: Option<Connect>,
 }
 
@@ -90,75 +99,80 @@ impl ImageManager {
     /// Download a cloud image if it doesn't already exist locally
     pub async fn ensure_image(&self, distro_info: &DistroInfo) -> Result<PathBuf> {
         let image_path = self.get_image_path(distro_info);
-        
+
         if image_path.exists() {
+            info!("Cloud image already exists: {}", image_path.display());
             println!("Cloud image already exists: {}", image_path.display());
             return Ok(image_path);
         }
-        
+
         // Create image directory if it doesn't exist
         if !self.image_dir.exists() {
-            fs::create_dir_all(&self.image_dir)
-                .context("Failed to create image directory")?;
+            fs::create_dir_all(&self.image_dir).context("Failed to create image directory")?;
         }
-        
+
+        info!("Downloading cloud image: {}", distro_info.qcow_filename);
         println!("Downloading cloud image: {}", distro_info.qcow_filename);
-        
+
         // Construct download URL
-        let url = format!("{}/{}", 
-            distro_info.image_url.trim_end_matches('/'), 
-            distro_info.qcow_filename);
-        
+        let url = format!(
+            "{}/{}",
+            distro_info.image_url.trim_end_matches('/'),
+            distro_info.qcow_filename
+        );
+
+        debug!("From URL: {}", url);
         println!("From URL: {}", url);
-        
+
         // Download the file with progress indication
-        self.download_file(&url, &image_path).await
+        self.download_file(&url, &image_path)
+            .await
             .context("Failed to download cloud image")?;
-        
+
         Ok(image_path)
     }
-    
+
     /// Download a file with progress indication
     async fn download_file(&self, url: &str, dest: &Path) -> Result<()> {
         // Create a temporary file for downloading
         let temp_path = dest.with_extension("part");
-        
+
         // Create parent directory if needed
         if let Some(parent) = temp_path.parent() {
             fs::create_dir_all(parent)?;
         }
-        
+
         // Begin the download
         let res = reqwest::get(url).await?;
         let total_size = res.content_length().unwrap_or(0);
-        
+
         // Setup progress bar
         let pb = ProgressBar::new(total_size);
         pb.set_style(ProgressStyle::default_bar()
             .template("{spinner:.green} [{elapsed_precise}] [{wide_bar:.cyan/blue}] {bytes}/{total_bytes} ({eta})")
             .unwrap()
             .progress_chars("#>-"));
-        
+
         // Download the file in chunks, writing each chunk to disk
         let mut file = File::create(&temp_path).await?;
         let mut downloaded: u64 = 0;
         let mut stream = res.bytes_stream();
-        
+
         while let Some(item) = stream.next().await {
             let chunk = item?;
             file.write_all(&chunk).await?;
             downloaded += chunk.len() as u64;
             pb.set_position(downloaded);
         }
-        
+
         // Ensure everything is written to disk
         file.flush().await?;
-        
+
         // Finalize the download by renaming the temp file
         tokio::fs::rename(&temp_path, &dest).await?;
-        
+
         pb.finish_with_message(format!("Downloaded {}", dest.display()));
-        
+
         Ok(())
     }
 
@@ -168,50 +182,68 @@ impl ImageManager {
         base_image: &Path,
         vm_dir: &Path,
         vm_name: &str,
-        disk_size_gb: u32
+        disk_size_gb: u32,
     ) -> Result<PathBuf> {
         let disk_path = vm_dir.join(format!("{}.qcow2", vm_name));
-        
+
         // Create VM directory if it doesn't exist
-        fs::create_dir_all(vm_dir)
-            .context("Failed to create VM directory")?;
-        
+        fs::create_dir_all(vm_dir).context("Failed to create VM directory")?;
+
         // Create base disk by copying from the cloud image
+        info!("Creating disk from cloud image: {}", disk_path.display());
         println!("Creating disk from cloud image: {}", disk_path.display());
-        
-        let status = Command::new("qemu-img")
+
+        let mut command = Command::new("qemu-img");
+        let qemu_cmd = command
             .args(&[
                 "create",
-                "-f", "qcow2",
-                "-F", "qcow2",
-                "-b", &base_image.to_string_lossy(),
+                "-f",
+                "qcow2",
+                "-F",
+                "qcow2",
+                "-b",
+                &base_image.to_string_lossy(),
                 &disk_path.to_string_lossy(),
-            ])
+            ]);
+            
+        debug!("Executing command: {:?}", qemu_cmd);
+        let status = qemu_cmd
             .status()
             .context("Failed to execute qemu-img create command")?;
-        
+
         if !status.success() {
-            return Err(anyhow::anyhow!("qemu-img create failed with status: {}", status));
+            return Err(anyhow::anyhow!(
+                "qemu-img create failed with status: {}",
+                status
+            ));
         }
-        
+
         // Resize disk if requested
         if disk_size_gb > 0 {
+            info!("Resizing disk to {}GB", disk_size_gb);
             println!("Resizing disk to {}GB", disk_size_gb);
-            
-            let status = Command::new("qemu-img")
+
+            let mut command = Command::new("qemu-img");
+            let resize_cmd = command
                 .args(&[
                     "resize",
                     &disk_path.to_string_lossy(),
                     &format!("{}G", disk_size_gb),
-                ])
+                ]);
+                
+            debug!("Executing command: {:?}", resize_cmd);
+            let status = resize_cmd
                 .status()
                 .context("Failed to execute qemu-img resize command")?;
-            
+
             if !status.success() {
-                return Err(anyhow::anyhow!("qemu-img resize failed with status: {}", status));
+                return Err(anyhow::anyhow!(
+                    "qemu-img resize failed with status: {}",
+                    status
+                ));
             }
         }
-        
+
         Ok(disk_path)
     }
 }
@@ -230,57 +262,129 @@ impl VirtualMachine {
             memory_mb,
             disk_path,
             disk_size_gb,
-            // distro,
             connection: None,
         }
     }
 
+    #[instrument(skip(self), fields(vm_name = %self.name))]
     pub fn connect(&mut self, uri: Option<&str>) -> Result<()> {
         // Connect to libvirt daemon, default to "qemu:///session" if no URI provided
         let uri = uri.or(Some("qemu:///session"));
-        self.connection = Some(Connect::open(uri).context("Failed to connect to libvirt")?);
-        Ok(())
+        debug!("Connecting to libvirt with URI: {:?}", uri);
+
+        match Connect::open(uri) {
+            Ok(conn) => {
+                debug!("Successfully connected to libvirt");
+                self.connection = Some(conn);
+                info!("Connected to libvirt daemon");
+                Ok(())
+            }
+            Err(e) => {
+                error!("Failed to connect to libvirt: {}", e);
+                Err(anyhow::anyhow!("Failed to connect to libvirt: {}", e))
+            }
+        }
     }
 
+    #[instrument(skip(self), fields(vm_name = %self.name))]
     pub fn create(&mut self) -> Result<Domain> {
+        info!("Creating VM: {}", self.name);
+        debug!(
+            "VM parameters: vcpus={}, memory={}MB, disk={}GB, disk_path={}",
+            self.vcpus, self.memory_mb, self.disk_size_gb, self.disk_path
+        );
+
         // Ensure connection is established
         let conn = match &self.connection {
-            Some(c) => c,
-            None => return Err(anyhow::anyhow!("Connection not established")),
+            Some(c) => {
+                debug!("Using existing libvirt connection");
+                c
+            }
+            None => {
+                error!("Connection not established before create() call");
+                return Err(anyhow::anyhow!("Connection not established"));
+            }
         };
 
+        // Check if disk image exists and create if needed
         if !Path::new(&self.disk_path).exists() {
+            debug!("Disk image doesn't exist, creating it");
             self.create_disk_image()?;
+        } else {
+            debug!("Using existing disk image: {}", self.disk_path);
         }
 
+        // Generate XML definition
+        debug!("Generating domain XML definition");
         let xml = self.generate_domain_xml()?;
+        trace!("Generated XML: {}", xml);
 
-        let domain = Domain::define_xml(&conn, &xml).context("Failed to define domain from XML")?;
-        domain.create().context("Failed to start the domain")?;
+        // Define domain from XML
+        debug!("Defining domain from XML");
+        let domain = match Domain::define_xml(&conn, &xml) {
+            Ok(d) => {
+                info!("Domain defined successfully");
+                d
+            }
+            Err(e) => {
+                error!("Failed to define domain from XML: {}", e);
+                return Err(anyhow::anyhow!("Failed to define domain from XML: {}", e));
+            }
+        };
 
+        // Start the domain
+        debug!("Starting the domain");
+        match domain.create() {
+            Ok(_) => {
+                info!("Domain started successfully");
+            }
+            Err(e) => {
+                error!("Failed to start the domain: {}", e);
+                return Err(anyhow::anyhow!("Failed to start the domain: {}", e));
+            }
+        };
+
+        info!("VM creation completed successfully");
         Ok(domain)
     }
 
     fn create_disk_image(&self) -> Result<()> {
-        // Create disk image using qemu-img
-        let output = std::process::Command::new("qemu-img")
-            .args(&[
-                "create",
-                "-f",
-                "qcow2",
-                &self.disk_path,
-                &format!("{}G", self.disk_size_gb),
-            ])
+        info!("Creating disk image: {}", self.disk_path);
+        debug!("Disk size: {}GB, Format: qcow2", self.disk_size_gb);
+
+        // Create parent directory if it doesn't exist
+        if let Some(parent) = Path::new(&self.disk_path).parent() {
+            if !parent.exists() {
+                debug!("Creating parent directory: {}", parent.display());
+                fs::create_dir_all(parent)
+                    .context(format!("Failed to create directory: {}", parent.display()))?;
+            }
+        }
+
+        // Build the command
+        let mut cmd = Command::new("qemu-img");
+        cmd.args(&[
+            "create",
+            "-f",
+            "qcow2",
+            &self.disk_path,
+            &format!("{}G", self.disk_size_gb),
+        ]);
+
+        debug!("Executing command: {:?}", cmd);
+
+        // Execute the command
+        let output = cmd
             .output()
             .context("Failed to execute qemu-img command")?;
 
         if !output.status.success() {
-            return Err(anyhow::anyhow!(
-                "Failed to create disk image: {:?}",
-                output.stderr
-            ));
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            error!("Failed to create disk image: {}", stderr);
+            return Err(anyhow::anyhow!("Failed to create disk image: {}", stderr));
         }
 
+        info!("Successfully created disk image");
         Ok(())
     }
 
@@ -348,15 +452,20 @@ impl VirtualMachine {
 
         // Check domain state first
         if domain.is_active().context("Failed to check domain state")? {
+            info!("Stopping running domain '{}'...", name);
             println!("Stopping running domain '{}'...", name);
             match domain.destroy() {
-                Ok(_) => println!("Domain stopped successfully"),
-                Err(e) => println!(
-                    "Warning: Failed to stop domain cleanly: {}. Continuing with undefine...",
-                    e
-                ),
+                Ok(_) => {
+                    info!("Domain stopped successfully");
+                    println!("Domain stopped successfully");
+                },
+                Err(e) => {
+                    warn!("Warning: Failed to stop domain cleanly: {}. Continuing with undefine...", e);
+                    println!("Warning: Failed to stop domain cleanly: {}. Continuing with undefine...", e);
+                },
             }
         } else {
+            info!("Domain '{}' is already stopped", name);
             println!("Domain '{}' is already stopped", name);
         }
 
@@ -371,24 +480,35 @@ impl VirtualMachine {
             }
         }
 
+        info!("Domain {} successfully undefined", name);
         println!("Domain {} successfully undefined", name);
 
         // Handle disk removal if requested
         if remove_disk && !disk_paths.is_empty() {
+            info!("Removing disk images...");
             println!("Removing disk images...");
             for path in &disk_paths {
                 match std::fs::remove_file(path) {
-                    Ok(_) => println!("Successfully removed disk: {}", path),
-                    Err(e) => println!("Warning: Failed to remove disk {}: {}", path, e),
+                    Ok(_) => {
+                        info!("Successfully removed disk: {}", path);
+                        println!("Successfully removed disk: {}", path);
+                    },
+                    Err(e) => {
+                        warn!("Warning: Failed to remove disk {}: {}", path, e);
+                        println!("Warning: Failed to remove disk {}: {}", path, e);
+                    },
                 }
             }
         } else if !disk_paths.is_empty() {
+            info!("Note: The following disk images were not deleted:");
             println!("Note: The following disk images were not deleted:");
             for path in &disk_paths {
+                info!("  - {}", path);
                 println!("  - {}", path);
             }
         }
 
+        info!("Domain {} completely destroyed", name);
         println!("Domain {} completely destroyed", name);
         Ok(())
     }
