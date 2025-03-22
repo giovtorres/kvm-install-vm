@@ -1,5 +1,7 @@
 use clap::Parser;
-use kvm_install_vm::{Cli, cli::Commands, vm::VirtualMachine};
+use kvm_install_vm::{
+    Cli, Commands, Config, VirtualMachine
+};
 use std::io::Write;
 use std::process;
 use tracing::{debug, error, info};
@@ -60,14 +62,28 @@ fn main() {
                 return;
             }
 
-            let disk_path = format!("/home/giovanni/virt/images/{}.qcow2", name);
-            debug!("Using disk path: {}", disk_path);
-            let vm_name = name.clone();
+            // Load configuration
+            print_status_start("Loading configuration");
+            let config = match Config::load() {
+                Ok(config) => {
+                    println!("\x1b[32mOK\x1b[0m");
+                    config
+                },
+                Err(e) => {
+                    println!("\x1b[31mFAILED\x1b[0m");
+                    eprintln!("  Error: {}", e);
+                    error!("Failed to load configuration: {}", e);
+                    process::exit(1);
+                }
+            };
 
+            // Initialize VM instance
             print_status_start("Creating VM instance");
-            let mut vm = VirtualMachine::new(name.clone(), *vcpus, *memory_mb, *disk_size_gb, disk_path);
+            let vm_name = name.clone();
+            let mut vm = VirtualMachine::new(name.clone(), *vcpus, *memory_mb, *disk_size_gb, String::new());
             println!("\x1b[32mOK\x1b[0m");
 
+            // Connect to libvirt
             print_status_start("Connecting to libvirt");
             if let Err(e) = vm.connect(None) {
                 println!("\x1b[31mFAILED\x1b[0m");
@@ -77,25 +93,43 @@ fn main() {
             }
             println!("\x1b[32mOK\x1b[0m");
 
-            print_status_start("Creating virtual machine");
-            match vm.create() {
-                Ok(domain) => {
-                    println!("\x1b[32mOK\x1b[0m");
-                    let domain_id = domain.get_id().unwrap_or(0);
+            // Create VM with proper image handling
+            // Set up a runtime for async operations
+            let rt = tokio::runtime::Runtime::new().expect("Failed to create runtime");
+            rt.block_on(async {
+                print_status_start("Preparing VM image");
+                match vm.prepare_image(distro, &config).await {
+                    Ok(_) => {
+                        println!("\x1b[32mOK\x1b[0m");
+                        
+                        print_status_start("Creating virtual machine");
+                        match vm.create() {
+                            Ok(domain) => {
+                                println!("\x1b[32mOK\x1b[0m");
+                                let domain_id = domain.get_id().unwrap_or(0);
 
-                    info!("Successfully created VM: {}", vm_name);
-                    info!("Domain ID: {}", domain_id);
+                                info!("Successfully created VM: {}", vm_name);
+                                info!("Domain ID: {}", domain_id);
 
-                    println!("Successfully created VM: {}", vm_name);
-                    println!("Domain ID: {}", domain_id);
+                                println!("Successfully created VM: {}", vm_name);
+                                println!("Domain ID: {}", domain_id);
+                            }
+                            Err(e) => {
+                                println!("\x1b[31mFAILED\x1b[0m");
+                                eprintln!("  Error: {}", e);
+                                error!("Failed to create VM: {}", e);
+                                process::exit(1);
+                            }
+                        }
+                    },
+                    Err(e) => {
+                        println!("\x1b[31mFAILED\x1b[0m");
+                        eprintln!("  Error: {}", e);
+                        error!("Failed to prepare VM image: {}", e);
+                        process::exit(1);
+                    }
                 }
-                Err(e) => {
-                    println!("\x1b[31mFAILED\x1b[0m");
-                    eprintln!("  Error: {}", e);
-                    error!("Failed to create VM: {}", e);
-                    process::exit(1);
-                }
-            }
+            });
         }
 
         Commands::Destroy { name, remove_disk } => {

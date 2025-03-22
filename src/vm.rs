@@ -3,7 +3,6 @@ use futures_util::StreamExt;
 use indicatif::{ProgressBar, ProgressStyle};
 use reqwest;
 use serde::{Deserialize, Serialize};
-use std::fmt;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -14,14 +13,9 @@ use virt::connect::Connect;
 use virt::domain::Domain;
 use virt::sys;
 
-// Create a simple macro for logging commands
-#[macro_export]
-macro_rules! log_cmd {
-    ($cmd:expr) => {{
-        debug!("Executing command: {:?}", $cmd);
-        $cmd
-    }};
-}
+use crate::config::Config;
+use crate::domain::{DomainInfo, DomainState, extract_disk_paths_from_xml};
+use crate::cloudinit::CloudInitManager;
 
 pub struct VirtualMachine {
     pub name: String,
@@ -44,37 +38,6 @@ pub struct DistroInfo {
 
 pub struct ImageManager {
     image_dir: PathBuf,
-}
-
-#[derive(Debug)]
-pub struct DomainInfo {
-    pub id: Option<u32>, // None if domain is inactive
-    pub name: String,
-    pub state: DomainState,
-}
-
-#[derive(Debug, PartialEq)]
-pub enum DomainState {
-    Running,
-    Paused,
-    Shutdown,
-    Shutoff,
-    Crashed,
-    Unknown,
-}
-
-// Implement Display for DomainState for nice formatting
-impl fmt::Display for DomainState {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            DomainState::Running => write!(f, "running"),
-            DomainState::Paused => write!(f, "paused"),
-            DomainState::Shutdown => write!(f, "shutdown"),
-            DomainState::Shutoff => write!(f, "shut off"),
-            DomainState::Crashed => write!(f, "crashed"),
-            DomainState::Unknown => write!(f, "unknown"),
-        }
-    }
 }
 
 impl ImageManager {
@@ -133,7 +96,7 @@ impl ImageManager {
     }
 
     /// Download a file with progress indication
-    async fn download_file(&self, url: &str, dest: &Path) -> Result<()> {
+    async fn download_file(&self, url: &str, dest: &Path) -> Result<PathBuf> {
         // Create a temporary file for downloading
         let temp_path = dest.with_extension("part");
 
@@ -173,78 +136,106 @@ impl ImageManager {
 
         pb.finish_with_message(format!("Downloaded {}", dest.display()));
 
-        Ok(())
+        Ok(dest.to_path_buf())
     }
-
-    /// Prepare a VM disk from a cloud image
-    pub fn prepare_vm_disk(
-        &self,
-        base_image: &Path,
-        vm_dir: &Path,
-        vm_name: &str,
-        disk_size_gb: u32,
-    ) -> Result<PathBuf> {
-        let disk_path = vm_dir.join(format!("{}.qcow2", vm_name));
-
-        // Create VM directory if it doesn't exist
-        fs::create_dir_all(vm_dir).context("Failed to create VM directory")?;
-
-        // Create base disk by copying from the cloud image
-        info!("Creating disk from cloud image: {}", disk_path.display());
-        println!("Creating disk from cloud image: {}", disk_path.display());
-
-        let mut command = Command::new("qemu-img");
-        let qemu_cmd = command
-            .args(&[
-                "create",
-                "-f",
-                "qcow2",
-                "-F",
-                "qcow2",
-                "-b",
-                &base_image.to_string_lossy(),
-                &disk_path.to_string_lossy(),
-            ]);
-            
-        debug!("Executing command: {:?}", qemu_cmd);
-        let status = qemu_cmd
-            .status()
-            .context("Failed to execute qemu-img create command")?;
-
-        if !status.success() {
-            return Err(anyhow::anyhow!(
-                "qemu-img create failed with status: {}",
-                status
-            ));
+    
+    /// Download a cloud image with resume capability
+    #[instrument(skip(self), fields(distro = %distro_info.qcow_filename))]
+    pub async fn download_image_with_resume(&self, distro_info: &DistroInfo) -> Result<PathBuf> {
+        let image_path = self.image_dir.join(&distro_info.qcow_filename);
+        let part_path = image_path.with_extension("part");
+        
+        // Create image directory if it doesn't exist
+        if !self.image_dir.exists() {
+            fs::create_dir_all(&self.image_dir).context("Failed to create image directory")?;
         }
-
-        // Resize disk if requested
-        if disk_size_gb > 0 {
-            info!("Resizing disk to {}GB", disk_size_gb);
-            println!("Resizing disk to {}GB", disk_size_gb);
-
-            let mut command = Command::new("qemu-img");
-            let resize_cmd = command
-                .args(&[
-                    "resize",
-                    &disk_path.to_string_lossy(),
-                    &format!("{}G", disk_size_gb),
-                ]);
+        
+        // Check if the image already exists
+        if image_path.exists() {
+            info!("Cloud image already exists: {}", image_path.display());
+            println!("Cloud image already exists: {}", image_path.display());
+            return Ok(image_path);
+        }
+        
+        // Construct download URL
+        let url = format!(
+            "{}/{}",
+            distro_info.image_url.trim_end_matches('/'),
+            distro_info.qcow_filename
+        );
+        
+        info!("Downloading cloud image: {}", distro_info.qcow_filename);
+        println!("Downloading cloud image: {}", distro_info.qcow_filename);
+        debug!("From URL: {}", url);
+        
+        // Check if partial download exists
+        let resume_download = part_path.exists();
+        if resume_download {
+            info!("Partial download found. Resuming from previous download");
+            println!("Partial download found. Resuming from previous download");
+            
+            let client = reqwest::Client::new();
+            let file_size = part_path.metadata()?.len();
+            
+            debug!("Resuming from byte position: {}", file_size);
+            
+            // Create a request with Range header
+            let mut req = client.get(&url);
+            req = req.header("Range", format!("bytes={}-", file_size));
+            
+            // Download the rest of the file
+            let res = req.send().await?;
+            
+            // Check if the server supports resume
+            if res.status() == reqwest::StatusCode::PARTIAL_CONTENT {
+                let total_size = match res.content_length() {
+                    Some(len) => file_size + len,
+                    None => file_size, // Just show the current size if total is unknown
+                };
                 
-            debug!("Executing command: {:?}", resize_cmd);
-            let status = resize_cmd
-                .status()
-                .context("Failed to execute qemu-img resize command")?;
-
-            if !status.success() {
-                return Err(anyhow::anyhow!(
-                    "qemu-img resize failed with status: {}",
-                    status
-                ));
+                // Setup progress bar
+                let pb = ProgressBar::new(total_size);
+                pb.set_style(ProgressStyle::default_bar()
+                    .template("{spinner:.green} [{elapsed_precise}] [{wide_bar:.cyan/blue}] {bytes}/{total_bytes} ({eta})")
+                    .unwrap()
+                    .progress_chars("#>-"));
+                pb.set_position(file_size);
+                
+                // Open the existing part file for appending
+                let mut file = tokio::fs::OpenOptions::new()
+                    .append(true)
+                    .open(&part_path)
+                    .await?;
+                
+                let mut downloaded = file_size;
+                let mut stream = res.bytes_stream();
+                
+                while let Some(item) = stream.next().await {
+                    let chunk = item?;
+                    file.write_all(&chunk).await?;
+                    downloaded += chunk.len() as u64;
+                    pb.set_position(downloaded);
+                }
+                
+                // Ensure everything is written to disk
+                file.flush().await?;
+                
+                // Finalize the download by renaming the temp file
+                tokio::fs::rename(&part_path, &image_path).await?;
+                
+                pb.finish_with_message(format!("Downloaded {}", image_path.display()));
+                
+                return Ok(image_path);
+            } else {
+                warn!("Server does not support resume. Starting a new download");
+                println!("Server does not support resume. Starting a new download");
             }
         }
-
-        Ok(disk_path)
+        
+        // If we got here, we need to do a full download
+        self.download_file(&url, &image_path).await?;
+        
+        Ok(image_path)
     }
 }
 
@@ -284,6 +275,99 @@ impl VirtualMachine {
                 Err(anyhow::anyhow!("Failed to connect to libvirt: {}", e))
             }
         }
+    }
+
+    // Prepare the VM image for creation
+    #[instrument(skip(self, config), fields(vm_name = %self.name))]
+    pub async fn prepare_image(&mut self, distro: &str, config: &Config) -> Result<()> {
+        info!("Preparing image for VM: {}", self.name);
+        
+        // Get distribution info
+        let distro_info = config.get_distro(distro)?;
+        debug!("Using distro: {}", distro);
+        
+        // Setup image manager
+        let image_dir = PathBuf::from(&config.defaults.image_dir);
+        let image_manager = ImageManager::new(&image_dir);
+        
+        // Ensure we have the cloud image
+        info!("Checking for cloud image");
+        let cloud_image = image_manager.ensure_image(distro_info).await?;
+        debug!("Cloud image path: {}", cloud_image.display());
+        
+        // Create VM directory if it doesn't exist
+        let vm_dir = PathBuf::from(&config.defaults.vm_dir).join(&self.name);
+        if !vm_dir.exists() {
+            fs::create_dir_all(&vm_dir).context("Failed to create VM directory")?;
+        }
+        
+        // Create disk path for the VM
+        self.disk_path = vm_dir.join(format!("{}.qcow2", self.name))
+            .to_string_lossy()
+            .to_string();
+        debug!("Disk path: {}", self.disk_path);
+        
+        // Create disk image from the cloud image
+        info!("Creating disk image for VM");
+        let mut cmd = Command::new("qemu-img");
+        cmd.args([
+            "create",
+            "-f", "qcow2",
+            "-F", "qcow2",
+            "-b", cloud_image.to_str().unwrap(),
+            &self.disk_path,
+        ]);
+        
+        debug!("Running command: {:?}", cmd);
+        let status = cmd.status().context("Failed to execute qemu-img command")?;
+        
+        if !status.success() {
+            return Err(anyhow::anyhow!("Failed to create disk image"));
+        }
+        
+        // Resize disk if needed
+        if self.disk_size_gb > 10 {
+            info!("Resizing disk to {}GB", self.disk_size_gb);
+            let mut resize_cmd = Command::new("qemu-img");
+            resize_cmd.args([
+                "resize",
+                &self.disk_path,
+                &format!("{}G", self.disk_size_gb),
+            ]);
+            
+            debug!("Running command: {:?}", resize_cmd);
+            let resize_status = resize_cmd.status().context("Failed to resize disk")?;
+            
+            if !resize_status.success() {
+                return Err(anyhow::anyhow!("Failed to resize disk image"));
+            }
+        }
+        
+        // Create cloud-init configuration
+        info!("Creating cloud-init configuration");
+        let ssh_key = CloudInitManager::find_ssh_public_key()?;
+        
+        let (user_data, meta_data) = CloudInitManager::create_cloud_init_config(
+            &self.name,
+            &config.defaults.dns_domain,
+            &ssh_key,
+            &distro_info.login_user,
+            &config.defaults.timezone,
+            &distro_info.sudo_group,
+            &distro_info.cloud_init_disable,
+        )?;
+        
+        // Create cloud-init ISO
+        let iso_path = CloudInitManager::create_cloud_init_iso(
+            &vm_dir,
+            &self.name,
+            &user_data,
+            &meta_data,
+        )?;
+        debug!("Cloud-init ISO created at: {}", iso_path.display());
+        
+        info!("Image preparation completed successfully");
+        Ok(())
     }
 
     #[instrument(skip(self), fields(vm_name = %self.name))]
@@ -389,7 +473,7 @@ impl VirtualMachine {
     }
 
     fn generate_domain_xml(&self) -> Result<String> {
-        // Generate domain XML
+        // Generate domain XML with proper name tag
         let xml = format!(
             r#"
         <domain type='kvm'>
@@ -532,29 +616,34 @@ impl VirtualMachine {
         // Process active domains
         for domain in active_domains {
             let name = domain.get_name().context("Failed to get domain name")?;
-            // domain.get_id() already returns an Option<u32>, so we don't need .ok()
             let id = domain.get_id();
-
-            // Get domain state
+            
+            // Get state
             let state = match domain.get_state() {
-                Ok((state, _reason)) => match state {
-                    virt::sys::VIR_DOMAIN_RUNNING => DomainState::Running,
-                    virt::sys::VIR_DOMAIN_PAUSED => DomainState::Paused,
-                    virt::sys::VIR_DOMAIN_SHUTDOWN => DomainState::Shutdown,
-                    virt::sys::VIR_DOMAIN_SHUTOFF => DomainState::Shutoff,
-                    virt::sys::VIR_DOMAIN_CRASHED => DomainState::Crashed,
-                    _ => DomainState::Unknown,
-                },
+                Ok((state, _)) => {
+                    match state {
+                        virt::sys::VIR_DOMAIN_RUNNING => DomainState::Running,
+                        virt::sys::VIR_DOMAIN_PAUSED => DomainState::Paused,
+                        virt::sys::VIR_DOMAIN_SHUTDOWN => DomainState::Shutdown,
+                        virt::sys::VIR_DOMAIN_SHUTOFF => DomainState::Shutoff,
+                        virt::sys::VIR_DOMAIN_CRASHED => DomainState::Crashed,
+                        _ => DomainState::Unknown,
+                    }
+                }
                 Err(_) => DomainState::Unknown,
             };
 
-            domain_infos.push(DomainInfo { id, name, state });
+            domain_infos.push(DomainInfo {
+                id,
+                name,
+                state,
+            });
         }
 
         // Process inactive domains
         for domain in inactive_domains {
             let name = domain.get_name().context("Failed to get domain name")?;
-
+            
             domain_infos.push(DomainInfo {
                 id: None,
                 name,
@@ -562,81 +651,39 @@ impl VirtualMachine {
             });
         }
 
-        // Sort domains by name for consistent output
-        domain_infos.sort_by(|a, b| a.name.cmp(&b.name));
-
         Ok(domain_infos)
     }
 
-    /// Pretty print the list of domains with filtering options
-    pub fn print_domain_list(
-        uri: Option<&str>,
-        show_all: bool,
-        show_running: bool,
-        show_inactive: bool,
-    ) -> Result<()> {
+    pub fn print_domain_list(uri: Option<&str>, show_all: bool, show_running: bool, show_inactive: bool) -> Result<()> {
+        // Get domain list
         let domains = Self::list_domains(uri)?;
 
         if domains.is_empty() {
-            println!("No domains found");
-            return Ok(());
-        }
-
-        // Determine filtering logic
-        let use_filters = !show_all && (show_running || show_inactive);
-
-        // Filter domains based on flags if needed
-        let filtered_domains: Vec<_> = if use_filters {
-            domains
-                .into_iter()
-                .filter(|domain| {
-                    (show_running && domain.state == DomainState::Running)
-                        || (show_inactive && domain.id.is_none())
-                })
-                .collect()
-        } else {
-            domains
-        };
-
-        if filtered_domains.is_empty() {
-            println!("No domains found matching the specified criteria");
+            println!("No domains found.");
             return Ok(());
         }
 
         // Print header
-        println!("{:<5} {:<30} {:<10}", "ID", "Name", "State");
-        println!("{:-<5} {:-<30} {:-<10}", "", "", "");
+        println!("{:<5} {:<20} {:<10}", "ID", "Name", "State");
+        println!("{:<5} {:<20} {:<10}", "-----", "--------------------", "----------");
 
-        // Print domains
-        for domain in filtered_domains {
-            let id_str = match domain.id {
+        // Print domain information
+        for domain in domains {
+            let id = match domain.id {
                 Some(id) => id.to_string(),
                 None => "-".to_string(),
             };
 
-            println!("{:<5} {:<30} {:<10}", id_str, domain.name, domain.state);
+            let is_running = domain.state == DomainState::Running;
+            let is_inactive = domain.state == DomainState::Shutoff;
+
+            if show_all || 
+               (show_running && is_running) || 
+               (show_inactive && is_inactive) {
+                println!("{:<5} {:<20} {:<10}", id, domain.name, domain.state);
+            }
         }
 
         Ok(())
     }
-}
-
-fn extract_disk_paths_from_xml(xml: &str) -> Vec<String> {
-    let mut disk_paths = Vec::new();
-
-    for line in xml.lines() {
-        if line.contains("<source file=") {
-            if let Some(start) = line.find("file='") {
-                if let Some(end) = line[start + 6..].find('\'') {
-                    disk_paths.push(line[start + 6..start + 6 + end].to_string());
-                }
-            } else if let Some(start) = line.find("file=\"") {
-                if let Some(end) = line[start + 6..].find('\"') {
-                    disk_paths.push(line[start + 6..start + 6 + end].to_string());
-                }
-            }
-        }
-    }
-
-    disk_paths
 }
