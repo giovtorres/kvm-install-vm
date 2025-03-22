@@ -87,7 +87,7 @@ runcmd:
     ) -> Result<PathBuf> {
         info!("Creating cloud-init ISO for VM: {}", vm_name);
         println!("Creating cloud-init ISO for VM: {}", vm_name);
-        
+
         debug!("Work directory: {}", work_dir.display());
 
         let user_data_path = work_dir.join("user-data");
@@ -115,19 +115,17 @@ runcmd:
 
         // Check for genisoimage or mkisofs
         debug!("Checking for ISO creation tools");
-        
+
         // Check if genisoimage is available
         let mut cmd;
-        
+
         // Fixed approach - avoid directly chaining methods that create temporary values
         let has_genisoimage = {
-            let result = Command::new("genisoimage")
-                .arg("--version")
-                .output();
+            let result = Command::new("genisoimage").arg("--version").output();
             debug!("Checking for genisoimage: {:?}", result.is_ok());
             result.is_ok()
         };
-        
+
         if has_genisoimage {
             info!("Using genisoimage to create ISO");
             println!("Using genisoimage to create ISO");
@@ -146,13 +144,11 @@ runcmd:
         } else {
             // Check if mkisofs is available
             let has_mkisofs = {
-                let result = Command::new("mkisofs")
-                    .arg("--version")
-                    .output();
+                let result = Command::new("mkisofs").arg("--version").output();
                 debug!("Checking for mkisofs: {:?}", result.is_ok());
                 result.is_ok()
             };
-            
+
             if has_mkisofs {
                 info!("Using mkisofs to create ISO");
                 println!("Using mkisofs to create ISO");
@@ -198,7 +194,7 @@ runcmd:
         info!("Cloud-init ISO creation completed successfully");
         Ok(iso_path)
     }
-    
+
     /// Find an SSH public key
     pub fn find_ssh_public_key() -> Result<String> {
         // Try to find a suitable key file

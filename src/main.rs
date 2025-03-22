@@ -1,7 +1,5 @@
 use clap::Parser;
-use kvm_install_vm::{
-    Cli, Commands, Config, VirtualMachine
-};
+use kvm_install_vm::{Cli, Commands, Config, VirtualMachine};
 use std::io::Write;
 use std::process;
 use tracing::{debug, error, info};
@@ -28,7 +26,7 @@ fn print_progress(msg: &str) {
 
 fn main() {
     let cli = Cli::parse();
-    
+
     // Simple logging setup
     if cli.verbose {
         tracing_subscriber::fmt()
@@ -54,8 +52,10 @@ fn main() {
             print_progress(&format!("Starting kvm-install-vm for VM: {}", name));
             print_progress(&format!("Distribution: {}", distro));
 
-            debug!("Configuration: vCPUs={}, Memory={}MB, Disk={}GB, Graphics={}", 
-                vcpus, memory_mb, disk_size_gb, graphics);
+            debug!(
+                "Configuration: vCPUs={}, Memory={}MB, Disk={}GB, Graphics={}",
+                vcpus, memory_mb, disk_size_gb, graphics
+            );
 
             if *dry_run {
                 print_progress("Dry run mode - not creating VM");
@@ -68,7 +68,7 @@ fn main() {
                 Ok(config) => {
                     println!("\x1b[32mOK\x1b[0m");
                     config
-                },
+                }
                 Err(e) => {
                     println!("\x1b[31mFAILED\x1b[0m");
                     eprintln!("  Error: {}", e);
@@ -80,7 +80,13 @@ fn main() {
             // Initialize VM instance
             print_status_start("Creating VM instance");
             let vm_name = name.clone();
-            let mut vm = VirtualMachine::new(name.clone(), *vcpus, *memory_mb, *disk_size_gb, String::new());
+            let mut vm = VirtualMachine::new(
+                name.clone(),
+                *vcpus,
+                *memory_mb,
+                *disk_size_gb,
+                String::new(),
+            );
             println!("\x1b[32mOK\x1b[0m");
 
             // Connect to libvirt
@@ -101,7 +107,7 @@ fn main() {
                 match vm.prepare_image(distro, &config).await {
                     Ok(_) => {
                         println!("\x1b[32mOK\x1b[0m");
-                        
+
                         print_status_start("Creating virtual machine");
                         match vm.create() {
                             Ok(domain) => {
@@ -121,7 +127,7 @@ fn main() {
                                 process::exit(1);
                             }
                         }
-                    },
+                    }
                     Err(e) => {
                         println!("\x1b[31mFAILED\x1b[0m");
                         eprintln!("  Error: {}", e);
@@ -136,13 +142,19 @@ fn main() {
             info!("Starting VM destruction process for: {}", name);
             print_progress(&format!("Destroying VM: {}", name));
 
-            debug!("Destroying parameters - Name: {}, Remove Disk: {}", name, remove_disk);
+            debug!(
+                "Destroying parameters - Name: {}, Remove Disk: {}",
+                name, remove_disk
+            );
 
             print_status_start("Destroying virtual machine");
             match VirtualMachine::destroy(name, None, *remove_disk) {
                 Ok(()) => {
                     println!("\x1b[32mOK\x1b[0m");
-                    print_progress(&format!("VM '{}' destroy operation completed successfully", name));
+                    print_progress(&format!(
+                        "VM '{}' destroy operation completed successfully",
+                        name
+                    ));
                     info!("VM '{}' destroyed successfully", name);
                 }
                 Err(e) => {
@@ -165,8 +177,10 @@ fn main() {
             // Determine which types of domains to list
             let show_all = *all || (!*running && !*inactive);
 
-            debug!("List parameters - All: {}, Running: {}, Inactive: {}, Show all: {}", 
-                   all, running, inactive, show_all);
+            debug!(
+                "List parameters - All: {}, Running: {}, Inactive: {}, Show all: {}",
+                all, running, inactive, show_all
+            );
 
             match VirtualMachine::print_domain_list(None, show_all, *running, *inactive) {
                 Ok(()) => {
