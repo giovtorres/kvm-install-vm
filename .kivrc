@@ -1,5 +1,12 @@
 ## .kivrc - Set custom defaults for kvm-install-vm
 
+# Custom Images
+# Format: "name|description|architecture|image download url|login user"
+# Name should match what is in the os-info database
+
+#BUILTIN_VMS+=("almalinux9:AlmaLinux 9 cloud image:x86_64:https://repo.almalinux.org/almalinux/9/cloud/images/AlmaLinux-9-cloud.qcow2|almalinux")
+#BUILTIN_VMS+=("almalinux9:AlmaLinux 9 cloud image:aarch64:https://repo.almalinux.org/almalinux/9/cloud/images/AlmaLinux-9-cloud-arm64.qcow2|almalinux")
+
 # Autostart
 #AUTOSTART=false
 

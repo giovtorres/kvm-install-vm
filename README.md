@@ -10,8 +10,7 @@ Tested on the latest Fedora.
 
 You need to have the KVM hypervisor installed, along with a few other packages (naming of packages can differ on other distributions):
 
-- genisoimage or mkisofs
-- virt-install
+- virt-install >= 3.0.0
 - libguestfs-tools-c
 - qemu-img
 - libvirt-client
@@ -22,13 +21,13 @@ To install the dependencies, run:
 - Fedora example:
 
 ```
-sudo dnf -y install genisoimage virt-install libguestfs-tools-c qemu-img libvirt-client wget libosinfo
+sudo dnf -y install virt-install libguestfs-tools-c qemu-img libvirt-client wget libosinfo
 ```
 
 - Ubuntu example:
 
 ```
-sudo apt install -y genisoimage virtinst libguestfs-tools qemu-utils libvirt-clients wget libosinfo-bin
+sudo apt install -y virtinst libguestfs-tools qemu-utils libvirt-clients wget libosinfo-bin
 ```
 
 If you want to resolve guests by their hostnames, install the `libvirt-nss` package:
@@ -41,7 +40,7 @@ sudo dnf -y install libvirt-nss
 
 - Ubuntu example:
 
-```
+```bash
 sudo apt install -y libnss-libvirt
 ```
 
@@ -51,142 +50,38 @@ information.
 
 ### Usage
 
-```
-$ kvm-install-vm help
-NAME
-    kvm-install-vm - Install virtual guests using cloud-init on a local KVM
-    hypervisor.
-
-SYNOPSIS
-    kvm-install-vm COMMAND [OPTIONS]
-
-DESCRIPTION
-    A bash wrapper around virt-install to build virtual machines on a local KVM
-    hypervisor. You can run it as a normal user which will use qemu:///session
-    to connect locally to your KVM domains.
-
-COMMANDS
-    help    - show this help or help for a subcommand
-    create  - create a new guest domain
-    list    - list all domains, running and stopped
-    remove  - delete a guest domain
+```bash
+./kvm-install-vm help
 ```
 
 #### Creating Guest VMs
 
-```
-$ kvm-install-vm help create
-NAME
-    kvm-install-vm create [COMMANDS] [OPTIONS] VMNAME
+```bash
+# Create VM with the default parameters: Rocky Linux 9, 1 vCPU, 1.5GB RAM, 10GB disk capacity, x86_64 arch
+kvm-install-vm create myvm
 
-DESCRIPTION
-    Create a new guest domain.
+# Create VM with custom parameters: 2 vCPUs, 2GB RAM, and 20GB disk capacity.
+kvm-install-vm create -c 2 -m 2048 -d 20 myvm
 
-COMMANDS
-    help - show this help
+# Create a Debian 12 VM with the default parameters.
+kvm-install-vm create -t debian12 myvm
 
-OPTIONS
-    -a          Autostart             (default: false)
-    -b          Bridge                (default: virbr0)
-    -c          Number of vCPUs       (default: 1)
-    -d          Disk Size (GB)        (default: 10)
-    -D          DNS Domain            (default: example.local)
-    -f          CPU Model / Feature   (default: host)
-    -g          Graphics type         (default: spice)
-    -h          Display help
-    -i          Custom QCOW2 Image
-    -k          SSH Public Key        (default: $HOME/.ssh/id_rsa.pub)
-    -l          Location of Images    (default: $HOME/virt/images)
-    -L          Location of VMs       (default: $HOME/virt/vms)
-    -m          Memory Size (MB)      (default: 1024)
-    -M          Mac address           (default: auto-assigned)
-    -p          Console port          (default: auto)
-    -s          Custom shell script
-    -t          Linux Distribution    (default: centos8)
-    -T          Timezone              (default: US/Eastern)
-    -u          Custom user           (default: $USER)
-    -y          Assume yes to prompts (default: false)
-    -n          Assume no to prompts  (default: false)
-    -v          Be verbose
-
-DISTRIBUTIONS
-    NAME            DESCRIPTION                         LOGIN
-    amazon2         Amazon Linux 2                      ec2-user
-    centos8         CentOS 8                            centos
-    centos7         CentOS 7                            centos
-    centos7-atomic  CentOS 7 Atomic Host                centos
-    centos6         CentOS 6                            centos
-    debian9         Debian 9 (Stretch)                  debian
-    debian10        Debian 10 (Buster)                  debian
-    fedora29        Fedora 29                           fedora
-    fedora29-atomic Fedora 29 Atomic Host               fedora
-    fedora30        Fedora 30                           fedora
-    fedora31        Fedora 31                           fedora
-    fedora32        Fedora 32                           fedora
-    opensuse15      OpenSUSE Leap 15.2                  opensuse
-    ubuntu1604      Ubuntu 16.04 LTS (Xenial Xerus)     ubuntu
-    ubuntu1804      Ubuntu 18.04 LTS (Bionic Beaver)    ubuntu
-    ubuntu2004      Ubuntu 20.04 LTS (Focal Fossa)      ubuntu
-
-EXAMPLES
-    kvm-install-vm create foo
-        Create VM with the default parameters: CentOS 8, 1 vCPU, 1GB RAM, 10GB
-        disk capacity.
-
-    kvm-install-vm create -c 2 -m 2048 -d 20 foo
-        Create VM with custom parameters: 2 vCPUs, 2GB RAM, and 20GB disk
-        capacity.
-
-    kvm-install-vm create -t debian9 foo
-        Create a Debian 9 VM with the default parameters.
-
-    kvm-install-vm create -T UTC foo
-        Create a default VM with UTC timezone.
+# Create a default VM with UTC timezone.
+kvm-install-vm create -T UTC myvm
 ```
 
 #### Deleting a Guest Domain
 
-```
-$ kvm-install-vm help remove
-NAME
-    kvm-install-vm remove [COMMANDS] VMNAME
-
-DESCRIPTION
-    Destroys (stops) and undefines a guest domain.  This also remove the
-    associated storage pool.
-
-COMMANDS
-    help - show this help
-
-EXAMPLE
-    kvm-install-vm remove foo
-        Remove (destroy and undefine) a guest domain.  WARNING: This will
-        delete the guest domain and any changes made inside it!
+```bash
+# Remove (destroy and undefine) a guest domain. WARNING: This will delete the guest domain and any changes made inside it!
+kvm-install-vm remove myvm
 ```
 
 #### Attaching a new disk
 
-```
-$ kvm-install-vm help attach-disk
-NAME
-    kvm-install-vm attach-disk [OPTIONS] [COMMANDS] VMNAME
-
-DESCRIPTION
-    Attaches a new disk to a guest domain.
-
-COMMANDS
-    help - show this help
-
-OPTIONS
-    -d SIZE     Disk size (GB)
-    -f FORMAT   Disk image format       (default: qcow2)
-    -s IMAGE    Source of disk device
-    -t TARGET   Disk device target
-
-EXAMPLE
-    kvm-install-vm attach-disk -d 10 -s example-5g.qcow2 -t vdb foo
-        Attach a 10GB disk device named example-5g.qcow2 to the foo guest
-        domain.
+```bash
+# Attach a 10GB disk device named example-5g.qcow2 to the myvm guest domain.
+kvm-install-vm attach-disk -d 10 -s example-5g.qcow2 -t vdb myvm
 ```
 
 ### Setting Custom Defaults
@@ -234,8 +129,7 @@ execute the tests, run `./test.sh` in the root directory of the project.
 ### Use Cases
 
 If you don't need to use Docker or Vagrant, don't want to make changes to a
-production machine, or just want to spin up one or more VMs locally to test
-things like:
+production machine, want to tinker with the kernel or systemd, or just want to spin up one or more VMs locally to test things like:
 
 - high availability
 - clustering

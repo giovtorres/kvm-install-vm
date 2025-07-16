@@ -1,5 +1,5 @@
-#!/bin/bash
-set -e
+#!/usr/bin/env bash
+set -euo pipefail
 
 # Set program name variable - basename without subshell
 prog=${0##*/}
@@ -36,7 +36,7 @@ function usage_subcommand ()
     case "$1" in
         create)
             printf "NAME\n"
-            printf "    $prog create [COMMANDS] [OPTIONS] VMNAME\n"
+            printf "    %s create [COMMANDS] [OPTIONS] VMNAME\n" "$prog"
             printf "\n"
             printf "DESCRIPTION\n"
             printf "    Create a new guest domain.\n"
@@ -45,72 +45,52 @@ function usage_subcommand ()
             printf "    help - show this help\n"
             printf "\n"
             printf "OPTIONS\n"
-            printf "    -a          Autostart             (default: false)\n"
-            printf "    -b          Bridge                (default: virbr0)\n"
-            printf "    -c          Number of vCPUs       (default: 1)\n"
-            printf "    -d          Disk Size (GB)        (default: 10)\n"
-            printf "    -D          DNS Domain            (default: example.local)\n"
-            printf "    -f          CPU Model / Feature   (default: host)\n"
-            printf "    -g          Graphics type         (default: spice)\n"
+            printf "    -a          Autostart                     (default: false)\n"
+            printf "    -A          Architecture (x86_64|aarch64) (default: x86_64)\n"
+            printf "    -b          Bridge                        (default: virbr0)\n"
+            printf "    -c          Number of vCPUs               (default: 1)\n"
+            printf "    -d          Disk Size (GB)                (default: 10)\n"
+            printf "    -D          DNS Domain                    (default: example.local)\n"
+            printf "    -f          CPU Model / Feature           (default: host)\n"
+            printf "    -g          Graphics type                 (default: spice)\n"
             printf "    -h          Display help\n"
             printf "    -i          Custom QCOW2 Image\n"
-            printf "    -k          SSH Public Key        (default: $HOME/.ssh/id_rsa.pub)\n"
-            printf "    -l          Location of Images    (default: $HOME/virt/images)\n"
-            printf "    -L          Location of VMs       (default: $HOME/virt/vms)\n"
-            printf "    -m          Memory Size (MB)      (default: 1024)\n"
-            printf "    -M          Mac address           (default: auto-assigned)\n"
-            printf "    -p          Console port          (default: auto)\n"
+            printf "    -k          SSH Public Key                (default: %s/.ssh/id_rsa.pub)\n" "$HOME"
+            printf "    -l          Location of Images            (default: %s/virt/images)\n" "$HOME"
+            printf "    -L          Location of VMs               (default: %s/virt/vms)\n" "$HOME"
+            printf "    -m          Memory Size (MB)              (default: 1024)\n"
+            printf "    -M          Mac address                   (default: auto-assigned)\n"
+            printf "    -p          Console port                  (default: auto)\n"
             printf "    -s          Custom shell script\n"
-            printf "    -t          Linux Distribution    (default: centos8)\n"
-            printf "    -T          Timezone              (default: US/Eastern)\n"
-            printf "    -u          Custom user           (default: $USER)\n"
-            printf "    -y          Assume yes to prompts (default: false)\n"
-            printf "    -n          Assume no to prompts  (default: false)\n"
+            printf "    -t          Linux Distribution            (default: centos8)\n"
+            printf "    -T          Timezone                      (default: US/Eastern)\n"
+            printf "    -u          Custom user                   (default: %s)\n" "$USER"
+            printf "    -y          Assume yes to prompts         (default: false)\n"
+            printf "    -n          Assume no to prompts          (default: false)\n"
             printf "    -v          Be verbose\n"
             printf "\n"
             printf "DISTRIBUTIONS\n"
-            printf "    NAME            DESCRIPTION                         LOGIN\n"
-            printf "    amazon2         Amazon Linux 2                      ec2-user\n"
-            printf "    centos8         CentOS 8                            centos\n"
-            printf "    centos7         CentOS 7                            centos\n"
-            printf "    centos7-atomic  CentOS 7 Atomic Host                centos\n"
-            printf "    centos6         CentOS 6                            centos\n"
-            printf "    debian9         Debian 9 (Stretch)                  debian\n"
-            printf "    debian10        Debian 10 (Buster)                  debian\n"
-            printf "    fedora29        Fedora 29                           fedora\n"
-            printf "    fedora29-atomic Fedora 29 Atomic Host               fedora\n"
-            printf "    fedora30        Fedora 30                           fedora\n"
-            printf "    fedora31        Fedora 31                           fedora\n"
-            printf "    fedora32        Fedora 32                           fedora\n"
-            printf "    fedora33        Fedora 33                           fedora\n"
-            printf "    fedora34        Fedora 34                           fedora\n"
-            printf "    opensuse15      OpenSUSE Leap 15.2                  opensuse\n"
-            printf "    ubuntu1604      Ubuntu 16.04 LTS (Xenial Xerus)     ubuntu\n"
-            printf "    ubuntu1804      Ubuntu 18.04 LTS (Bionic Beaver)    ubuntu\n"
-            printf "    ubuntu2004      Ubuntu 20.04 LTS (Focal Fossa)      ubuntu\n"
-            printf "    ubuntu2204      Ubuntu 22.04 LTS (Jammy Jellyfish)  ubuntu\n"
-            printf "    ubuntu2404      Ubuntu 24.04 LTS (Noble Numbat)     ubuntu\n"
-            printf "    rocky8.5         Rocky Linux                         rocky\n"
-	    printf "\n"
+            list_available_vms
+	        printf "\n"
             printf "EXAMPLES\n"
-            printf "    $prog create foo\n"
+            printf "    %s create foo\n" "$prog"
             printf "        Create VM with the default parameters: CentOS 8, 1 vCPU, 1GB RAM, 10GB\n"
             printf "        disk capacity.\n"
             printf "\n"
-            printf "    $prog create -c 2 -m 2048 -d 20 foo\n"
+            printf "    %s create -c 2 -m 2048 -d 20 foo\n" "$prog"
             printf "        Create VM with custom parameters: 2 vCPUs, 2GB RAM, and 20GB disk\n"
             printf "        capacity.\n"
             printf "\n"
-            printf "    $prog create -t debian9 foo\n"
+            printf "    %s create -t debian9 foo\n" "$prog"
             printf "        Create a Debian 9 VM with the default parameters.\n"
             printf "\n"
-            printf "    $prog create -T UTC foo\n"
+            printf "    %s create -T UTC foo\n" "$prog"
             printf "        Create a default VM with UTC timezone.\n"
             printf "\n"
             ;;
         remove)
             printf "NAME\n"
-            printf "    $prog remove [COMMANDS] VMNAME\n"
+            printf "    %s remove [COMMANDS] VMNAME\n" "prog"
             printf "\n"
             printf "DESCRIPTION\n"
             printf "    Destroys (stops) and undefines a guest domain.  This also remove the\n"
@@ -120,18 +100,18 @@ function usage_subcommand ()
             printf "    help - show this help\n"
             printf "\n"
             printf "OPTIONS\n"
-            printf "    -l          Location of Images  (default: $HOME/virt/images)\n"
-            printf "    -L          Location of VMs     (default: $HOME/virt/vms)\n"
+            printf "    -l          Location of Images  (default: %s/virt/images)\n" "$HOME"
+            printf "    -L          Location of VMs     (default: %s/virt/vms)\n" "$HOME"
             printf "    -v          Be verbose\n"
             printf "\n"
             printf "EXAMPLE\n"
-            printf "    $prog remove foo\n"
+            printf "    %s remove foo\n" "$prog"
             printf "        Remove (destroy and undefine) a guest domain.  WARNING: This will\n"
             printf "        delete the guest domain and any changes made inside it!\n"
             ;;
         attach-disk)
             printf "NAME\n"
-            printf "    $prog attach-disk [OPTIONS] [COMMANDS] VMNAME\n"
+            printf "    %s attach-disk [OPTIONS] [COMMANDS] VMNAME\n" "$prog"
             printf "\n"
             printf "DESCRIPTION\n"
             printf "    Attaches a new disk to a guest domain.\n"
@@ -146,19 +126,19 @@ function usage_subcommand ()
             printf "    -t TARGET   Disk device target\n"
             printf "\n"
             printf "EXAMPLE\n"
-            printf "    $prog attach-disk -d 10 -s example-5g.qcow2 -t vdb foo\n"
+            printf "    %s attach-disk -d 10 -s example-5g.qcow2 -t vdb foo\n" "$prog"
             printf "        Attach a 10GB disk device named example-5g.qcow2 to the foo guest\n"
             printf "        domain.\n"
             ;;
         list)
             printf "NAME\n"
-            printf "    $prog list\n"
+            printf "    %s list\n" "$prog"
             printf "\n"
             printf "DESCRIPTION\n"
             printf "    Lists all running and stopped guest domains.\n"
             ;;
         *)
-            printf "'$subcommand' is not a valid subcommand.\n"
+            printf "'%s' is not a valid subcommand.\n" "$subcommand"
             exit 1
             ;;
     esac
@@ -293,190 +273,25 @@ function fetch_images ()
     # Create image directory if it doesn't already exist
     mkdir -p ${IMAGEDIR}
 
-    # Set variables based on $DISTRO
-    # Use the command "osinfo-query os" to get the list of the accepted OS variants.
-    case "$DISTRO" in
-        amazon2)
-            QCOW=amzn2-kvm-2.0.20190313-x86_64.xfs.gpt.qcow2
-            OS_TYPE="linux"
-            OS_VARIANT="auto"
-            IMAGE_URL=https://cdn.amazonlinux.com/os-images/2.0.20190313/kvm
-            DISK_FORMAT=qcow2
-            LOGIN_USER=ec2-user
-            ;;
-        centos8)
-            QCOW=CentOS-8-GenericCloud-8.1.1911-20200113.3.x86_64.qcow2
-            OS_TYPE="linux"
-            OS_VARIANT="centos8"
-            IMAGE_URL=https://cloud.centos.org/centos/8/x86_64/images
-            DISK_FORMAT=qcow2
-            LOGIN_USER=centos
-            ;;
-        centos7)
-            QCOW=CentOS-7-x86_64-GenericCloud.qcow2
-            OS_TYPE="linux"
-            OS_VARIANT="centos7.0"
-            IMAGE_URL=https://cloud.centos.org/centos/7/images
-            DISK_FORMAT=qcow2
-            LOGIN_USER=centos
-            ;;
-        centos7-atomic)
-            QCOW=CentOS-Atomic-Host-7-GenericCloud.qcow2
-            OS_TYPE="linux"
-            OS_VARIANT="centos7.0"
-            IMAGE_URL=http://cloud.centos.org/centos/7/atomic/images
-            DISK_FORMAT=qcow2
-            LOGIN_USER=centos
-            ;;
-        centos6)
-            QCOW=CentOS-6-x86_64-GenericCloud.qcow2
-            OS_TYPE="linux"
-            OS_VARIANT="centos6.9"
-            IMAGE_URL=https://cloud.centos.org/centos/6/images
-            DISK_FORMAT=qcow2
-            LOGIN_USER=centos
-            ;;
-        debian8)
-            # FIXME: Not yet working.
-            QCOW=debian-8-openstack-amd64.qcow2
-            OS_TYPE="linux"
-            OS_VARIANT="debian8"
-            IMAGE_URL=https://cdimage.debian.org/cdimage/openstack/current-8
-            DISK_FORMAT=qcow2
-            LOGIN_USER=debian
-            ;;
-        debian9)
-            QCOW=debian-9-openstack-amd64.qcow2
-            OS_TYPE="linux"
-            OS_VARIANT="debian9"
-            IMAGE_URL=https://cdimage.debian.org/cdimage/openstack/current-9
-            DISK_FORMAT=qcow2
-            LOGIN_USER=debian
-            ;;
-        debian10)
-            QCOW=debian-10-openstack-amd64.qcow2
-            OS_TYPE="linux"
-            OS_VARIANT="debian10"
-            IMAGE_URL=https://cdimage.debian.org/cdimage/openstack/current-10
-            DISK_FORMAT=qcow2
-            LOGIN_USER=debian
-            ;;
-        fedora29)
-          QCOW=Fedora-Cloud-Base-29-1.2.x86_64.qcow2
-          OS_TYPE="linux"
-          OS_VARIANT="fedora29"
-          IMAGE_URL=https://download.fedoraproject.org/pub/fedora/linux/releases/29/Cloud/x86_64/images
-          DISK_FORMAT=qcow2
-          LOGIN_USER=fedora
-          ;;
-        fedora29-atomic)
-          QCOW=Fedora-AtomicHost-29-20190611.0.x86_64.qcow2
-          OS_TYPE="linux"
-          OS_VARIANT="fedora29"
-          IMAGE_URL=https://download.fedoraproject.org/pub/alt/atomic/stable/Fedora-29-updates-20190611.0/AtomicHost/x86_64/images/
-          DISK_FORMAT=qcow2
-          LOGIN_USER=fedora
-          ;;
-        fedora30)
-          QCOW=Fedora-Cloud-Base-30-1.2.x86_64.qcow2
-          OS_TYPE="linux"
-          OS_VARIANT="fedora29"
-          IMAGE_URL=https://download.fedoraproject.org/pub/fedora/linux/releases/30/Cloud/x86_64/images
-          DISK_FORMAT=qcow2
-          LOGIN_USER=fedora
-          ;;
-        fedora31)
-          QCOW=Fedora-Cloud-Base-31-1.9.x86_64.qcow2
-          OS_TYPE="linux"
-          OS_VARIANT="fedora31"
-          IMAGE_URL=https://download.fedoraproject.org/pub/fedora/linux/releases/31/Cloud/x86_64/images
-          DISK_FORMAT=qcow2
-          LOGIN_USER=fedora
-          ;;
-       fedora32)
-          QCOW=Fedora-Cloud-Base-32-1.6.x86_64.qcow2
-          OS_TYPE="linux"
-          OS_VARIANT="fedora32"
-          IMAGE_URL=https://download.fedoraproject.org/pub/fedora/linux/releases/32/Cloud/x86_64/images
-          DISK_FORMAT=qcow2
-          LOGIN_USER=fedora
-          ;;
-        fedora33)
-            QCOW=Fedora-Cloud-Base-33-1.2.x86_64.qcow2
-            OS_TYPE="linux"
-            OS_VARIANT="fedora33"
-            IMAGE_URL=https://download.fedoraproject.org/pub/fedora/linux/releases/33/Cloud/x86_64/images
-            DISK_FORMAT=qcow2
-            LOGIN_USER=fedora
-            ;;
-        fedora34)
-            QCOW=Fedora-Cloud-Base-34-1.2.x86_64.qcow2
-            OS_TYPE="linux"
-            OS_VARIANT="fedora34"
-            IMAGE_URL=https://download.fedoraproject.org/pub/fedora/linux/releases/34/Cloud/x86_64/images
-            DISK_FORMAT=qcow2
-            LOGIN_USER=fedora
-            ;;
-        ubuntu1604)
-            QCOW=ubuntu-16.04-server-cloudimg-amd64-disk1.img
-            OS_TYPE="linux"
-            OS_VARIANT="ubuntu16.04"
-            IMAGE_URL=https://cloud-images.ubuntu.com/releases/16.04/release
-            DISK_FORMAT=qcow2
-            LOGIN_USER=ubuntu
-            ;;
-        ubuntu1804)
-            QCOW=ubuntu-18.04-server-cloudimg-amd64.img
-            OS_TYPE="linux"
-            OS_VARIANT="ubuntu18.04"
-            IMAGE_URL=https://cloud-images.ubuntu.com/releases/18.04/release
-            DISK_FORMAT=qcow2
-            LOGIN_USER=ubuntu
-            ;;
-        ubuntu2004)
-            QCOW=ubuntu-20.04-server-cloudimg-amd64.img
-            OS_TYPE="linux"
-            OS_VARIANT="ubuntu20.04"
-            IMAGE_URL=https://cloud-images.ubuntu.com/releases/20.04/release
-            DISK_FORMAT=qcow2
-            LOGIN_USER=ubuntu
-            ;;
-        ubuntu2204)
-            QCOW=ubuntu-22.04-server-cloudimg-amd64.img
-            OS_TYPE="linux"
-            OS_VARIANT="ubuntu22.04"
-            IMAGE_URL=https://cloud-images.ubuntu.com/releases/22.04/release
-            DISK_FORMAT=qcow2
-            LOGIN_USER=ubuntu
-            ;;
-        ubuntu2404)
-            QCOW=ubuntu-24.04-server-cloudimg-amd64.img
-            OS_TYPE="linux"
-            OS_VARIANT="ubuntu24.04"
-            IMAGE_URL=https://cloud-images.ubuntu.com/releases/24.04/release
-            DISK_FORMAT=qcow2
-            LOGIN_USER=ubuntu
-            ;;
-        opensuse15)
-            QCOW=openSUSE-Leap-15.2-OpenStack.x86_64.qcow2
-            OS_TYPE="linux"
-            OS_VARIANT="opensuse15.0"
-            IMAGE_URL=https://download.opensuse.org/repositories/Cloud:/Images:/Leap_15.2/images
-            DISK_FORMAT=qcow2
-            LOGIN_USER=opensuse
-            ;;
-	 rocky85)
-            QCOW=Rocky-8-GenericCloud-8.5-20211114.2.x86_64.qcow2
-            OS_TYPE="linux"
-            OS_VARIANT="rocky8.5"
-            IMAGE_URL=https://dl.rockylinux.org/pub/rocky/8.5/images
-            DISK_FORMAT=qcow2
-            LOGIN_USER=rocky
-            ;;
-        *)
-            die "${DISTRO} not a supported OS.  Run 'kvm-install-vm create help'."
-            ;;
-    esac
+    local found="false"
+    local vm_url=""
+
+    for vm in "${BUILTIN_VMS[@]}"; do
+        IFS=\| read -r vm_distro vm_desc vm_arch vm_url vm_login_user <<< "$vm"
+        if [[ "$vm_distro" == "$DISTRO" && "$vm_arch" == "$ARCH" ]]; then
+            QCOW="${vm_url##*/}"  # Grab just the file from the URL to pass into virt-install
+            OS_INFO="$vm_distro"  # Distro name should come from osinfo
+            IMAGE_URL="${vm_url%/*}"  # Grab everything but the filename and the slash
+            DISK_FORMAT="qcow2"
+            LOGIN_USER="$vm_login_user"
+            found="true"
+            break
+        fi
+    done
+
+    if [ "$found" = "false" ]; then
+        die "No matching image found for ${DISTRO} (${ARCH})"
+    fi
 
     IMAGE=${IMAGEDIR}/${QCOW}
 
@@ -529,9 +344,9 @@ function check_ssh_key ()
 
 function check_os_variant ()
 {
-    if [[ ${OS_VARIANT} != auto ]]; then
-        osinfo-query os short-id=${OS_VARIANT} >/dev/null \
-            || die "Unknown OS variant '${OS_VARIANT}'. Please update your osinfo-db. "\
+    if [[ ${OS_INFO} != auto ]]; then
+        osinfo-query os short-id=${OS_INFO} >/dev/null \
+            || die "Unknown OS variant '${OS_INFO}'. Please update your osinfo-db. "\
                    "See https://libosinfo.org/download for more information."
     fi
 }
@@ -553,7 +368,7 @@ function storpool_exists ()
 function set_sudo_group ()
 {
     case "${DISTRO}" in
-        centos*|fedora*|rocky*|*-atomic|amazon*|opensuse* )
+        almalinux*|centos*|fedora*|rocky*|*-atomic|amazon*|opensuse* )
             SUDOGROUP="wheel"
             ;;
         ubuntu*|debian* )
@@ -565,25 +380,9 @@ function set_sudo_group ()
     esac
 }
 
-function set_cloud_init_remove ()
-{
-    case "${DISTRO}" in
-        centos6 )
-            CLOUDINITDISABLE="chkconfig cloud-init off"
-            ;;
-        centos8|centos7|amazon*|fedora*|rocky*|ubuntu*|debian*|opensuse* )
-            CLOUDINITDISABLE="systemctl disable cloud-init.service"
-            ;;
-        *-atomic)
-            CLOUDINITDISABLE="/usr/bin/true"
-            ;;
-    esac
-}
-
 function set_network_restart_cmd ()
 {
     case "${DISTRO}" in
-        centos6 )           NETRESTART="service network stop && service network start" ;;
         ubuntu*|debian*)    NETRESTART="systemctl stop networking && systemctl start networking" ;;
         *)                  NETRESTART="systemctl stop network && systemctl start network" ;;
     esac
@@ -656,7 +455,6 @@ timezone: ${TIMEZONE}
 # Remove cloud-init when finished with it
 runcmd:
   - ${NETRESTART}
-  - ${CLOUDINITDISABLE}
 _EOF_
 
     if [ ! -z "${SCRIPTNAME+x}" ]
@@ -704,21 +502,6 @@ _EOF_
         esac
     fi
 
-    # Create CD-ROM ISO with cloud-init config
-    outputn "Generating ISO for cloud-init"
-    if command -v genisoimage &>/dev/null
-    then
-        genisoimage -output $CI_ISO \
-            -volid cidata \
-            -joliet -r $USER_DATA $META_DATA &>> ${VMNAME}.log \
-            && ok \
-            || die "Could not generate ISO."
-    else
-        mkisofs -o $CI_ISO -V cidata -J -r $USER_DATA $META_DATA &>> ${VMNAME}.log \
-            && ok \
-            || die "Could not generate ISO."
-    fi
-
     # Create new storage pool for new VM
     run "Creating storage pool" \
         virsh pool-create-as \
@@ -741,11 +524,6 @@ _EOF_
         $(param bus ${DISK_BUS}) \
         ${DISK_EXTRA})"
 
-    # Assemble CI ISO disk parameters.
-    CI_ISO_PARAMS="$(join ',' \
-        ${CI_ISO} \
-        ${CI_ISO_EXTRA})"
-
     # Omit the --graphics option to auto-detect.
     if [ "${GRAPHICS}" = 'auto' ]
     then
@@ -761,8 +539,8 @@ _EOF_
     # Assemble virt-install options.
     NETWORK_OPTION="$(param --network ${NETWORK_PARAMS})"
     DISK_OPTION="$(param --disk ${DISK_PARAMS})"
-    CI_ISO_OPTION="$(param --disk ${CI_ISO_PARAMS})"
     GRAPHICS_OPTION="$(param --graphics ${GRAPHICS_PARAMS})"
+    CLOUD_INIT_OPTION="$(param --cloud-init user-data=${USER_DATA},meta-data=${META_DATA},disable=on)"
 
     # Call virt-install to import the cloud image and create a new VM
     run "Installing the domain" \
@@ -772,10 +550,9 @@ _EOF_
         --vcpus=${CPUS} \
         --cpu=${FEATURE} \
         ${DISK_OPTION} \
-        ${CI_ISO_OPTION} \
+        ${CLOUD_INIT_OPTION} \
         ${NETWORK_OPTION} \
-        --os-type=${OS_TYPE} \
-        --os-variant=${OS_VARIANT} \
+        --osinfo=${OS_INFO} \
         --noautoconsole \
         ${GRAPHICS_OPTION} \
         ${VIRT_INSTALL_EXTRA} \
@@ -793,35 +570,39 @@ _EOF_
             || die "Could not enable autostart."
     fi
 
-    # Eject cdrom
-    virsh detach-disk --domain ${VMNAME} ${VMDIR}/${VMNAME}/${CI_ISO} --config &>> ${VMNAME}.log
-
     # Remove the unnecessary cloud init files
     outputn "Cleaning up cloud-init files"
-    rm -f $USER_DATA $META_DATA $CI_ISO && ok
+    rm -f $USER_DATA $META_DATA && ok
 
     MAC=$(virsh dumpxml ${VMNAME} | awk -F\' '/mac address/ {print $2}')
     output "MAC address: ${MAC}"
 
-    if [ -f "/var/lib/libvirt/dnsmasq/${BRIDGE}.status" ]
-    then
-        outputn "Waiting for domain to get an IP address"
-        while true
-        do
-            IP=$(grep -B1 $MAC /var/lib/libvirt/dnsmasq/$BRIDGE.status | head \
-                 -n 1 | awk '{print $2}' | sed -e s/\"//g -e s/,//)
-            if [ "$IP" = "" ]
-            then
-                sleep 1
-            else
+    status_file="/var/lib/libvirt/dnsmasq/${BRIDGE}.status"
+    IP=""
+    timeout=60   # seconds
+
+    if [[ -f "$status_file" ]]; then
+        outputn "Waiting for domain to get an IP address "
+
+        for (( i=0; i<timeout; i++ )); do
+            IP=$(
+                { grep -B1 -m1 "\"mac-address\": \"$MAC\"" "$status_file" || true; } |
+                awk -F'"' '/ip-address/ {print $4; exit}'
+            )
+
+            if [[ -n "$IP" ]]; then
                 ok
                 break
             fi
+            sleep 1
         done
-        printf "\n"
+
+        [[ -n "$IP" ]] || die "Timed out waiting for DHCP lease"
+
+        printf '\n'
         check_delete_known_host
     else
-        outputn "Bridge looks like a layer 2 bridge, get the domain's IP address from your DHCP server"
+        outputn "Bridge looks like a layer‑2 bridge; get the domain’s IP from your DHCP server"
         IP="<IP address>"
     fi
 
@@ -875,9 +656,10 @@ function set_defaults ()
 {
     # Defaults are set here. Override using command line arguments.
     AUTOSTART=false                 # Automatically start VM at boot time
+    ARCH=x86_64                     # Architecture (86_64|aarch64)
     CPUS=1                          # Number of virtual CPUs
-    FEATURE=host                    # Use host cpu features to the guest
-    MEMORY=1024                     # Amount of RAM in MB
+    FEATURE=host-model              # Use host cpu features to the guest
+    MEMORY=1536                     # Amount of RAM in MB
     DISK_SIZE=""                    # Disk Size in GB
     DNSDOMAIN=example.local         # DNS domain
     GRAPHICS=spice                  # Graphics type or "auto"
@@ -886,7 +668,7 @@ function set_defaults ()
     VMDIR=${HOME}/virt/vms          # Directory to store virtual machines
     BRIDGE=virbr0                   # Hypervisor bridge
     PUBKEY=""                       # SSH public key
-    DISTRO=centos8                  # Distribution
+    DISTRO=rocky9                   # Distribution
     MACADDRESS=""                   # MAC Address
     PORT=-1                         # Console port
     TIMEZONE=US/Eastern             # Timezone
@@ -907,15 +689,70 @@ function set_defaults ()
     GRAPHICS_LISTEN=localhost
     GRAPHICS_EXTRA=""
     VIRT_INSTALL_EXTRA=""
+
+    # Format: "name|description|architecture|image download url|login user"
+    # *Note*: The name should match what is in the osinfo list
+    DEFAULT_BUILTIN_VMS=(
+        "ubuntu24.04|Ubuntu 24.04 LTS (Noble Numbat)|x86_64|https://cloud-images.ubuntu.com/noble/current/noble-server-cloudimg-amd64.img|ubuntu"
+        "ubuntu24.04|Ubuntu 24.04 LTS (Noble Numbat)|aarch64|https://cloud-images.ubuntu.com/noble/current/noble-server-cloudimg-arm64.img|ubuntu"
+        "ubuntu22.04|Ubuntu 22.04 LTS (Noble Numbat)|x86_64|https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-amd64.img|ubuntu"
+        "ubuntu22.04|Ubuntu 22.04 LTS (Noble Numbat)|aarch64|https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-arm64.img|ubuntu"
+        "debian12|Debian 12 Stable (Bookworm)|x86_64|https://cdimage.debian.org/images/cloud/bookworm/latest/debian-12-genericcloud-amd64.qcow2|debian"
+        "debian12|Debian 12 Stable (Bookworm)|aarch64|https://cdimage.debian.org/images/cloud/bookworm/latest/debian-12-genericcloud-arm64.qcow2|debian"
+        "rocky8|Rocky Linux 8 (Green Obsidian)|x86_64|https://dl.rockylinux.org/pub/rocky/8/images/x86_64/Rocky-8-GenericCloud.latest.x86_64.qcow2|rocky"
+        "rocky8|Rocky Linux 8 (Green Obsidian)|aarch64|https://dl.rockylinux.org/pub/rocky/8/images/aarch64/Rocky-8-GenericCloud.latest.aarch64.qcow2|rocky"
+        "rocky9|Rocky Linux 9 (Blue Onyx)|x86_64|https://dl.rockylinux.org/pub/rocky/9/images/x86_64/Rocky-9-GenericCloud.latest.x86_64.qcow2|rocky"
+        "rocky9|Rocky Linux 9 (Blue Onyx)|aarch64|https://dl.rockylinux.org/pub/rocky/9/images/aarch64/Rocky-9-GenericCloud.latest.aarch64.qcow2|rocky"
+    )
+
+    BUILTIN_VMS=("${DEFAULT_BUILTIN_VMS[@]}")
 }
 
 function set_custom_defaults ()
 {
-    # Source custom defaults, if set
-    if [ -f ~/.kivrc ];
-    then
-        source ${HOME}/.kivrc
+    # Source custom defaults: first local .kivrc, then fallback to ~/.kivrc
+    if [ -f "./.kivrc" ]; then
+        source "./.kivrc"
+    elif [ -f "${HOME}/.kivrc" ]; then
+        source "${HOME}/.kivrc"
     fi
+
+    declare -gA BUILTIN_VM_DESCRIPTIONS=()
+    declare -gA BUILTIN_VM_SOURCES=()
+    declare -gA BUILTIN_VM_ARCHS=()
+
+    for entry in "${BUILTIN_VMS[@]}"; do
+        IFS=":" read -r name description arch url <<< "$entry"
+        key="${name}_${arch}"
+        BUILTIN_VM_DESCRIPTIONS["$key"]=$description
+        BUILTIN_VM_ARCHS["$key"]=$arch
+        BUILTIN_VM_SOURCES["$key"]=$url
+    done
+}
+
+
+function list_available_vms() {
+    for key in "${!BUILTIN_VM_DESCRIPTIONS[@]}"; do
+        local arch="${BUILTIN_VM_ARCHS[$key]}"
+        local description="${BUILTIN_VM_DESCRIPTIONS[$key]}"
+
+        # Extract the base name (before the architecture part)
+        # Since arch can be x86_64 or aarch64, we need to be more specific
+        local name
+        if [[ "$key" == *_x86_64 ]]; then
+            name="${key%_x86_64}"
+        elif [[ "$key" == *_aarch64 ]]; then
+            name="${key%_aarch64}"
+        else
+            name="$key"
+        fi
+
+        if [[ ${#arch} -eq 6 ]]; then
+            printf "  %-13s (%s) - %s\n" "$name" "$arch" "$description"
+        else
+            printf "  %-12s (%s) - %s\n" "$name" "$arch" "$description"
+        fi
+    done | sort
 }
 
 function create ()
@@ -924,7 +761,8 @@ function create ()
     while getopts ":b:c:d:D:f:g:i:k:l:L:m:M:p:s:t:T:u:ahynv" opt
     do
         case "$opt" in
-            a ) AUTOSTART=${OPTARG} ;;
+            a ) AUTOSTART="${OPTARG}" ;;
+            A ) ARCH="$(OPTARG)" ;;
             b ) BRIDGE="${OPTARG}" ;;
             c ) CPUS="${OPTARG}" ;;
             d ) DISK_SIZE="${OPTARG}" ;;
@@ -970,7 +808,7 @@ function create ()
     if [ "$#" != 1 ]
     then
         printf "Please specify a single host to create.\n"
-        printf "Run 'kvm-install-vm help create' for usage.\n"
+        printf "Run 'kvm-install-vm create help' for usage.\n"
         exit 1
     else
         VMNAME=$1
@@ -979,7 +817,6 @@ function create ()
     # Set cloud-init variables after VMNAME is assigned
     USER_DATA=user-data
     META_DATA=meta-data
-    CI_ISO=${VMNAME}-cidata.iso
 
     # Check for ssh key
     check_ssh_key
@@ -987,7 +824,7 @@ function create ()
     if [ ! -z "${IMAGE+x}" ]
     then
         output "Using custom QCOW2 image: ${IMAGE}."
-        OS_VARIANT="auto"
+        OS_INFO="auto"
         LOGIN_USER="<use the default account in your custom image>"
     else
         fetch_images
@@ -1020,9 +857,6 @@ function create ()
 
     # Set network restart command
     set_network_restart_cmd
-
-    # Set cloud init remove command
-    set_cloud_init_remove
 
     # Set package manager
     set_sudo_group
@@ -1115,13 +949,14 @@ case "${subcommand}" in
         exit 0
         ;;
     create|remove|attach-disk|remove-disk)
+        set_defaults
+        set_custom_defaults
+
         if [[ "${1:-none}" == "none" ]]; then
             usage_subcommand "${subcommand}"
         elif [[ "$1" =~ ^help$ ]]; then
             usage_subcommand "${subcommand}"
         else
-            set_defaults
-            set_custom_defaults
             "${subcommand}" "$@"
             exit $?
         fi
