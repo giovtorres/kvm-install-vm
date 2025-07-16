@@ -758,11 +758,11 @@ function list_available_vms() {
 function create ()
 {
     # Parse command line arguments
-    while getopts ":b:c:d:D:f:g:i:k:l:L:m:M:p:s:t:T:u:ahynv" opt
+    while getopts ":A:b:c:d:D:f:g:i:k:l:L:m:M:p:s:t:T:u:ahynv" opt
     do
         case "$opt" in
             a ) AUTOSTART="${OPTARG}" ;;
-            A ) ARCH="$(OPTARG)" ;;
+            A ) ARCH="${OPTARG}" ;;
             b ) BRIDGE="${OPTARG}" ;;
             c ) CPUS="${OPTARG}" ;;
             d ) DISK_SIZE="${OPTARG}" ;;
