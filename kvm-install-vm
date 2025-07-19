@@ -46,7 +46,6 @@ function usage_subcommand ()
             printf "\n"
             printf "OPTIONS\n"
             printf "    -a          Autostart                     (default: false)\n"
-            printf "    -A          Architecture (x86_64|aarch64) (default: x86_64)\n"
             printf "    -b          Bridge                        (default: virbr0)\n"
             printf "    -c          Number of vCPUs               (default: 1)\n"
             printf "    -d          Disk Size (GB)                (default: 10)\n"
@@ -62,6 +61,7 @@ function usage_subcommand ()
             printf "    -M          Mac address                   (default: auto-assigned)\n"
             printf "    -p          Console port                  (default: auto)\n"
             printf "    -s          Custom shell script\n"
+            printf "    -S          Enable UEFI secureboot\n"
             printf "    -t          Linux Distribution            (default: centos8)\n"
             printf "    -T          Timezone                      (default: US/Eastern)\n"
             printf "    -u          Custom user                   (default: %s)\n" "$USER"
@@ -247,7 +247,7 @@ function delete_vm ()
             || yellow "(Domain is not running.)"
 
         outputn "Undefining ${VMNAME} domain"
-        virsh undefine --managed-save --snapshots-metadata ${VMNAME} > /dev/null 2>&1 \
+        virsh undefine --managed-save --snapshots-metadata --nvram ${VMNAME} > /dev/null 2>&1 \
             && ok \
             || die "Could not undefine domain."
     else
@@ -388,6 +388,35 @@ function check_delete_known_host ()
         && outputn "Found entry for ${IP}. Removing" \
         && (sed --in-place "/^${IP}/d" ~/.ssh/known_hosts && ok ) \
         || output "No entries found for ${IP}"
+}
+
+function set_boot_flag() {
+  local pkgmgr=""
+  local share_dir=""
+
+  if command -v rpm >/dev/null 2>&1 && rpm -q edk2-ovmf >/dev/null 2>&1; then
+    pkgmgr="rpm"
+    share_dir="/usr/share/edk2/ovmf"
+  elif command -v dpkg >/dev/null 2>&1 && dpkg -s edk2-ovmf >/dev/null 2>&1; then
+    pkgmgr="deb"
+    share_dir="/usr/share/OVMF"
+  else
+    BOOTFLAG=""
+    return
+  fi
+
+  local machine
+  case "$ARCH" in
+    x86_64)  machine="--machine q35" ;;
+    aarch64) machine="--machine virt" ;;
+    *)       machine="" ;;
+  esac
+
+  local code_fd="${share_dir}/OVMF_CODE${SECUREBOOT:+.secboot}.fd"
+  local vars_fd="${share_dir}/OVMF_VARS${SECUREBOOT:+.secboot}.fd"
+  local secure_flag=$(( SECUREBOOT ? 1 : 0 ))
+
+  BOOTFLAG="--boot uefi,loader=${code_fd},loader.readonly=yes,loader.type=pflash,nvram_template=$vars_fd,nvram=/var/tmp/$(basename "$vars_fd"),loader.secure=$( (( secure_flag )) && echo yes || echo no ) --features smm=on" "$machine"
 }
 
 function create_vm ()
@@ -541,6 +570,7 @@ _EOF_
         --osinfo=${OS_INFO} \
         --noautoconsole \
         ${GRAPHICS_OPTION} \
+        ${BOOTFLAG} \
         ${VIRT_INSTALL_EXTRA} \
         || die "Could not create domain with virt-install."
 
@@ -642,7 +672,7 @@ function set_defaults ()
 {
     # Defaults are set here. Override using command line arguments.
     AUTOSTART=false                 # Automatically start VM at boot time
-    ARCH=x86_64                     # Architecture (86_64|aarch64)
+    ARCH=$(uname -m)                # Architecture (autodetected)
     CPUS=1                          # Number of virtual CPUs
     FEATURE=host-model              # Use host cpu features to the guest
     MEMORY=1536                     # Amount of RAM in MB
@@ -663,6 +693,7 @@ function set_defaults ()
     ASSUME_NO=0                     # Assume no to prompts
     VERBOSE=0                       # Verbosity
     VIRTTYPE=kvm                    # Virt type (kvm, xen, qemu)
+    SECUREBOOT=0                    # Enable UEFI with SecureBoot
 
     # Reset OPTIND
     OPTIND=1
@@ -745,11 +776,10 @@ function list_available_vms() {
 function create ()
 {
     # Parse command line arguments
-    while getopts ":A:b:c:d:D:f:g:i:k:l:L:m:M:p:s:t:T:u:V:ahynv" opt
+    while getopts ":b:c:d:D:f:g:i:k:l:L:m:M:p:s:t:T:u:V:ahynSv" opt
     do
         case "$opt" in
             a ) AUTOSTART="${OPTARG}" ;;
-            A ) ARCH="${OPTARG}" ;;
             b ) BRIDGE="${OPTARG}" ;;
             c ) CPUS="${OPTARG}" ;;
             d ) DISK_SIZE="${OPTARG}" ;;
@@ -770,6 +800,7 @@ function create ()
             V ) VIRTTYPE="${OPTARG}" ;;
             y ) ASSUME_YES=1 ;;
             n ) ASSUME_NO=1 ;;
+            S ) SECUREBOOT=1 ;;
             v ) VERBOSE=1 ;;
             h ) usage ;;
             * ) die "Unsupported option. Run 'kvm-install-vm help create'." ;;
@@ -845,6 +876,9 @@ function create ()
 
     # Set package manager
     set_sudo_group
+
+    # Set flag for BIOS/UEFI/SecureBoot mode
+    set_boot_flag
 
     # Finally, create requested VM
     create_vm
