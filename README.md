@@ -4,21 +4,21 @@ A Bash wrapper around `virt-install` to quickly spin up and manage local KVM vir
 
 ## Table of Contents
 
-- [Features](#✨-features)
-- [Prerequisites](#🔧-prerequisites)
-- [Quick Start](#🚀-quick-start)
-- [Installation](#📦-installation)
-- [Usage](#💻-usage)
+- [Features](#-features)
+- [Prerequisites](#-prerequisites)
+- [Quick Start](#-quick-start)
+- [Installation](#-installation)
+- [Usage](#-usage)
    - [Create a VM](#create-a-vm)
    - [Delete a VM](#delete-a-vm)
    - [Attach a Disk](#attach-a-disk)
-- [Configuration](#⚙️-configuration)
-- [Boot Mode](#🖥️-boot-mode)
-- [Hostname Resolution (optional)](#🌐-hostname-resolution-optional)
-- [Troubleshooting](#🐞-troubleshooting)
-- [Testing](#🧪-testing)
-- [Contributing](#🤝-contributing)
-- [License](#📄-license)
+- [Configuration](#-configuration)
+- [Boot Mode](#-boot-mode)
+- [Hostname Resolution (optional)](#-hostname-resolution-optional)
+- [Troubleshooting](#-troubleshooting)
+- [Testing](#-testing)
+- [Contributing](#-contributing)
+- [License](#-license)
 
 ## ✨ Features
 
@@ -157,7 +157,7 @@ BUILTIN_VMS+=("almalinux9:AlmaLinux 9 cloud image:x86_64:https://repo.almalinux.
 
 You may add multiple lines to include multiple VMs. See `.kivrc` for more details.
 
-## 🖥️ Boot mode
+## 🖥️ Boot Mode
 
 By default, if the [EDK2 OVMF](https://github.com/tianocore/tianocore.github.io/wiki/OVMF) package is detected on the host, `virt-install` will boot using UEFI with secure boot disabled.
 
