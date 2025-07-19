@@ -4,21 +4,22 @@ A Bash wrapper around `virt-install` to quickly spin up and manage local KVM vir
 
 ## Table of Contents
 
-1. [Features](#features)
-2. [Prerequisites](#prerequisites)
-3. [Installation](#installation)
-4. [Quick Start](#quick-start)
-5. [Installation](#installation)
-6. [Usage](#usage)
+- [Features](#features)
+- [Prerequisites](#prerequisites)
+- [Installation](#installation)
+- [Quick Start](#quick-start)
+- [Installation](#installation)
+- [Usage](#usage)
    - [Create a VM](#create-a-vm)
    - [Delete a VM](#delete-a-vm)
    - [Attach a Disk](#attach-a-disk)
-7. [Configuration](#configuration)
-8. [Hostname Resolution (optional)](#hostname-resolution-optional)
-9. [Troubleshooting](#troubleshooting)
-10. [Testing](#testing)
-11. [Contributing](#contributing)
-12. [License](#license)
+- [Configuration](#configuration)
+- [Boot Mode](#boot-mode)
+- [Hostname Resolution (optional)](#hostname-resolution-optional)
+- [Troubleshooting](#troubleshooting)
+- [Testing](#testing)
+- [Contributing](#contributing)
+- [License](#license)
 
 ## ✨ Features
 
@@ -26,6 +27,7 @@ A Bash wrapper around `virt-install` to quickly spin up and manage local KVM vir
 - 🌐 Support for multiple distro cloud-images (AlmaLinux, Debian, Rocky, Ubuntu, and more)
 - 🔧 Customize CPU, RAM, disk size, architecture, and timezone
 - 💾 Attach additional disks on the fly
+- 🖥️ Boot using BIOS or UEFI (SecureBoot enabled or disabled)
 - ⚙️ Persist your favorite defaults via `~/.kivrc`
 
 ## 🔧 Prerequisites
@@ -155,6 +157,19 @@ BUILTIN_VMS+=("almalinux9:AlmaLinux 9 cloud image:x86_64:https://repo.almalinux.
 ```
 
 You may add multiple lines to include multiple VMs. See `.kivrc` for more details.
+
+## 🖥️ Boot mode
+
+By default, if the [EDK2 OVMF](https://github.com/tianocore/tianocore.github.io/wiki/OVMF) package is detected on the host, `virt-install` will boot using UEFI with secure boot disabled.
+
+With the `-S` flag, you can enable secure boot when creating a virtual machine.
+
+To confirm secure boot is enabled, use `mokutil` inside the virtual machine:
+
+```bash
+[root@rocky ~]# mokutil --sb-state
+SecureBoot enabled
+```
 
 ## 🌐 Hostname Resolution (optional)
 
