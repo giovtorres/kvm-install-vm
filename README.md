@@ -4,22 +4,21 @@ A Bash wrapper around `virt-install` to quickly spin up and manage local KVM vir
 
 ## Table of Contents
 
-- [Features](#features)
-- [Prerequisites](#prerequisites)
-- [Installation](#installation)
-- [Quick Start](#quick-start)
-- [Installation](#installation)
-- [Usage](#usage)
+- [Features](#✨-features)
+- [Prerequisites](#🔧-prerequisites)
+- [Quick Start](#🚀-quick-start)
+- [Installation](#📦-installation)
+- [Usage](#💻-usage)
    - [Create a VM](#create-a-vm)
    - [Delete a VM](#delete-a-vm)
    - [Attach a Disk](#attach-a-disk)
-- [Configuration](#configuration)
-- [Boot Mode](#boot-mode)
-- [Hostname Resolution (optional)](#hostname-resolution-optional)
-- [Troubleshooting](#troubleshooting)
-- [Testing](#testing)
-- [Contributing](#contributing)
-- [License](#license)
+- [Configuration](#⚙️-configuration)
+- [Boot Mode](#🖥️-boot-mode)
+- [Hostname Resolution (optional)](#🌐-hostname-resolution-optional)
+- [Troubleshooting](#🐞-troubleshooting)
+- [Testing](#🧪-testing)
+- [Contributing](#🤝-contributing)
+- [License](#📄-license)
 
 ## ✨ Features
 
@@ -79,7 +78,7 @@ Connect via `ssh myvm` once cloud-init finishes. Run the help command to see all
 kvm-install-vm help
 ```
 
-## Installation
+## 📦 Installation
 
 Copy the script to a folder in your PATH, and the config file to your HOME directory:
 
