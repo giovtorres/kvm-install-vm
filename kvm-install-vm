@@ -381,14 +381,6 @@ function set_sudo_group ()
     esac
 }
 
-function set_network_restart_cmd ()
-{
-    case "${DISTRO}" in
-        ubuntu*|debian*)    NETRESTART="systemctl stop networking && systemctl start networking" ;;
-        *)                  NETRESTART="systemctl stop network && systemctl start network" ;;
-    esac
-}
-
 function check_delete_known_host ()
 {
     output "Checking for ${IP} in known_hosts file"
@@ -439,23 +431,15 @@ users:
       ssh_authorized_keys:
         - ${KEY}
 
-# Configure where output will go
-output:
-  all: ">> /var/log/cloud-init.log"
-
 # configure interaction with ssh server
 ssh_genkeytypes: ['ed25519', 'rsa']
 
 # Install my public ssh key to the first user-defined user configured
-# in cloud.cfg in the template (which is centos for CentOS cloud images)
+# in cloud.cfg in the template
 ssh_authorized_keys:
   - ${KEY}
 
 timezone: ${TIMEZONE}
-
-# Remove cloud-init when finished with it
-runcmd:
-  - ${NETRESTART}
 _EOF_
 
     if [ ! -z "${SCRIPTNAME+x}" ]
@@ -858,9 +842,6 @@ function create ()
             exit 1
         fi
     fi
-
-    # Set network restart command
-    set_network_restart_cmd
 
     # Set package manager
     set_sudo_group
