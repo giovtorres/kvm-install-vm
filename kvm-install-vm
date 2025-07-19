@@ -67,7 +67,8 @@ function usage_subcommand ()
             printf "    -u          Custom user                   (default: %s)\n" "$USER"
             printf "    -y          Assume yes to prompts         (default: false)\n"
             printf "    -n          Assume no to prompts          (default: false)\n"
-            printf "    -v          Be verbose\n"
+            printf "    -v          Verbose\n"
+            printf "    -V          Virt type (kvm, xen, qemu)\n  (default: kvm)\n"
             printf "\n"
             printf "DISTRIBUTIONS\n"
             list_available_vms
@@ -435,7 +436,7 @@ users:
       groups: ['${SUDOGROUP}']
       shell: /bin/bash
       sudo: ALL=(ALL) NOPASSWD:ALL
-      ssh-authorized-keys:
+      ssh_authorized_keys:
         - ${KEY}
 
 # Configure where output will go
@@ -547,6 +548,7 @@ _EOF_
         virt-install --import \
         --name=${VMNAME} \
         --memory=${MEMORY} \
+        --virt-type=${VIRTTYPE} \
         --vcpus=${CPUS} \
         --cpu=${FEATURE} \
         ${DISK_OPTION} \
@@ -676,6 +678,7 @@ function set_defaults ()
     ASSUME_YES=0                    # Assume yes to prompts
     ASSUME_NO=0                     # Assume no to prompts
     VERBOSE=0                       # Verbosity
+    VIRTTYPE=kvm                    # Virt type (kvm, xen, qemu)
 
     # Reset OPTIND
     OPTIND=1
@@ -758,7 +761,7 @@ function list_available_vms() {
 function create ()
 {
     # Parse command line arguments
-    while getopts ":A:b:c:d:D:f:g:i:k:l:L:m:M:p:s:t:T:u:ahynv" opt
+    while getopts ":A:b:c:d:D:f:g:i:k:l:L:m:M:p:s:t:T:u:V:ahynv" opt
     do
         case "$opt" in
             a ) AUTOSTART="${OPTARG}" ;;
@@ -780,6 +783,7 @@ function create ()
             t ) DISTRO="${OPTARG}" ;;
             T ) TIMEZONE="${OPTARG}" ;;
             u ) ADDITIONAL_USER="${OPTARG}" ;;
+            V ) VIRTTYPE="${OPTARG}" ;;
             y ) ASSUME_YES=1 ;;
             n ) ASSUME_NO=1 ;;
             v ) VERBOSE=1 ;;
