@@ -521,7 +521,7 @@ _EOF_
         --name=${VMNAME} \
         --type=dir \
         --target=${VMDIR}/${VMNAME} \
-        || die "Could not create storage pool."
+        || die "Could not create storage pool. VM may already exist. Try removing first."
 
     # Add custom MAC Address if specified
     NETWORK_PARAMS="$(join ',' \
@@ -622,7 +622,10 @@ _EOF_
     fi
 
     printf "\n"
-    output "SSH to ${VMNAME}: 'ssh ${LOGIN_USER}@${IP}' or 'ssh ${LOGIN_USER}@${VMNAME}'"
+    output "SSH to ${VMNAME}:"
+    output "  ssh ${IP}"
+    output "  ssh ${LOGIN_USER}@${IP}"
+    output "  ssh ${LOGIN_USER}@${VMNAME}"
     CONSOLE=$(virsh domdisplay ${VMNAME})
     # Workaround because VNC port number shown by virsh domdisplay is offset from 5900
     if [ "${GRAPHICS}" = 'vnc' ]
