@@ -412,11 +412,14 @@ function set_boot_flag() {
     *)       machine="" ;;
   esac
 
-  local code_fd="${share_dir}/OVMF_CODE${SECUREBOOT:+.secboot}.fd"
-  local vars_fd="${share_dir}/OVMF_VARS${SECUREBOOT:+.secboot}.fd"
-  local secure_flag=$(( SECUREBOOT ? 1 : 0 ))
+  local suffix=""
+  if (( SECUREBOOT )); then
+    suffix=".secboot"
+  fi
+  local code_fd="${share_dir}/OVMF_CODE${suffix}.fd"
+  local vars_fd="${share_dir}/OVMF_VARS${suffix}.fd"
 
-  BOOTFLAG="--boot uefi,loader=${code_fd},loader.readonly=yes,loader.type=pflash,nvram_template=$vars_fd,nvram=/var/tmp/$(basename "$vars_fd"),loader.secure=$( (( secure_flag )) && echo yes || echo no ) --features smm=on" "$machine"
+  BOOTFLAG="--boot uefi,loader=${code_fd},loader.readonly=yes,loader.type=pflash,nvram_template=$vars_fd,nvram=/var/tmp/$(basename "$vars_fd"),loader.secure=$( (( SECUREBOOT )) && echo yes || echo no ) --features smm=on $machine"
 }
 
 function create_vm ()
