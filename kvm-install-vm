@@ -147,7 +147,6 @@ function usage_subcommand ()
 }
 
 # Console output colors
-bold() { echo -e "\e[1m$@\e[0m" ; }
 red() { echo -e "\e[31m$@\e[0m" ; }
 green() { echo -e "\e[32m$@\e[0m" ; }
 yellow() { echo -e "\e[33m$@\e[0m" ; }
@@ -391,14 +390,11 @@ function check_delete_known_host ()
 }
 
 function set_boot_flag() {
-  local pkgmgr=""
   local share_dir=""
 
   if command -v rpm >/dev/null 2>&1 && rpm -q edk2-ovmf >/dev/null 2>&1; then
-    pkgmgr="rpm"
     share_dir="/usr/share/edk2/ovmf"
   elif command -v dpkg >/dev/null 2>&1 && dpkg -s edk2-ovmf >/dev/null 2>&1; then
-    pkgmgr="deb"
     share_dir="/usr/share/OVMF"
   else
     BOOTFLAG=""
