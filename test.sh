@@ -1,2 +1,18 @@
 #!/bin/bash
+
+if ! command -v bats >/dev/null 2>&1; then
+  cat <<EOF >&2
+Error: The 'bats' testing framework is required but was not found.
+Please install it and try again:
+
+  # Debian/Ubuntu
+  sudo apt-get update && sudo apt-get install bats
+
+  # Fedora
+  sudo dnf install bats
+
+EOF
+  exit 1
+fi
+
 $(which bats) tests/

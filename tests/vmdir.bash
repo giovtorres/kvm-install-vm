@@ -1,5 +1,6 @@
 VMDIR=${HOME}/virt/vms
-if [ -f ~/.kivrc ]
+
+if [[ -f .kivrc ]]
 then
-    source ${HOME}/.kivrc
+    source .kivrc
 fi

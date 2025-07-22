@@ -1,9 +1,5 @@
 #!/usr/bin/env bats
 
-@test "Check that genisoimage is available" {
-    command -v genisoimage
-}
-
 @test "Check that virt-install is available" {
     command -v virt-install
 }

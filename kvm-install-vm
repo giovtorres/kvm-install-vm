@@ -889,10 +889,12 @@ function create ()
 function attach-disk ()
 {
     # Set default variables
-    FORMAT=qcow2
+    local FORMAT=qcow2
+    local TARGET=""
+    local DISKSIZE=""
 
     # Parse command line arguments
-    while getopts ":d:f:ps:t:h" opt
+    while getopts ":d:f:p:s:t:h" opt
     do
         case "$opt" in
             d ) DISKSIZE="${OPTARG}G" ;;
