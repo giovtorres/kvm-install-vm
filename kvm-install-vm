@@ -123,13 +123,11 @@ function usage_subcommand ()
             printf "OPTIONS\n"
             printf "    -d SIZE     Disk size (GB)\n"
             printf "    -f FORMAT   Disk image format       (default: qcow2)\n"
-            printf "    -s IMAGE    Source of disk device\n"
             printf "    -t TARGET   Disk device target\n"
             printf "\n"
             printf "EXAMPLE\n"
-            printf "    %s attach-disk -d 10 -s example-5g.qcow2 -t vdb foo\n" "$prog"
-            printf "        Attach a 10GB disk device named example-5g.qcow2 to the foo guest\n"
-            printf "        domain.\n"
+            printf "    %s attach-disk -d 10 -t vdb myvm\n" "$prog"
+            printf "        Attach a 10GB disk device to the myvm guest domain.\n"
             ;;
         list)
             printf "NAME\n"
@@ -894,13 +892,11 @@ function attach-disk ()
     local DISKSIZE=""
 
     # Parse command line arguments
-    while getopts ":d:f:p:s:t:h" opt
+    while getopts ":d:f:t:h" opt
     do
         case "$opt" in
             d ) DISKSIZE="${OPTARG}G" ;;
             f ) FORMAT="${OPTARG}" ;;
-            p ) PERSISTENT="${OPTARG}" ;;
-            s ) SOURCE="${OPTARG}" ;;
             t ) TARGET="${OPTARG}" ;;
             h ) usage ;;
             * ) die "Unsupported option. Run 'kvm-install-vm help attach-disk'." ;;
