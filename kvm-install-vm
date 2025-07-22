@@ -739,8 +739,10 @@ function set_custom_defaults ()
     declare -gA BUILTIN_VM_SOURCES=()
     declare -gA BUILTIN_VM_ARCHS=()
 
+    local IFS="|"
+
     for entry in "${BUILTIN_VMS[@]}"; do
-        IFS=":" read -r name description arch url <<< "$entry"
+        read -r name description arch url <<< "$entry"
         key="${name}_${arch}"
         BUILTIN_VM_DESCRIPTIONS["$key"]=$description
         BUILTIN_VM_ARCHS["$key"]=$arch
