@@ -145,9 +145,17 @@ function usage_subcommand ()
 }
 
 # Console output colors
-red() { echo -e "\e[31m$@\e[0m" ; }
-green() { echo -e "\e[32m$@\e[0m" ; }
-yellow() { echo -e "\e[33m$@\e[0m" ; }
+red() {
+    printf '\e[31m%s\e[0m\n' "$*"
+}
+# shellcheck disable=SC2317
+green() {
+    printf '\e[32m%s\e[0m\n' "$*"
+}
+# shellcheck disable=SC2317
+yellow() {
+    printf '\e[33m%s\e[0m\n' "$*"
+}
 
 die() { red "ERR: $@" >&2 ; exit 2 ; }
 silent() { "$@" > /dev/null 2>&1 ; }
