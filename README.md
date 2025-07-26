@@ -213,7 +213,7 @@ Tests are powered by [Bats](https://github.com/bats-core/bats-core).\
 Run:
 
 ```bash
-./test.sh
+bash tests/run
 ```
 
 ## 🤝 Contributing
