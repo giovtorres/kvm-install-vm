@@ -4,8 +4,7 @@ set -euo pipefail
 # Set program name variable - basename without subshell
 prog=${0##*/}
 
-function usage ()
-{
+function usage() {
     cat << EOF
 NAME
     kvm-install-vm - Install virtual guests using cloud-init on a local KVM
@@ -28,11 +27,10 @@ COMMANDS
     remove      - delete a guest domain
 
 EOF
-exit 0
+    exit 0
 }
 
-function usage_subcommand ()
-{
+function usage_subcommand() {
     case "$1" in
         create)
             printf "NAME\n"
@@ -72,7 +70,7 @@ function usage_subcommand ()
             printf "\n"
             printf "DISTRIBUTIONS\n"
             list_available_vms
-	        printf "\n"
+            printf "\n"
             printf "EXAMPLES\n"
             printf "    %s create foo\n" "$prog"
             printf "        Create VM with the default parameters: CentOS 8, 1 vCPU, 1GB RAM, 10GB\n"
@@ -145,22 +143,24 @@ function usage_subcommand ()
 }
 
 # Console output colors
-red() { echo -e "\e[31m$@\e[0m" ; }
-green() { echo -e "\e[32m$@\e[0m" ; }
-yellow() { echo -e "\e[33m$@\e[0m" ; }
+red() { echo -e "\e[31m$@\e[0m"; }
+green() { echo -e "\e[32m$@\e[0m"; }
+yellow() { echo -e "\e[33m$@\e[0m"; }
 
-die() { red "ERR: $@" >&2 ; exit 2 ; }
-silent() { "$@" > /dev/null 2>&1 ; }
-output() { echo -e "- $@" ; }
-outputn() { echo -en "- $@ ... " ; }
-ok() { green "${@:-OK}" ; }
+die() {
+    red "ERR: $@" >&2
+    exit 2
+}
+silent() { "$@" > /dev/null 2>&1; }
+output() { echo -e "- $@"; }
+outputn() { echo -en "- $@ ... "; }
+ok() { green "${@:-OK}"; }
 
-pushd() { command pushd "$@" >/dev/null ; }
-popd() { command popd "$@" >/dev/null ; }
+pushd() { command pushd "$@" > /dev/null; }
+popd() { command popd "$@" > /dev/null; }
 
 # Join zero or more strings into a delimited string.
-function join ()
-{
+function join() {
     local sep="$1"
     if [ $# -eq 0 ]; then
         return
@@ -175,8 +175,7 @@ function join ()
 
 # Print an optional name=value[,value,..] parameter.
 # Prints nothing if no values are given.
-function param ()
-{
+function param() {
     if [ $# -lt 2 ]; then
         return # skip empty value
     fi
@@ -187,8 +186,7 @@ function param ()
 }
 
 # Output a command, one argument per line.
-function output_command ()
-{
+function output_command() {
     local line_cont=$'  \\ \n     '
     local command_lines=$(join "$line_cont" "$@")
     printf "    %s\n" "$command_lines"
@@ -196,38 +194,32 @@ function output_command ()
 
 # Command wrapper to output the command to be run in verbose
 # mode and redirect stdout and stderr to the vm log file.
-function run ()
-{
+function run() {
     local msg="$1"
     shift
-    if [ "${VERBOSE}" -eq 1 ]
-    then
+    if [ "${VERBOSE}" -eq 1 ]; then
         output "$msg with the following command"
         output_command "$@"
     else
         outputn "$msg"
     fi
-    ( "$@" &>> ${VMNAME}.log && ok )
+    ("$@" &>> ${VMNAME}.log && ok)
 }
 
 # Detect OS and set wget parameters
-function set_wget ()
-{
-    if [ -f /etc/fedora-release ]
-    then
+function set_wget() {
+    if [ -f /etc/fedora-release ]; then
         WGET="wget --quiet --show-progress"
     else
         WGET="wget"
     fi
 }
 
-function check_vmname_set ()
-{
+function check_vmname_set() {
     [ -n "${VMNAME}" ] || die "VMNAME not set."
 }
 
-function delete_vm ()
-{
+function delete_vm() {
     # Check if domain exists and set DOMAIN_EXISTS variable.
     domain_exists "${VMNAME}"
 
@@ -236,29 +228,27 @@ function delete_vm ()
 
     check_vmname_set
 
-    if [ "${DOMAIN_EXISTS}" -eq 1 ]
-    then
+    if [ "${DOMAIN_EXISTS}" -eq 1 ]; then
         outputn "Destroying ${VMNAME} domain"
-        virsh destroy --graceful ${VMNAME} > /dev/null 2>&1 \
-            && ok \
-            || yellow "(Domain is not running.)"
+        virsh destroy --graceful ${VMNAME} > /dev/null 2>&1 &&
+            ok ||
+            yellow "(Domain is not running.)"
 
         outputn "Undefining ${VMNAME} domain"
-        virsh undefine --managed-save --snapshots-metadata --nvram ${VMNAME} > /dev/null 2>&1 \
-            && ok \
-            || die "Could not undefine domain."
+        virsh undefine --managed-save --snapshots-metadata --nvram ${VMNAME} > /dev/null 2>&1 &&
+            ok ||
+            die "Could not undefine domain."
     else
         output "Domain ${VMNAME} does not exist"
     fi
 
     [[ -d ${VMDIR}/${VMNAME} ]] && DISKDIR=${VMDIR}/${VMNAME} || DISKDIR=${IMAGEDIR}/${VMNAME}
-    [ -d $DISKDIR ] \
-        && outputn "Deleting ${VMNAME} files" \
-        && rm -rf $DISKDIR \
-        && ok
+    [ -d $DISKDIR ] &&
+        outputn "Deleting ${VMNAME} files" &&
+        rm -rf $DISKDIR &&
+        ok
 
-    if [ "${STORPOOL_EXISTS}" -eq 1 ]
-    then
+    if [ "${STORPOOL_EXISTS}" -eq 1 ]; then
         outputn "Destroying ${VMNAME} storage pool"
         virsh pool-destroy ${VMNAME} > /dev/null 2>&1 && ok
     else
@@ -266,8 +256,7 @@ function delete_vm ()
     fi
 }
 
-function fetch_images ()
-{
+function fetch_images() {
     # Create image directory if it doesn't already exist
     mkdir -p ${IMAGEDIR}
 
@@ -277,9 +266,9 @@ function fetch_images ()
     for vm in "${BUILTIN_VMS[@]}"; do
         IFS=\| read -r vm_distro vm_desc vm_arch vm_url vm_login_user <<< "$vm"
         if [[ "$vm_distro" == "$DISTRO" && "$vm_arch" == "$ARCH" ]]; then
-            QCOW="${vm_url##*/}"  # Grab just the file from the URL to pass into virt-install
-            OS_INFO="$vm_distro"  # Distro name should come from osinfo
-            IMAGE_URL="${vm_url%/*}"  # Grab everything but the filename and the slash
+            QCOW="${vm_url##*/}"     # Grab just the file from the URL to pass into virt-install
+            OS_INFO="$vm_distro"     # Distro name should come from osinfo
+            IMAGE_URL="${vm_url%/*}" # Grab everything but the filename and the slash
             DISK_FORMAT="qcow2"
             LOGIN_USER="$vm_login_user"
             found="true"
@@ -293,11 +282,9 @@ function fetch_images ()
 
     IMAGE=${IMAGEDIR}/${QCOW}
 
-    if [ ! -f ${IMAGEDIR}/${QCOW} ]
-    then
+    if [ ! -f ${IMAGEDIR}/${QCOW} ]; then
         set_wget
-        if [ -f ${IMAGEDIR}/${QCOW}.part ]
-        then
+        if [ -f ${IMAGEDIR}/${QCOW}.part ]; then
             CONTINUE="--continue"
             output "Partial cloud image found.  Resuming download"
         else
@@ -308,7 +295,7 @@ function fetch_images ()
             ${CONTINUE} \
             --directory-prefix ${IMAGEDIR} \
             --output-document=${IMAGEDIR}/${QCOW}.part \
-            ${IMAGE_URL}/${QCOW} || \
+            ${IMAGE_URL}/${QCOW} ||
             die "Could not download image."
 
         mv ${IMAGEDIR}/${QCOW}.part ${IMAGEDIR}/${QCOW}
@@ -316,8 +303,7 @@ function fetch_images ()
 
 }
 
-function check_ssh_key ()
-{
+function check_ssh_key() {
     local key
     if [ -z "${PUBKEY}" ]; then
         # Try to find a suitable key file.
@@ -329,47 +315,42 @@ function check_ssh_key ()
         done
     fi
 
-    if [ ! -f "${PUBKEY}" ]
-    then
+    if [ ! -f "${PUBKEY}" ]; then
         # Check for existence of a pubkey, or else exit with message
         die "Please generate an SSH keypair using 'ssh-keygen -t rsa' or \
              specify one with the "-k" flag."
     else
         # Place contents of $PUBKEY into $KEY
-        KEY=$(<${PUBKEY})
+        KEY=$(< ${PUBKEY})
     fi
 }
 
-function check_os_variant ()
-{
+function check_os_variant() {
     if [[ ${OS_INFO} != auto ]]; then
-        osinfo-query os short-id=${OS_INFO} >/dev/null \
-            || die "Unknown OS variant '${OS_INFO}'. Please update your osinfo-db. "\
-                   "See https://libosinfo.org/download for more information."
+        osinfo-query os short-id=${OS_INFO} > /dev/null ||
+            die "Unknown OS variant '${OS_INFO}'. Please update your osinfo-db. " \
+                "See https://libosinfo.org/download for more information."
     fi
 }
 
-function domain_exists ()
-{
-    virsh dominfo "${1}" > /dev/null 2>&1 \
-        && DOMAIN_EXISTS=1 \
-        || DOMAIN_EXISTS=0
+function domain_exists() {
+    virsh dominfo "${1}" > /dev/null 2>&1 &&
+        DOMAIN_EXISTS=1 ||
+        DOMAIN_EXISTS=0
 }
 
-function storpool_exists ()
-{
-    virsh pool-info "${1}" > /dev/null 2>&1 \
-        && STORPOOL_EXISTS=1 \
-        || STORPOOL_EXISTS=0
+function storpool_exists() {
+    virsh pool-info "${1}" > /dev/null 2>&1 &&
+        STORPOOL_EXISTS=1 ||
+        STORPOOL_EXISTS=0
 }
 
-function set_sudo_group ()
-{
+function set_sudo_group() {
     case "${DISTRO}" in
-        almalinux*|centos*|fedora*|rocky*|*-atomic|amazon*|opensuse* )
+        almalinux* | centos* | fedora* | rocky* | *-atomic | amazon* | opensuse*)
             SUDOGROUP="wheel"
             ;;
-        ubuntu*|debian* )
+        ubuntu* | debian*)
             SUDOGROUP="sudo"
             ;;
         *)
@@ -378,46 +359,44 @@ function set_sudo_group ()
     esac
 }
 
-function check_delete_known_host ()
-{
+function check_delete_known_host() {
     output "Checking for ${IP} in known_hosts file"
-    grep -q ${IP} ${HOME}/.ssh/known_hosts \
-        && outputn "Found entry for ${IP}. Removing" \
-        && (sed --in-place "/^${IP}/d" ~/.ssh/known_hosts && ok ) \
-        || output "No entries found for ${IP}"
+    grep -q ${IP} ${HOME}/.ssh/known_hosts &&
+        outputn "Found entry for ${IP}. Removing" &&
+        (sed --in-place "/^${IP}/d" ~/.ssh/known_hosts && ok) ||
+        output "No entries found for ${IP}"
 }
 
 function set_boot_flag() {
-  local share_dir=""
+    local share_dir=""
 
-  if command -v rpm >/dev/null 2>&1 && rpm -q edk2-ovmf >/dev/null 2>&1; then
-    share_dir="/usr/share/edk2/ovmf"
-  elif command -v dpkg >/dev/null 2>&1 && dpkg -s edk2-ovmf >/dev/null 2>&1; then
-    share_dir="/usr/share/OVMF"
-  else
-    BOOTFLAG=""
-    return
-  fi
+    if command -v rpm > /dev/null 2>&1 && rpm -q edk2-ovmf > /dev/null 2>&1; then
+        share_dir="/usr/share/edk2/ovmf"
+    elif command -v dpkg > /dev/null 2>&1 && dpkg -s edk2-ovmf > /dev/null 2>&1; then
+        share_dir="/usr/share/OVMF"
+    else
+        BOOTFLAG=""
+        return
+    fi
 
-  local machine
-  case "$ARCH" in
-    x86_64)  machine="--machine q35" ;;
-    aarch64) machine="--machine virt" ;;
-    *)       machine="" ;;
-  esac
+    local machine
+    case "$ARCH" in
+        x86_64) machine="--machine q35" ;;
+        aarch64) machine="--machine virt" ;;
+        *) machine="" ;;
+    esac
 
-  local suffix=""
-  if (( SECUREBOOT )); then
-    suffix=".secboot"
-  fi
-  local code_fd="${share_dir}/OVMF_CODE${suffix}.fd"
-  local vars_fd="${share_dir}/OVMF_VARS${suffix}.fd"
+    local suffix=""
+    if ((SECUREBOOT)); then
+        suffix=".secboot"
+    fi
+    local code_fd="${share_dir}/OVMF_CODE${suffix}.fd"
+    local vars_fd="${share_dir}/OVMF_VARS${suffix}.fd"
 
-  BOOTFLAG="--boot uefi,loader=${code_fd},loader.readonly=yes,loader.type=pflash,nvram_template=$vars_fd,nvram=/var/tmp/$(basename "$vars_fd"),loader.secure=$( (( SECUREBOOT )) && echo yes || echo no ) --features smm=on $machine"
+    BOOTFLAG="--boot uefi,loader=${code_fd},loader.readonly=yes,loader.type=pflash,nvram_template=$vars_fd,nvram=/var/tmp/$(basename "$vars_fd"),loader.secure=$( ((SECUREBOOT)) && echo yes || echo no) --features smm=on $machine"
 }
 
-function create_vm ()
-{
+function create_vm() {
     # Create image directory if it doesn't already exist
     mkdir -p ${VMDIR}
 
@@ -468,8 +447,7 @@ ssh_authorized_keys:
 timezone: ${TIMEZONE}
 _EOF_
 
-    if [ ! -z "${SCRIPTNAME+x}" ]
-    then
+    if [ ! -z "${SCRIPTNAME+x}" ]; then
         SCRIPT=$(< $SCRIPTNAME)
         cat >> $USER_DATA << _EOF_
 
@@ -480,36 +458,38 @@ ${SCRIPT}
 --==BOUNDARY==--
 _EOF_
     else
-       cat >> $USER_DATA << _EOF_
+        cat >> $USER_DATA << _EOF_
 
 --==BOUNDARY==--
 _EOF_
     fi
 
-    { echo "instance-id: ${VMNAME}"; echo "local-hostname: ${VMNAME}"; } > $META_DATA
+    {
+        echo "instance-id: ${VMNAME}"
+        echo "local-hostname: ${VMNAME}"
+    } > $META_DATA
 
     outputn "Copying cloud image ($(basename ${IMAGE}))"
     DISK=${VMNAME}.qcow2
     qemu-img create -q -f qcow2 -F qcow2 -b $IMAGE $DISK && ok
-    if $RESIZE_DISK
-    then
+    if $RESIZE_DISK; then
         outputn "Resizing the disk to $DISK_SIZE"
         # Workaround to prevent virt-resize from renumbering partitions and breaking grub
         # See https://bugzilla.redhat.com/show_bug.cgi?id=1472039
         # Ubuntu will automatically grow the partition to the new size on its first boot
         case "$DISTRO" in
-        ubuntu*|amazon2)
-            qemu-img resize $DISK $DISK_SIZE &>> ${VMNAME}.log \
-                && ok \
-                || die "Could not resize disk."
-            ;;
-        *)
-            qemu-img create -f qcow2 \
-                -o preallocation=metadata $DISK.new $DISK_SIZE &>> ${VMNAME}.log \
-                && virt-resize --quiet --expand /dev/sda1 $DISK $DISK.new &>> ${VMNAME}.log \
-                && (mv $DISK.new $DISK && ok) \
-                || die "Could not resize disk."
-            ;;
+            ubuntu* | amazon2)
+                qemu-img resize $DISK $DISK_SIZE &>> ${VMNAME}.log &&
+                    ok ||
+                    die "Could not resize disk."
+                ;;
+            *)
+                qemu-img create -f qcow2 \
+                    -o preallocation=metadata $DISK.new $DISK_SIZE &>> ${VMNAME}.log &&
+                    virt-resize --quiet --expand /dev/sda1 $DISK $DISK.new &>> ${VMNAME}.log &&
+                    (mv $DISK.new $DISK && ok) ||
+                    die "Could not resize disk."
+                ;;
         esac
     fi
 
@@ -518,8 +498,8 @@ _EOF_
         virsh pool-create-as \
         --name=${VMNAME} \
         --type=dir \
-        --target=${VMDIR}/${VMNAME} \
-        || die "Could not create storage pool. VM may already exist. Try removing first."
+        --target=${VMDIR}/${VMNAME} ||
+        die "Could not create storage pool. VM may already exist. Try removing first."
 
     # Add custom MAC Address if specified
     NETWORK_PARAMS="$(join ',' \
@@ -536,8 +516,7 @@ _EOF_
         ${DISK_EXTRA})"
 
     # Omit the --graphics option to auto-detect.
-    if [ "${GRAPHICS}" = 'auto' ]
-    then
+    if [ "${GRAPHICS}" = 'auto' ]; then
         GRAPHICS_PARAMS=""
     else
         GRAPHICS_PARAMS="$(join ',' \
@@ -568,19 +547,18 @@ _EOF_
         --noautoconsole \
         ${GRAPHICS_OPTION} \
         ${BOOTFLAG} \
-        ${VIRT_INSTALL_EXTRA} \
-        || die "Could not create domain with virt-install."
+        ${VIRT_INSTALL_EXTRA} ||
+        die "Could not create domain with virt-install."
 
     virsh dominfo ${VMNAME} &>> ${VMNAME}.log
 
     # Enable autostart if true
-    if $AUTOSTART
-    then
+    if $AUTOSTART; then
         outputn "Enabling autostart"
         virsh autostart \
-            --domain ${VMNAME} > /dev/null 2>&1 \
-            && ok \
-            || die "Could not enable autostart."
+            --domain ${VMNAME} > /dev/null 2>&1 &&
+            ok ||
+            die "Could not enable autostart."
     fi
 
     # Remove the unnecessary cloud init files
@@ -592,15 +570,15 @@ _EOF_
 
     status_file="/var/lib/libvirt/dnsmasq/${BRIDGE}.status"
     IP=""
-    timeout=60   # seconds
+    timeout=60 # seconds
 
     if [[ -f "$status_file" ]]; then
         outputn "Waiting for domain to get an IP address "
 
-        for (( i=0; i<timeout; i++ )); do
+        for ((i = 0; i < timeout; i++)); do
             IP=$(
                 { grep -B1 -m1 "\"mac-address\": \"$MAC\"" "$status_file" || true; } |
-                awk -F'"' '/ip-address/ {print $4; exit}'
+                    awk -F'"' '/ip-address/ {print $4; exit}'
             )
 
             if [[ -n "$IP" ]]; then
@@ -626,8 +604,7 @@ _EOF_
     output "  ssh ${LOGIN_USER}@${VMNAME}"
     CONSOLE=$(virsh domdisplay ${VMNAME})
     # Workaround because VNC port number shown by virsh domdisplay is offset from 5900
-    if [ "${GRAPHICS}" = 'vnc' ]
-    then
+    if [ "${GRAPHICS}" = 'vnc' ]; then
         CONSOLE_NO_PORT=$(echo $CONSOLE | cut -d ':' -f 1,2 -)
         CONSOLE_PORT=$(expr 5900 + $(echo $CONSOLE | cut -d ':' -f 3 -))
         output "Console at ${CONSOLE_NO_PORT}:${CONSOLE_PORT}"
@@ -640,24 +617,21 @@ _EOF_
 }
 
 # Delete VM
-function remove ()
-{
+function remove() {
     # Parse command line arguments
-    while getopts ":l:L:hv" opt
-    do
+    while getopts ":l:L:hv" opt; do
         case "$opt" in
-            l ) IMAGEDIR="${OPTARG}" ;;
-            L ) VMDIR="${OPTARG}" ;;
-            v ) VERBOSE=1 ;;
-            h ) usage ;;
-            * ) die "Unsupported option. Run 'kvm-install-vm help remove'." ;;
+            l) IMAGEDIR="${OPTARG}" ;;
+            L) VMDIR="${OPTARG}" ;;
+            v) VERBOSE=1 ;;
+            h) usage ;;
+            *) die "Unsupported option. Run 'kvm-install-vm help remove'." ;;
         esac
     done
 
     shift $((OPTIND - 1))
 
-    if [ "$#" != 1 ]
-    then
+    if [ "$#" != 1 ]; then
         printf "Please specify a single host to remove.\n"
         printf "Run 'kvm-install-vm help remove' for usage.\n"
         exit 1
@@ -668,32 +642,31 @@ function remove ()
     delete_vm
 }
 
-function set_defaults ()
-{
+function set_defaults() {
     # Defaults are set here. Override using command line arguments.
-    AUTOSTART=false                 # Automatically start VM at boot time
-    ARCH=$(uname -m)                # Architecture (autodetected)
-    CPUS=1                          # Number of virtual CPUs
-    FEATURE=host-model              # Use host cpu features to the guest
-    MEMORY=1536                     # Amount of RAM in MB
-    DISK_SIZE=""                    # Disk Size in GB
-    DNSDOMAIN=example.local         # DNS domain
-    GRAPHICS=spice                  # Graphics type or "auto"
-    RESIZE_DISK=false               # Resize disk (boolean)
-    IMAGEDIR=${HOME}/virt/images    # Directory to store images
-    VMDIR=${HOME}/virt/vms          # Directory to store virtual machines
-    BRIDGE=virbr0                   # Hypervisor bridge
-    PUBKEY=""                       # SSH public key
-    DISTRO=rocky9                   # Distribution
-    MACADDRESS=""                   # MAC Address
-    PORT=-1                         # Console port
-    TIMEZONE=US/Eastern             # Timezone
-    ADDITIONAL_USER=${USER}         # User
-    ASSUME_YES=0                    # Assume yes to prompts
-    ASSUME_NO=0                     # Assume no to prompts
-    VERBOSE=0                       # Verbosity
-    VIRTTYPE=kvm                    # Virt type (kvm, xen, qemu)
-    SECUREBOOT=0                    # Enable UEFI with SecureBoot
+    AUTOSTART=false              # Automatically start VM at boot time
+    ARCH=$(uname -m)             # Architecture (autodetected)
+    CPUS=1                       # Number of virtual CPUs
+    FEATURE=host-model           # Use host cpu features to the guest
+    MEMORY=1536                  # Amount of RAM in MB
+    DISK_SIZE=""                 # Disk Size in GB
+    DNSDOMAIN=example.local      # DNS domain
+    GRAPHICS=spice               # Graphics type or "auto"
+    RESIZE_DISK=false            # Resize disk (boolean)
+    IMAGEDIR=${HOME}/virt/images # Directory to store images
+    VMDIR=${HOME}/virt/vms       # Directory to store virtual machines
+    BRIDGE=virbr0                # Hypervisor bridge
+    PUBKEY=""                    # SSH public key
+    DISTRO=rocky9                # Distribution
+    MACADDRESS=""                # MAC Address
+    PORT=-1                      # Console port
+    TIMEZONE=US/Eastern          # Timezone
+    ADDITIONAL_USER=${USER}      # User
+    ASSUME_YES=0                 # Assume yes to prompts
+    ASSUME_NO=0                  # Assume no to prompts
+    VERBOSE=0                    # Verbosity
+    VIRTTYPE=kvm                 # Virt type (kvm, xen, qemu)
+    SECUREBOOT=0                 # Enable UEFI with SecureBoot
 
     # Reset OPTIND
     OPTIND=1
@@ -726,8 +699,7 @@ function set_defaults ()
     BUILTIN_VMS=("${DEFAULT_BUILTIN_VMS[@]}")
 }
 
-function set_custom_defaults ()
-{
+function set_custom_defaults() {
     # Source custom defaults: first local .kivrc, then fallback to ~/.kivrc
     if [ -f "./.kivrc" ]; then
         source "./.kivrc"
@@ -749,7 +721,6 @@ function set_custom_defaults ()
         BUILTIN_VM_SOURCES["$key"]=$url
     done
 }
-
 
 function list_available_vms() {
     for key in "${!BUILTIN_VM_DESCRIPTIONS[@]}"; do
@@ -775,59 +746,54 @@ function list_available_vms() {
     done | sort
 }
 
-function create ()
-{
+function create() {
     # Parse command line arguments
-    while getopts ":b:c:d:D:f:g:i:k:l:L:m:M:p:s:t:T:u:V:ahynSv" opt
-    do
+    while getopts ":b:c:d:D:f:g:i:k:l:L:m:M:p:s:t:T:u:V:ahynSv" opt; do
         case "$opt" in
-            a ) AUTOSTART="${OPTARG}" ;;
-            b ) BRIDGE="${OPTARG}" ;;
-            c ) CPUS="${OPTARG}" ;;
-            d ) DISK_SIZE="${OPTARG}" ;;
-            D ) DNSDOMAIN="${OPTARG}" ;;
-            f ) FEATURE="${OPTARG}" ;;
-            g ) GRAPHICS="${OPTARG}" ;;
-            i ) IMAGE="${OPTARG}" ;;
-            k ) PUBKEY="${OPTARG}" ;;
-            l ) IMAGEDIR="${OPTARG}" ;;
-            L ) VMDIR="${OPTARG}" ;;
-            m ) MEMORY="${OPTARG}" ;;
-            M ) MACADDRESS="${OPTARG}" ;;
-            p ) PORT="${OPTARG}" ;;
-            s ) SCRIPTNAME="${OPTARG}" ;;
-            t ) DISTRO="${OPTARG}" ;;
-            T ) TIMEZONE="${OPTARG}" ;;
-            u ) ADDITIONAL_USER="${OPTARG}" ;;
-            V ) VIRTTYPE="${OPTARG}" ;;
-            y ) ASSUME_YES=1 ;;
-            n ) ASSUME_NO=1 ;;
-            S ) SECUREBOOT=1 ;;
-            v ) VERBOSE=1 ;;
-            h ) usage ;;
-            * ) die "Unsupported option. Run 'kvm-install-vm help create'." ;;
+            a) AUTOSTART="${OPTARG}" ;;
+            b) BRIDGE="${OPTARG}" ;;
+            c) CPUS="${OPTARG}" ;;
+            d) DISK_SIZE="${OPTARG}" ;;
+            D) DNSDOMAIN="${OPTARG}" ;;
+            f) FEATURE="${OPTARG}" ;;
+            g) GRAPHICS="${OPTARG}" ;;
+            i) IMAGE="${OPTARG}" ;;
+            k) PUBKEY="${OPTARG}" ;;
+            l) IMAGEDIR="${OPTARG}" ;;
+            L) VMDIR="${OPTARG}" ;;
+            m) MEMORY="${OPTARG}" ;;
+            M) MACADDRESS="${OPTARG}" ;;
+            p) PORT="${OPTARG}" ;;
+            s) SCRIPTNAME="${OPTARG}" ;;
+            t) DISTRO="${OPTARG}" ;;
+            T) TIMEZONE="${OPTARG}" ;;
+            u) ADDITIONAL_USER="${OPTARG}" ;;
+            V) VIRTTYPE="${OPTARG}" ;;
+            y) ASSUME_YES=1 ;;
+            n) ASSUME_NO=1 ;;
+            S) SECUREBOOT=1 ;;
+            v) VERBOSE=1 ;;
+            h) usage ;;
+            *) die "Unsupported option. Run 'kvm-install-vm help create'." ;;
         esac
     done
 
     shift $((OPTIND - 1))
 
     # Resize disk if you specify a disk size either via cmdline option or .kivrc
-    if [ -n "${DISK_SIZE}" ]
-    then
+    if [ -n "${DISK_SIZE}" ]; then
         RESIZE_DISK=true
-        DISK_SIZE="${DISK_SIZE}G"   # Append 'G' for Gigabyte
+        DISK_SIZE="${DISK_SIZE}G" # Append 'G' for Gigabyte
     fi
 
     # Yes (-y) and No (-n) are mutually exclusive.
-    if [[ "${ASSUME_YES}" -eq 1 ]] && [[ "${ASSUME_NO}" -eq 1 ]]
-    then
+    if [[ "${ASSUME_YES}" -eq 1 ]] && [[ "${ASSUME_NO}" -eq 1 ]]; then
         printf "Please specify only one of -y or -n flags.\n"
         exit 1
     fi
 
     # After all options are processed, make sure only one variable is left (vmname)
-    if [ "$#" != 1 ]
-    then
+    if [ "$#" != 1 ]; then
         printf "Please specify a single host to create.\n"
         printf "Run 'kvm-install-vm create help' for usage.\n"
         exit 1
@@ -842,8 +808,7 @@ function create ()
     # Check for ssh key
     check_ssh_key
 
-    if [ ! -z "${IMAGE+x}" ]
-    then
+    if [ ! -z "${IMAGE+x}" ]; then
         output "Using custom QCOW2 image: ${IMAGE}."
         OS_INFO="auto"
         LOGIN_USER="<use the default account in your custom image>"
@@ -886,22 +851,20 @@ function create ()
     create_vm
 }
 
-function attach-disk ()
-{
+function attach-disk() {
     # Set default variables
     local FORMAT=qcow2
     local TARGET=""
     local DISKSIZE=""
 
     # Parse command line arguments
-    while getopts ":d:f:t:h" opt
-    do
+    while getopts ":d:f:t:h" opt; do
         case "$opt" in
-            d ) DISKSIZE="${OPTARG}G" ;;
-            f ) FORMAT="${OPTARG}" ;;
-            t ) TARGET="${OPTARG}" ;;
-            h ) usage ;;
-            * ) die "Unsupported option. Run 'kvm-install-vm help attach-disk'." ;;
+            d) DISKSIZE="${OPTARG}G" ;;
+            f) FORMAT="${OPTARG}" ;;
+            t) TARGET="${OPTARG}" ;;
+            h) usage ;;
+            *) die "Unsupported option. Run 'kvm-install-vm help attach-disk'." ;;
         esac
     done
 
@@ -910,8 +873,7 @@ function attach-disk ()
     [ ! -z ${TARGET} ] || die "You must specify a target device, for e.g. '-t vdb'"
     [ ! -z ${DISKSIZE} ] || die "You must specify a size (in GB) for the new device, for e.g. '-d 5'"
 
-    if [ "$#" != 1 ]
-    then
+    if [ "$#" != 1 ]; then
         printf "Please specify a single host to attach a disk to.\n"
         printf "Run 'kvm-install-vm help attach-disk' for usage.\n"
         exit 1
@@ -922,20 +884,18 @@ function attach-disk ()
         [[ -d ${VMDIR}/${VMNAME} ]] && DISKDIR=${VMDIR}/${VMNAME} || DISKDIR=${IMAGEDIR}/${VMNAME}
         DISKNAME=${VMNAME}-${TARGET}-${DISKSIZE}.${FORMAT}
 
-        if [ ! -f "${DISKDIR}/${DISKNAME}" ]
-        then
+        if [ ! -f "${DISKDIR}/${DISKNAME}" ]; then
             outputn "Creating new '${TARGET}' disk image for domain ${VMNAME}"
             (qemu-img create -f ${FORMAT} -o size=$DISKSIZE,preallocation=metadata \
-                ${DISKDIR}/${DISKNAME} &>> ${DISKDIR}/${VMNAME}.log  && ok ) && \
-
-            outputn "Attaching ${DISKNAME} to domain ${VMNAME}"
+                ${DISKDIR}/${DISKNAME} &>> ${DISKDIR}/${VMNAME}.log && ok) &&
+                outputn "Attaching ${DISKNAME} to domain ${VMNAME}"
             (virsh attach-disk ${VMNAME} \
                 --source $DISKDIR/${DISKNAME} \
                 --target ${TARGET} \
                 --subdriver ${FORMAT} \
                 --cache none \
-                --persistent &>> ${DISKDIR}/${VMNAME}.log && ok ) \
-                || die "Could not attach disk."
+                --persistent &>> ${DISKDIR}/${VMNAME}.log && ok) ||
+                die "Could not attach disk."
         else
             die "Target ${TARGET} is already created or in use."
         fi
@@ -969,7 +929,7 @@ case "${subcommand}" in
         virsh list --all
         exit 0
         ;;
-    create|remove|attach-disk|remove-disk)
+    create | remove | attach-disk | remove-disk)
         set_defaults
         set_custom_defaults
 

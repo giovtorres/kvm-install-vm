@@ -1,0 +1,22 @@
+# EditorConfig is awesome: http://EditorConfig.org
+
+root = true
+
+[*]
+charset = utf-8
+indent_size = 4
+end_of_line = lf
+indent_style = space
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+[*.{md,rst}]
+trim_trailing_whitespace = false
+
+[*.sh,test/run]
+shell_variant = bash
+space_redirects = true    # -sr
+switch_case_indent = true # -ci
+
+[*.bats]
+shell_variant = bats

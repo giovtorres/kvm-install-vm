@@ -2,15 +2,13 @@
 
 VMNAME=batstestvm
 
-function create_test_vm ()
-{
+function create_test_vm() {
     local -r var="$1"
     run ./kvm-install-vm create -t ${var} ${VMNAME}-${var}
     [ "$status" -eq 0 ]
 }
 
-function remove_test_vm ()
-{
+function remove_test_vm() {
     local -r var="$1"
     run ./kvm-install-vm remove ${VMNAME}-${var}
     [ "$status" -eq 0 ]
