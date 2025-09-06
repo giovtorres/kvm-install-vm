@@ -849,6 +849,8 @@ function create() {
     check_ssh_key
 
     if [ ! -z "${IMAGE+x}" ]; then
+        # Convert relative path to absolute path
+        IMAGE=$(realpath "${IMAGE}")
         DISK_FORMAT=$(detect_disk_format "${IMAGE}")
         output "Using custom image: ${IMAGE} (format: ${DISK_FORMAT})."
         OS_INFO="linux2024"
