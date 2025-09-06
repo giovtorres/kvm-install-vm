@@ -574,8 +574,17 @@ _EOF_
         ${GRAPHICS_OPTION} \
         ${BOOTFLAG} \
         ${VIRT_INSTALL_EXTRA}; then
+
         # Cleanup on failure
         red "VM creation failed. Cleaning up..."
+
+        if [ "${VERBOSE}" -eq 1 ] && [ -f "${VMNAME}.log" ]; then
+            yellow "Log contents:"
+            cat "${VMNAME}.log"
+        else
+            yellow "Run with -v flag to see detailed logs"
+        fi
+
         popd
         delete_vm
         die "Could not create domain with virt-install."
