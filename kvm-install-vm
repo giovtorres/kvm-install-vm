@@ -49,7 +49,7 @@ function usage_subcommand() {
             printf "    -d          Disk Size (GB)                (default: 10)\n"
             printf "    -D          DNS Domain                    (default: example.local)\n"
             printf "    -f          CPU Model / Feature           (default: host)\n"
-            printf "    -g          Graphics type                 (default: spice)\n"
+            printf "    -g          Graphics type                 (default: vnc)\n"
             printf "    -h          Display help\n"
             printf "    -i          Custom QCOW2 Image\n"
             printf "    -k          SSH Public Key                (default: %s/.ssh/id_rsa.pub)\n" "$HOME"
@@ -651,7 +651,7 @@ function set_defaults() {
     MEMORY=1536                  # Amount of RAM in MB
     DISK_SIZE=""                 # Disk Size in GB
     DNSDOMAIN=example.local      # DNS domain
-    GRAPHICS=spice               # Graphics type or "auto"
+    GRAPHICS=vnc                 # Graphics type (spice or vnc)
     RESIZE_DISK=false            # Resize disk (boolean)
     IMAGEDIR=${HOME}/virt/images # Directory to store images
     VMDIR=${HOME}/virt/vms       # Directory to store virtual machines
