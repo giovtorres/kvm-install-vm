@@ -24,6 +24,7 @@ A Bash wrapper around `virt-install` to quickly spin up and manage local KVM vir
 
 - 🚀 One-command VM provisioning with sensible defaults
 - 🌐 Support for multiple distro cloud-images (AlmaLinux, Debian, Rocky, Ubuntu, and more)
+- 💽 Bring your own custom image (.qcow2, .raw or .vhd)
 - 🔧 Customize CPU, RAM, disk size, architecture, and timezone
 - 💾 Attach additional disks on the fly
 - 🖥️ Boot using BIOS or UEFI (SecureBoot enabled or disabled)
@@ -112,6 +113,24 @@ kvm-install-vm create myvm
 - `-A, --arch <ARCH>`    Architecture (x86_64 or aarch64)
 - `-t, --distro <NAME>`  Distro key (see BUILTIN_VMS)
 - `-T, --tz <ZONE>`      Timezone (default: host timezone)
+- `-i, --image <PATH>`   Use custom image file instead of downloading
+
+#### Using Custom Images
+
+You can create VMs from existing disk images using the `-i` flag:
+
+```bash
+# Create VM from a custom qcow2 image
+kvm-install-vm create -i /path/to/custom-image.qcow2 myinstance
+```
+
+The script automatically detects the disk format based on the file extension:
+- `.qcow2` files are treated as QCOW2 format
+- `.raw` files are treated as RAW format
+- `.vhd` files are treated as VPC format
+
+You can combine the `-i` flag with other options like `-c`, `-m`, `-d` to
+customize the VM resources.
 
 ### Delete a VM
 

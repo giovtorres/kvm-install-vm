@@ -367,6 +367,26 @@ function check_delete_known_host() {
         output "No entries found for ${IP}"
 }
 
+function detect_disk_format() {
+    local image_path="$1"
+    local extension="${image_path##*.}"
+
+    case "${extension,,}" in
+        qcow2)
+            echo "qcow2"
+            ;;
+        raw)
+            echo "raw"
+            ;;
+        vhd)
+            echo "vpc"
+            ;;
+        *)
+            echo "qcow"
+            ;;
+    esac
+}
+
 function set_boot_flag() {
     local share_dir=""
 
@@ -471,7 +491,13 @@ _EOF_
 
     outputn "Copying cloud image ($(basename ${IMAGE}))"
     DISK=${VMNAME}.qcow2
-    qemu-img create -q -f qcow2 -F qcow2 -b $IMAGE $DISK && ok
+
+    if [ "${DISK_FORMAT}" = "qcow2" ]; then
+        qemu-img create -q -f qcow2 -F qcow2 -b $IMAGE $DISK && ok
+    else
+        qemu-img create -q -f qcow2 -F "${DISK_FORMAT}" -b $IMAGE $DISK && ok
+    fi
+
     if $RESIZE_DISK; then
         outputn "Resizing the disk to $DISK_SIZE"
         # Workaround to prevent virt-resize from renumbering partitions and breaking grub
@@ -809,8 +835,9 @@ function create() {
     check_ssh_key
 
     if [ ! -z "${IMAGE+x}" ]; then
-        output "Using custom QCOW2 image: ${IMAGE}."
-        OS_INFO="auto"
+        DISK_FORMAT=$(detect_disk_format "${IMAGE}")
+        output "Using custom image: ${IMAGE} (format: ${DISK_FORMAT})."
+        OS_INFO="linux2024"
         LOGIN_USER="<use the default account in your custom image>"
     else
         fetch_images
