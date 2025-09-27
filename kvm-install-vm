@@ -51,7 +51,7 @@ function usage_subcommand() {
             printf "    -f          CPU Model / Feature           (default: host)\n"
             printf "    -g          Graphics type                 (default: vnc)\n"
             printf "    -h          Display help\n"
-            printf "    -i          Custom QCOW2 Image\n"
+            printf "    -i          Custom image (local path or HTTPS URL)\n"
             printf "    -k          SSH Public Key                (default: %s/.ssh/id_rsa.pub)\n" "$HOME"
             printf "    -l          Location of Images            (default: %s/virt/images)\n" "$HOME"
             printf "    -L          Location of VMs               (default: %s/virt/vms)\n" "$HOME"
@@ -85,6 +85,12 @@ function usage_subcommand() {
             printf "\n"
             printf "    %s create -T UTC foo\n" "$prog"
             printf "        Create a default VM with UTC timezone.\n"
+            printf "\n"
+            printf "    %s create -i /path/to/custom-image.qcow2 foo\n" "$prog"
+            printf "        Create a VM from a local custom image file.\n"
+            printf "\n"
+            printf "    %s create -i https://example.com/image.qcow2 foo\n" "$prog"
+            printf "        Create a VM from a remote image (HTTPS download).\n"
             printf "\n"
             ;;
         remove)
@@ -256,6 +262,44 @@ function delete_vm() {
     fi
 }
 
+function download_image() {
+    local url="$1"
+    local target_dir="$2"
+    local filename="$3"
+
+    # Create target directory if it doesn't exist
+    mkdir -p "${target_dir}"
+
+    local target_path="${target_dir}/${filename}"
+    local temp_path="${target_path}.part"
+
+    # Skip download if file already exists
+    if [ -f "${target_path}" ]; then
+        output "Image already exists: ${target_path}"
+        return 0
+    fi
+
+    set_wget
+    local continue_flag=""
+
+    if [ -f "${temp_path}" ]; then
+        continue_flag="--continue"
+        output "Partial image found. Resuming download"
+    else
+        output "Downloading image from ${url}"
+    fi
+
+    ${WGET} \
+        ${continue_flag} \
+        --directory-prefix="${target_dir}" \
+        --output-document="${temp_path}" \
+        "${url}" ||
+        die "Could not download image from ${url}."
+
+    mv "${temp_path}" "${target_path}"
+    output "Downloaded: ${target_path}"
+}
+
 function fetch_images() {
     # Create image directory if it doesn't already exist
     mkdir -p ${IMAGEDIR}
@@ -283,22 +327,7 @@ function fetch_images() {
     IMAGE=${IMAGEDIR}/${QCOW}
 
     if [ ! -f ${IMAGEDIR}/${QCOW} ]; then
-        set_wget
-        if [ -f ${IMAGEDIR}/${QCOW}.part ]; then
-            CONTINUE="--continue"
-            output "Partial cloud image found.  Resuming download"
-        else
-            CONTINUE=""
-            output "Cloud image not found.  Downloading"
-        fi
-        ${WGET} \
-            ${CONTINUE} \
-            --directory-prefix ${IMAGEDIR} \
-            --output-document=${IMAGEDIR}/${QCOW}.part \
-            ${IMAGE_URL}/${QCOW} ||
-            die "Could not download image."
-
-        mv ${IMAGEDIR}/${QCOW}.part ${IMAGEDIR}/${QCOW}
+        download_image "${vm_url}" "${IMAGEDIR}" "${QCOW}"
     fi
 
 }
@@ -383,6 +412,18 @@ function detect_disk_format() {
             ;;
         *)
             echo "qcow"
+            ;;
+    esac
+}
+
+function is_url() {
+    local input="$1"
+    case "$input" in
+        https://*)
+            return 0
+            ;;
+        *)
+            return 1
             ;;
     esac
 }
@@ -849,12 +890,43 @@ function create() {
     check_ssh_key
 
     if [ ! -z "${IMAGE+x}" ]; then
-        # Convert relative path to absolute path
-        IMAGE=$(realpath "${IMAGE}")
-        DISK_FORMAT=$(detect_disk_format "${IMAGE}")
-        output "Using custom image: ${IMAGE} (format: ${DISK_FORMAT})."
-        OS_INFO="linux2024"
-        LOGIN_USER="<use the default account in your custom image>"
+        if is_url "${IMAGE}"; then
+            # Handle remote URL
+            QCOW="${IMAGE##*/}"  # Extract filename from URL
+            DISK_FORMAT=$(detect_disk_format "${QCOW}")
+
+            # Validate that it's a supported image format
+            case "${DISK_FORMAT}" in
+                qcow2|raw|vpc)
+                    output "Using remote image: ${IMAGE} (format: ${DISK_FORMAT})"
+                    ;;
+                *)
+                    die "Unsupported remote image format. Only .qcow2, .raw, and .vhd files are supported."
+                    ;;
+            esac
+
+            # Download the image
+            download_image "${IMAGE}" "${IMAGEDIR}" "${QCOW}"
+            IMAGE="${IMAGEDIR}/${QCOW}"
+            OS_INFO="linux2024"
+            LOGIN_USER="<use the default account in your custom image>"
+        else
+            # Handle local file path
+            if [[ "${IMAGE}" != /* ]]; then
+                # Convert relative path to absolute path
+                IMAGE=$(realpath "${IMAGE}")
+            fi
+
+            # Verify file exists
+            if [ ! -f "${IMAGE}" ]; then
+                die "Custom image file not found: ${IMAGE}"
+            fi
+
+            DISK_FORMAT=$(detect_disk_format "${IMAGE}")
+            output "Using custom image: ${IMAGE} (format: ${DISK_FORMAT})"
+            OS_INFO="linux2024"
+            LOGIN_USER="<use the default account in your custom image>"
+        fi
     else
         fetch_images
     fi
