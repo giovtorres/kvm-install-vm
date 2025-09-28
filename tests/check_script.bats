@@ -1,8 +1,5 @@
 #!/usr/bin/env bats
 
-load vmdir
-load vmname
-
 @test "Check for help usage message" {
     run ./kvm-install-vm
     [[ "${lines[0]}" =~ "NAME" ]]
