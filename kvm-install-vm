@@ -235,6 +235,7 @@ function delete_vm() {
     check_vmname_set
 
     if [ "${DOMAIN_EXISTS}" -eq 1 ]; then
+        release_dhcp_lease "${VMNAME}" "${BRIDGE}"
         outputn "Destroying ${VMNAME} domain"
         virsh destroy --graceful ${VMNAME} > /dev/null 2>&1 &&
             ok ||
@@ -330,6 +331,88 @@ function fetch_images() {
         download_image "${vm_url}" "${IMAGEDIR}" "${QCOW}"
     fi
 
+}
+
+function check_dhcp_release() {
+    if ! command -v dhcp_release > /dev/null 2>&1; then
+        return 1
+    fi
+    return 0
+}
+
+function suggest_dhcp_release_install() {
+    yellow "dhcp_release not found. DHCP lease cleanup will be skipped."
+    yellow "To enable automatic lease cleanup, install dnsmasq-utils:"
+
+    # Detect distribution and suggest appropriate command
+    if command -v lsb_release > /dev/null 2>&1; then
+        local distro=$(lsb_release -si 2>/dev/null)
+    elif [ -f /etc/os-release ]; then
+        local distro=$(grep '^ID=' /etc/os-release | cut -d'=' -f2 | tr -d '"')
+    else
+        local distro="Unknown"
+    fi
+
+    case "${distro,,}" in
+        ubuntu|debian)
+            yellow "  sudo apt-get install dnsmasq-utils"
+            ;;
+        fedora|rhel|centos|rocky|almalinux)
+            yellow "  sudo dnf install dnsmasq-utils"
+            ;;
+        *)
+            yellow "  Install dnsmasq-utils package for your distribution"
+            ;;
+    esac
+}
+
+function release_dhcp_lease() {
+    local vmname="$1"
+    local bridge="${2:-${BRIDGE}}"
+
+    # Skip if dhcp_release not available
+    if ! check_dhcp_release; then
+        suggest_dhcp_release_install
+        return 0
+    fi
+
+    # Get MAC address from domain XML (if domain still exists)
+    local mac=""
+    if domain_exists "${vmname}"; then
+        mac=$(virsh dumpxml "${vmname}" 2>/dev/null | awk -F\' '/mac address/ {print $2; exit}')
+    fi
+
+    # If we can't get MAC from domain, try to find it in DHCP lease file
+    if [[ -z "$mac" ]]; then
+        local status_file="/var/lib/libvirt/dnsmasq/${bridge}.status"
+        if [[ -f "$status_file" ]]; then
+            # Search for any lease with matching hostname
+            mac=$(grep -B2 -A2 "\"hostname\": \"${vmname}\"" "$status_file" 2>/dev/null | awk -F'"' '/mac-address/ {print $4; exit}')
+        fi
+    fi
+
+    if [[ -n "$mac" ]]; then
+        # Get IP address from lease file
+        local status_file="/var/lib/libvirt/dnsmasq/${bridge}.status"
+        local ip=""
+
+        if [[ -f "$status_file" ]]; then
+            ip=$(grep -B1 -A1 "\"mac-address\": \"$mac\"" "$status_file" 2>/dev/null | awk -F'"' '/ip-address/ {print $4; exit}')
+        fi
+
+        if [[ -n "$ip" ]]; then
+            outputn "Releasing DHCP lease for ${mac} (${ip})"
+            if dhcp_release "${bridge}" "${ip}" "${mac}" > /dev/null 2>&1; then
+                ok
+            else
+                yellow "(Could not release DHCP lease - may require root privileges)"
+            fi
+        else
+            output "No IP address found for MAC ${mac}, skipping DHCP release"
+        fi
+    else
+        output "No MAC address found for ${vmname}, skipping DHCP release"
+    fi
 }
 
 function check_ssh_key() {
