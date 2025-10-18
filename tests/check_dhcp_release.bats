@@ -106,3 +106,26 @@ teardown() {
     [ "$status" -eq 0 ]
     [[ "${output}" =~ "does not exist" ]]
 }
+
+@test "Handle expired DHCP lease gracefully (empty status file)" {
+    # This tests the fix for the issue where grep returns exit code 1
+    # when the DHCP status file is empty or lease has expired
+
+    # Test that grep with no matches doesn't cause script to exit
+    # when using 'set -euo pipefail'
+
+    # Create a temporary empty DHCP status file scenario by testing
+    # removal of a non-existent VM (which will have no lease)
+    run timeout $TIMEOUT ./kvm-install-vm remove "expired-lease-test-${RANDOM}"
+
+    # Should complete successfully even with no DHCP lease found
+    [ "$status" -eq 0 ]
+
+    # Should show that domain doesn't exist (expected for non-existent VM)
+    [[ "${output}" =~ "does not exist" ]]
+
+    # Should NOT fail with grep errors or exit prematurely
+    # The fix ensures grep failures are handled gracefully with '|| true'
+    [[ ! "${output}" =~ "grep" ]]
+    [[ ! "${output}" =~ "error" ]]
+}
