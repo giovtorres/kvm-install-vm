@@ -387,7 +387,7 @@ function release_dhcp_lease() {
         local status_file="/var/lib/libvirt/dnsmasq/${bridge}.status"
         if [[ -f "$status_file" ]]; then
             # Search for any lease with matching hostname
-            mac=$(grep -B2 -A2 "\"hostname\": \"${vmname}\"" "$status_file" 2>/dev/null | awk -F'"' '/mac-address/ {print $4; exit}')
+            mac=$(grep -B2 -A2 "\"hostname\": \"${vmname}\"" "$status_file" 2>/dev/null | awk -F'"' '/mac-address/ {print $4; exit}' || true)
         fi
     fi
 
@@ -397,7 +397,7 @@ function release_dhcp_lease() {
         local ip=""
 
         if [[ -f "$status_file" ]]; then
-            ip=$(grep -B1 -A1 "\"mac-address\": \"$mac\"" "$status_file" 2>/dev/null | awk -F'"' '/ip-address/ {print $4; exit}')
+            ip=$(grep -B1 -A1 "\"mac-address\": \"$mac\"" "$status_file" 2>/dev/null | awk -F'"' '/ip-address/ {print $4; exit}' || true)
         fi
 
         if [[ -n "$ip" ]]; then
