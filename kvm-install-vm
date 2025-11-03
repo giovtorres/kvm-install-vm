@@ -589,6 +589,14 @@ ssh_authorized_keys:
   - ${KEY}
 
 timezone: ${TIMEZONE}
+
+# Disk and filesystem growth
+growpart:
+  mode: auto
+  devices: ['/']
+  ignore_growroot_disabled: false
+
+resize_rootfs: true
 _EOF_
 
     if [ ! -z "${SCRIPTNAME+x}" ]; then
@@ -624,23 +632,11 @@ _EOF_
 
     if $RESIZE_DISK; then
         outputn "Resizing the disk to $DISK_SIZE"
-        # Workaround to prevent virt-resize from renumbering partitions and breaking grub
-        # See https://bugzilla.redhat.com/show_bug.cgi?id=1472039
-        # Ubuntu will automatically grow the partition to the new size on its first boot
-        case "$DISTRO" in
-            ubuntu* | amazon2)
-                qemu-img resize $DISK $DISK_SIZE &>> ${VMNAME}.log &&
-                    ok ||
-                    die "Could not resize disk."
-                ;;
-            *)
-                qemu-img create -f qcow2 \
-                    -o preallocation=metadata $DISK.new $DISK_SIZE &>> ${VMNAME}.log &&
-                    virt-resize --quiet --expand /dev/sda1 $DISK $DISK.new &>> ${VMNAME}.log &&
-                    (mv $DISK.new $DISK && ok) ||
-                    die "Could not resize disk."
-                ;;
-        esac
+        # Cloud-init will automatically grow the partition and filesystem on first boot
+        # via the growpart and resize_rootfs modules configured in user-data
+        qemu-img resize $DISK $DISK_SIZE &>> ${VMNAME}.log &&
+            ok ||
+            die "Could not resize disk."
     fi
 
     # Create new storage pool for new VM
