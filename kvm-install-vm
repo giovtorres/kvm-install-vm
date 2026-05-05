@@ -44,6 +44,7 @@ function usage_subcommand() {
             printf "\n"
             printf "OPTIONS\n"
             printf "    -a          Autostart                     (default: false)\n"
+            printf "    -A          Architecture                  (default: host arch)\n"
             printf "    -b          Bridge                        (default: virbr0)\n"
             printf "    -c          Number of vCPUs               (default: 1)\n"
             printf "    -d          Disk Size (GB)                (default: 10)\n"
@@ -513,12 +514,49 @@ function is_url() {
 
 function set_boot_flag() {
     local share_dir=""
+    local code_fd=""
+    local vars_fd=""
+    local features_flag="--features smm=on"  # SMM is x86-specific; cleared for aarch64
 
-    if command -v rpm > /dev/null 2>&1 && rpm -q edk2-ovmf > /dev/null 2>&1; then
-        share_dir="/usr/share/edk2/ovmf"
-    elif command -v dpkg > /dev/null 2>&1 && dpkg -s edk2-ovmf > /dev/null 2>&1; then
-        share_dir="/usr/share/OVMF"
-    else
+    case "$ARCH" in
+        x86_64)
+            if command -v rpm > /dev/null 2>&1 && rpm -q edk2-ovmf > /dev/null 2>&1; then
+                share_dir="/usr/share/edk2/ovmf"
+            elif command -v dpkg > /dev/null 2>&1 && dpkg -s edk2-ovmf > /dev/null 2>&1; then
+                share_dir="/usr/share/OVMF"
+            fi
+            if [[ -n "$share_dir" ]]; then
+                local suffix=""
+                ((SECUREBOOT)) && suffix=".secboot"
+                code_fd="${share_dir}/OVMF_CODE${suffix}.fd"
+                vars_fd="${share_dir}/OVMF_VARS${suffix}.fd"
+            fi
+            ;;
+        aarch64)
+            features_flag=""
+            if command -v rpm > /dev/null 2>&1 && rpm -q edk2-aarch64 > /dev/null 2>&1; then
+                share_dir="/usr/share/edk2/aarch64"
+            elif command -v dpkg > /dev/null 2>&1 && dpkg -s qemu-efi-aarch64 > /dev/null 2>&1; then
+                share_dir="/usr/share/qemu-efi-aarch64"
+            fi
+            if [[ -n "$share_dir" ]]; then
+                # QEMU's virt machine pflash devices must be exactly 64 MB.
+                # QEMU_EFI.fd is the raw ~3 MB image; QEMU_EFI-pflash.raw is pre-padded to 64 MB.
+                if [[ -f "${share_dir}/QEMU_EFI-pflash.raw" ]]; then
+                    code_fd="${share_dir}/QEMU_EFI-pflash.raw"
+                else
+                    code_fd="${share_dir}/QEMU_EFI.fd"
+                fi
+                if [[ -f "${share_dir}/vars-template-pflash.raw" ]]; then
+                    vars_fd="${share_dir}/vars-template-pflash.raw"
+                else
+                    vars_fd="${share_dir}/QEMU_VARS.fd"
+                fi
+            fi
+            ;;
+    esac
+
+    if [[ -z "$code_fd" || ! -f "$code_fd" ]]; then
         BOOTFLAG=""
         return
     fi
@@ -530,14 +568,16 @@ function set_boot_flag() {
         *) machine="" ;;
     esac
 
-    local suffix=""
-    if ((SECUREBOOT)); then
-        suffix=".secboot"
-    fi
-    local code_fd="${share_dir}/OVMF_CODE${suffix}.fd"
-    local vars_fd="${share_dir}/OVMF_VARS${suffix}.fd"
-
-    BOOTFLAG="--boot uefi,loader=${code_fd},loader.readonly=yes,loader.type=pflash,nvram_template=$vars_fd,nvram=/var/tmp/$(basename "$vars_fd"),loader.secure=$( ((SECUREBOOT)) && echo yes || echo no) --features smm=on $machine"
+    case "$ARCH" in
+        aarch64)
+            # Omit the 'uefi' keyword: it triggers libvirt's firmware JSON auto-detection,
+            # which filters by host arch and rejects aarch64 firmware on an x86_64 host.
+            BOOTFLAG="--boot loader=${code_fd},loader.readonly=yes,loader.type=pflash,nvram_template=${vars_fd},nvram=/var/tmp/$(basename "$vars_fd") $machine"
+            ;;
+        *)
+            BOOTFLAG="--boot uefi,loader=${code_fd},loader.readonly=yes,loader.type=pflash,nvram_template=$vars_fd,nvram=/var/tmp/$(basename "$vars_fd"),loader.secure=$( ((SECUREBOOT)) && echo yes || echo no) ${features_flag} $machine"
+            ;;
+    esac
 }
 
 function create_vm() {
@@ -678,6 +718,12 @@ _EOF_
     GRAPHICS_OPTION="$(param --graphics ${GRAPHICS_PARAMS})"
     CLOUD_INIT_OPTION="$(param --cloud-init user-data=${USER_DATA},meta-data=${META_DATA},disable=on)"
 
+    # Pass --arch only when targeting a different architecture than the host.
+    local arch_option=""
+    if [[ "${ARCH}" != "${HOST_ARCH}" ]]; then
+        arch_option="--arch ${ARCH}"
+    fi
+
     # Call virt-install to import the cloud image and create a new VM
     if ! run "Installing the domain" \
         virt-install --import \
@@ -686,6 +732,7 @@ _EOF_
         --virt-type=${VIRTTYPE} \
         --vcpus=${CPUS} \
         --cpu=${FEATURE} \
+        ${arch_option} \
         ${DISK_OPTION} \
         ${CLOUD_INIT_OPTION} \
         ${NETWORK_OPTION} \
@@ -805,7 +852,8 @@ function remove() {
 function set_defaults() {
     # Defaults are set here. Override using command line arguments.
     AUTOSTART=false              # Automatically start VM at boot time
-    ARCH=$(uname -m)             # Architecture (autodetected)
+    HOST_ARCH=$(uname -m)        # Native host architecture (never changes)
+    ARCH=$(uname -m)             # Target architecture (can be overridden with -A)
     CPUS=1                       # Number of virtual CPUs
     FEATURE=host-model           # Use host cpu features to the guest
     MEMORY=1536                  # Amount of RAM in MB
@@ -908,8 +956,9 @@ function list_available_vms() {
 
 function create() {
     # Parse command line arguments
-    while getopts ":b:c:d:D:f:g:i:k:l:L:m:M:p:s:t:T:u:V:ahynSv" opt; do
+    while getopts ":A:b:c:d:D:f:g:i:k:l:L:m:M:p:s:t:T:u:V:ahynSv" opt; do
         case "$opt" in
+            A) ARCH="${OPTARG}" ;;
             a) AUTOSTART="${OPTARG}" ;;
             b) BRIDGE="${OPTARG}" ;;
             c) CPUS="${OPTARG}" ;;
@@ -944,6 +993,37 @@ function create() {
     if [ -n "${DISK_SIZE}" ]; then
         RESIZE_DISK=true
         DISK_SIZE="${DISK_SIZE}G" # Append 'G' for Gigabyte
+    fi
+
+    # Cross-architecture setup: when the target arch differs from the host arch,
+    # KVM acceleration is unavailable, so fall back to software emulation.
+    if [[ "${ARCH}" != "${HOST_ARCH}" ]]; then
+        local qemu_bin="qemu-system-${ARCH}"
+        if ! command -v "${qemu_bin}" > /dev/null 2>&1; then
+            die "Cross-arch emulation requires ${qemu_bin}. Install the qemu-system-${ARCH} package."
+        fi
+        # KVM only accelerates same-arch guests; switch to pure QEMU emulation.
+        [[ "${VIRTTYPE}" == "kvm" ]] && VIRTTYPE=qemu
+        # host-model is meaningless when emulating a foreign CPU; pick a reasonable default.
+        if [[ "${FEATURE}" == "host-model" ]]; then
+            case "${ARCH}" in
+                aarch64) FEATURE=cortex-a57 ;;
+                x86_64)  FEATURE=qemu64 ;;
+                *) ;;
+            esac
+        fi
+        # aarch64 uses the 'virt' machine type which has no BIOS; UEFI firmware is required.
+        # Check for it now so we can give a useful install hint rather than a cryptic libvirt error.
+        if [[ "${ARCH}" == "aarch64" ]]; then
+            local has_fw=0
+            { command -v rpm  > /dev/null 2>&1 && rpm  -q edk2-aarch64      > /dev/null 2>&1; } && has_fw=1
+            { command -v dpkg > /dev/null 2>&1 && dpkg -s qemu-efi-aarch64  > /dev/null 2>&1; } && has_fw=1
+            if [[ "${has_fw}" -eq 0 ]]; then
+                die "aarch64 VMs require UEFI firmware. Install it first:
+  Fedora/RHEL:    sudo dnf install edk2-aarch64
+  Debian/Ubuntu:  sudo apt install qemu-efi-aarch64"
+            fi
+        fi
     fi
 
     # Yes (-y) and No (-n) are mutually exclusive.
